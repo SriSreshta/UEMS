@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
     return stored ? JSON.parse(stored) : null;
   });
 
-  // Login function: sends credentials to backend
+  // ✅ LOGIN FUNCTION
   const login = async (username, password) => {
     try {
       const res = await fetch("http://localhost:8080/api/auth/login", {
@@ -28,15 +28,15 @@ export const AuthProvider = ({ children }) => {
 
       const payload = {
         username: decoded.sub,
-        role: decoded.role, // ROLE_ADMIN, ROLE_STUDENT, ROLE_FACULTY
+        role: decoded.role, // ROLE_ADMIN, ROLE_FACULTY, ROLE_STUDENT
         token: data.token,
       };
 
       sessionStorage.setItem("uems_user", JSON.stringify(payload));
       setUser(payload);
 
-      // Map backend role to route
-      let route = "";
+      // Redirect based on role
+      let route = "/";
       switch (payload.role) {
         case "ROLE_ADMIN":
           route = "/admin";
@@ -58,21 +58,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
+  // ✅ LOGOUT FUNCTION
   const logout = () => {
     sessionStorage.removeItem("uems_user");
     setUser(null);
     navigate("/login");
   };
 
-  // Helper to add token automatically
+  // ✅ FETCH WRAPPER THAT ADDS TOKEN
   const authFetch = async (url, options = {}) => {
     if (!user?.token) throw new Error("Not authenticated");
     const res = await fetch(url, {
       ...options,
       headers: {
-        ...options.headers,
+        "Content-Type": "application/json",
         Authorization: `Bearer ${user.token}`,
+        ...options.headers,
       },
     });
     return res;

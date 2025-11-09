@@ -17,28 +17,41 @@ import { useAuth } from "../auth/AuthContext";
 const baseItem =
   "flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-100 hover:bg-slate-700/50 hover:text-white transition-colors";
 const iconCls = "h-5 w-5 shrink-0 text-slate-200";
-const sectionTitle = "px-3 pt-4 pb-2 text-[11px] uppercase tracking-wide text-slate-400";
+const sectionTitle =
+  "px-3 pt-4 pb-2 text-[11px] uppercase tracking-wide text-slate-400";
 
 function Collapse({ label, icon: Icon, isMini, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div>
       <button
-        className={`${baseItem} w-full ${open ? "bg-slate-700/40 text-white" : "text-slate-100"}`}
+        className={`${baseItem} w-full ${
+          open ? "bg-slate-700/40 text-white" : "text-slate-100"
+        }`}
         onClick={() => setOpen((s) => !s)}
         aria-expanded={open}
       >
         <Icon className={`${iconCls}`} />
         {!isMini && <span className="flex-1 text-left">{label}</span>}
         {!isMini && (
-          <ChevronDownIcon className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDownIcon
+            className={`h-4 w-4 transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          />
         )}
       </button>
       <div
-        className={`overflow-hidden transition-all duration-200 ${open ? "max-h-96" : "max-h-0"}`}
+        className={`overflow-hidden transition-all duration-200 ${
+          open ? "max-h-96" : "max-h-0"
+        }`}
         aria-hidden={!open}
       >
-        <div className={`${isMini ? "hidden" : "pl-11 pr-2 py-1 space-y-1"}`}>{children}</div>
+        <div
+          className={`${isMini ? "hidden" : "pl-11 pr-2 py-1 space-y-1"}`}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -50,7 +63,9 @@ function Item({ to = "#", label, icon: Icon, isMini }) {
   return (
     <Link
       to={to}
-      className={`${baseItem} ${active ? "bg-slate-700/50 text-white" : "text-slate-100"}`}
+      className={`${baseItem} ${
+        active ? "bg-slate-700/50 text-white" : "text-slate-100"
+      }`}
     >
       <Icon className={iconCls} />
       {!isMini && <span>{label}</span>}
@@ -67,15 +82,16 @@ export default function Sidebar({ isOpen, role = "student" }) {
       return [
         { type: "profile" },
         { type: "section", title: "main" },
+
+        // ✅ Attendance as standalone item
         {
-          type: "collapse",
+          type: "item",
           label: "Attendance",
           icon: ClipboardDocumentListIcon,
-          children: [
-            { label: "In Process", icon: DocumentTextIcon, to: "/faculty/attendance/in-process" },
-            { label: "Completed", icon: DocumentTextIcon, to: "/faculty/attendance/completed" },
-          ],
+          to: "/faculty/attendance",
         },
+
+        // Internal Marks group
         {
           type: "collapse",
           label: "Internal Marks",
@@ -86,6 +102,8 @@ export default function Sidebar({ isOpen, role = "student" }) {
             { label: "Assignment/Seminar", icon: AcademicCapIcon, to: "/faculty/internal/assignment" },
           ],
         },
+
+        // External Marks group
         {
           type: "collapse",
           label: "External Marks",
@@ -96,6 +114,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
         },
       ];
     }
+
     if (role === "admin") {
       return [
         { type: "profile" },
@@ -114,7 +133,8 @@ export default function Sidebar({ isOpen, role = "student" }) {
         },
       ];
     }
-    // student default
+
+    // Student menu
     return [
       { type: "profile" },
       { type: "section", title: "student" },
@@ -141,7 +161,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
       }`}
       aria-label="Sidebar"
     >
-      {/* Header / brand */}
+      {/* Header */}
       <div className="h-14 flex items-center px-3 border-b border-white/10">
         {!isMini && <span className="text-sm font-semibold">UEMS</span>}
       </div>
@@ -152,7 +172,9 @@ export default function Sidebar({ isOpen, role = "student" }) {
           <UserCircleIcon className={`${iconCls}`} />
           {!isMini && (
             <div className="leading-tight">
-              <div className="text-sm font-medium text-slate-50">{user?.username ?? "User"}</div>
+              <div className="text-sm font-medium text-slate-50">
+                {user?.username ?? "User"}
+              </div>
               <div className="text-xs text-slate-300 capitalize">{role}</div>
             </div>
           )}
@@ -171,9 +193,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
               <Fragment key={idx} />
             );
           }
-          if (m.type === "item") {
-            return <Item key={idx} {...m} isMini={isMini} />;
-          }
+          if (m.type === "item") return <Item key={idx} {...m} isMini={isMini} />;
           if (m.type === "collapse") {
             return (
               <Collapse key={idx} label={m.label} icon={m.icon} isMini={isMini}>
@@ -187,7 +207,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
         })}
       </nav>
 
-      {/* Logout fixed at bottom */}
+      {/* Logout */}
       <div className="p-3 border-t border-white/10">
         <button
           onClick={logout}

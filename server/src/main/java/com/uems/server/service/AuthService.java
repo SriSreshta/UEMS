@@ -26,13 +26,19 @@ public class AuthService {
         this.authManager = authManager;
         this.jwtService = jwtService;
     }
-
-    public AuthResponse login(LoginRequest req) {
+public AuthResponse login(LoginRequest req) {
     authManager.authenticate(new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
     User user = userRepo.findByUsername(req.getUsername())
-        .orElseThrow(() -> new RuntimeException("User not found"));
-    String token = jwtService.generateToken(user.getUsername(), user.getRole().getName());
-    return new AuthResponse(token, user.getRole().getName());
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    String roleName = user.getRole().getName();
+if (!roleName.startsWith("ROLE_")) {
+    roleName = "ROLE_" + roleName;
 }
+String token = jwtService.generateToken(user.getUsername(), roleName);
 
+
+    
+    // ✅ Include username in response
+    return new AuthResponse(token, user.getRole().getName(), user.getUsername());
+}
 }

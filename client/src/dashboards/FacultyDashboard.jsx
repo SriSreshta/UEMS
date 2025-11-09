@@ -6,16 +6,29 @@ import { useAuth } from "../auth/AuthContext";
 const FacultyDashboard = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { user, authFetch } = useAuth();
-  const [message, setMessage] = useState("");
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      const res = await authFetch("http://localhost:8080/api/test/faculty");
-      const text = await res.text();
-      setMessage(text);
+    const fetchCourses = async () => {
+      try {
+        if (!user?.username) return;
+        const res = await authFetch(
+          `http://localhost:8080/api/courses/faculty/by-username/${user.username}`
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setCourses(data);
+      } catch (err) {
+        console.error("Failed to fetch courses:", err);
+        setError("Could not load assigned courses.");
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchData();
-  }, []);
+    fetchCourses();
+  }, [authFetch, user]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -30,7 +43,31 @@ const FacultyDashboard = () => {
           <h1 className="text-2xl font-bold mb-2">
             Welcome, {user?.username || "Faculty"}!
           </h1>
-          <p className="text-gray-600 mb-4">{message}</p>
+
+          {loading ? (
+            <p>Loading courses...</p>
+          ) : error ? (
+            <p className="text-red-600">{error}</p>
+          ) : (
+            <>
+              <h3 className="text-gray-700 mb-4">
+                You have <b>{courses.length}</b> assigned course
+                {courses.length !== 1 ? "s" : ""}.
+              </h3>
+
+              {courses.length > 0 ? (
+                <ul className="list-disc list-inside">
+                  {courses.map((course) => (
+                    <li key={course.id} className="text-gray-800">
+                      {course.name} ({course.code})
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No courses assigned yet.</p>
+              )}
+            </>
+          )}
         </main>
       </div>
     </div>
