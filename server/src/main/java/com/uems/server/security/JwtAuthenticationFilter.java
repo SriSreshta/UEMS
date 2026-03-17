@@ -27,8 +27,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
@@ -36,10 +36,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // ✅ Skip JWT validation for public endpoints
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth") || path.startsWith("/api/courses/faculty/by-username")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         // Check if Authorization header exists
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {

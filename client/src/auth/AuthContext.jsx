@@ -26,9 +26,14 @@ export const AuthProvider = ({ children }) => {
       const data = await res.json();
       const decoded = jwtDecode(data.token);
 
+      // Robust role extraction
+      let rawRole = decoded.role || "";
+      if (Array.isArray(rawRole)) rawRole = rawRole[0];
+      const normalizedRole = rawRole.replace('ROLE_', '').toLowerCase();
+
       const payload = {
         username: decoded.sub,
-        role: decoded.role, // ROLE_ADMIN, ROLE_FACULTY, ROLE_STUDENT
+        role: normalizedRole, 
         token: data.token,
       };
 
@@ -38,13 +43,13 @@ export const AuthProvider = ({ children }) => {
       // Redirect based on role
       let route = "/";
       switch (payload.role) {
-        case "ROLE_ADMIN":
+        case "admin":
           route = "/admin";
           break;
-        case "ROLE_FACULTY":
+        case "faculty":
           route = "/faculty";
           break;
-        case "ROLE_STUDENT":
+        case "student":
           route = "/student";
           break;
         default:
@@ -68,13 +73,20 @@ export const AuthProvider = ({ children }) => {
   // ✅ FETCH WRAPPER THAT ADDS TOKEN
   const authFetch = async (url, options = {}) => {
     if (!user?.token) throw new Error("Not authenticated");
+
+    const headers = {
+      Authorization: `Bearer ${user.token}`,
+      ...options.headers,
+    };
+
+    // Only set Content-Type to JSON if body is NOT FormData
+    if (!(options.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const res = await fetch(url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user.token}`,
-        ...options.headers,
-      },
+      headers: headers,
     });
     return res;
   };

@@ -10,6 +10,9 @@ import ForgotPassword from "./pages/ForgotPassword";
 import FacultyAttendancePage from "./pages/FacultyAttendancePage";
 import MarkAttendancePage from "./pages/MarkAttendancePage";
 
+import AddUserManual from "./pages/AddUserManual";
+import BulkUserUpload from "./pages/BulkUserUpload";
+
 export default function App() {
   return (
     <div className="min-h-screen bg-gray-100">
@@ -55,6 +58,24 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/users/add"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AddUserManual />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/users/upload"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <BulkUserUpload />
             </ProtectedRoute>
           }
         />

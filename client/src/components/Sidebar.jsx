@@ -119,8 +119,15 @@ export default function Sidebar({ isOpen, role = "student" }) {
       return [
         { type: "profile" },
         { type: "section", title: "manage" },
-        { type: "item", label: "Manage Students", icon: UserCircleIcon, to: "/admin/students" },
-        { type: "item", label: "Manage Faculty", icon: UserCircleIcon, to: "/admin/faculty" },
+        {
+          type: "collapse",
+          label: "User Management",
+          icon: UserCircleIcon,
+          children: [
+            { label: "Add User", icon: UserCircleIcon, to: "/admin/users/add" },
+            { label: "Bulk Upload", icon: DocumentTextIcon, to: "/admin/users/upload" },
+          ],
+        },
         {
           type: "collapse",
           label: "Exams & Schedules",

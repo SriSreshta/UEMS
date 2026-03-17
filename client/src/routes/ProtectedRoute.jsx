@@ -10,16 +10,8 @@ export default function ProtectedRoute({ children, requiredRole }) {
     return <Navigate to="/login" replace />;
   }
 
-  // Map backend role to lowercase role string for easier comparison
-  const roleMap = {
-    'ROLE_ADMIN': 'admin',
-    'ROLE_FACULTY': 'faculty',
-    'ROLE_STUDENT': 'student'
-  };
-  const userRole = roleMap[user.role];
-
-  if (requiredRole && userRole !== requiredRole) {
-    return <Navigate to={`/${userRole}`} replace />;
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to={`/${user.role}`} replace />;
   }
 
   return children;

@@ -6,9 +6,13 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Get the object we stored in AuthContext
+  const storedUser = sessionStorage.getItem("uems_user");
+  if (storedUser) {
+    const { token } = JSON.parse(storedUser);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
