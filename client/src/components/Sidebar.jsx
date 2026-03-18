@@ -130,6 +130,16 @@ export default function Sidebar({ isOpen, role = "student" }) {
         },
         {
           type: "collapse",
+          label: "Course Management",
+          icon: AcademicCapIcon,
+          defaultOpen: false,
+          children: [
+            { label: "Manage Courses", icon: AcademicCapIcon, to: "/admin/manage-courses" },
+            { label: "Enrollments", icon: ClipboardDocumentListIcon, to: "/admin/enrollments" },
+          ],
+        },
+        {
+          type: "collapse",
           label: "Exams & Schedules",
           icon: ClipboardDocumentListIcon,
           children: [

@@ -15,9 +15,5 @@ public class StudentController {
     @Autowired
     private StudentRepository studentRepository;
 
-    // ✅ Get all students enrolled in a course
-    @GetMapping("/by-course/{courseId}")
-    public List<Student> getStudentsByCourse(@PathVariable Long courseId) {
-        return studentRepository.findByCourseCourseId(courseId);
-    }
+    // ❌ REMOVE this method (not valid anymore)
 }

@@ -12,6 +12,8 @@ import MarkAttendancePage from "./pages/MarkAttendancePage";
 
 import AddUserManual from "./pages/AddUserManual";
 import BulkUserUpload from "./pages/BulkUserUpload";
+import ManageCourses from "./pages/ManageCourses";
+import CourseEnrollment from "./pages/CourseEnrollment";
 
 export default function App() {
   return (
@@ -76,6 +78,24 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <BulkUserUpload />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/manage-courses"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <ManageCourses />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/enrollments"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <CourseEnrollment />
             </ProtectedRoute>
           }
         />

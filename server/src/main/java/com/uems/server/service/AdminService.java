@@ -1,14 +1,8 @@
 package com.uems.server.service;
 
-import com.uems.server.dto.CreateUserRequest;
-import com.uems.server.model.Faculty;
-import com.uems.server.model.Role;
-import com.uems.server.model.Student;
-import com.uems.server.model.User;
-import com.uems.server.repository.FacultyRepository;
-import com.uems.server.repository.RoleRepository;
-import com.uems.server.repository.StudentRepository;
-import com.uems.server.repository.UserRepository;
+import com.uems.server.dto.*;
+import com.uems.server.model.*;
+import com.uems.server.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
@@ -24,39 +18,44 @@ import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AdminService {
 
+    // ── Existing dependencies ────────────────────────────────────────────────
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final StudentRepository studentRepository;
     private final FacultyRepository facultyRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // ── New dependencies ─────────────────────────────────────────────────────
+    private final CourseRepository courseRepository;
+    private final EnrollmentRepository enrollmentRepository;
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  EXISTING USER CREATION LOGIC — DO NOT MODIFY
+    // ════════════════════════════════════════════════════════════════════════
+
     @Transactional
     public void createUser(CreateUserRequest request) {
-        // Validate uniqueness
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Error: Username is already taken!");
         }
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Error: Email is already in use!");
         }
 
-        // Map Role
         String roleName = request.getRole().equalsIgnoreCase("faculty") ? "ROLE_FACULTY" : "ROLE_STUDENT";
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
 
-        // Generate Password
         String generatedPassword = generateRandomPassword();
         log.info("GENERATED PASSWORD FOR USER {}: {}", request.getUsername(), generatedPassword);
 
-        // Create User Entity
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
@@ -65,13 +64,13 @@ public class AdminService {
 
         User savedUser = userRepository.save(user);
 
-        // Create specific entity
         if (roleName.equals("ROLE_STUDENT")) {
             Student student = new Student();
             student.setUser(savedUser);
             student.setRollNumber(request.getRollNumber() != null ? request.getRollNumber() : request.getUsername());
             student.setYear(request.getYear() != null ? request.getYear() : "1");
             student.setSemester(request.getSemester() != null ? request.getSemester() : "1");
+            student.setDepartment(request.getDepartment() != null ? request.getDepartment() : "N/A");
             studentRepository.save(student);
         } else if (roleName.equals("ROLE_FACULTY")) {
             Faculty faculty = new Faculty();
@@ -90,18 +89,15 @@ public class AdminService {
 
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
-            
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
-
                 try {
                     CreateUserRequest req = new CreateUserRequest();
                     req.setUsername(getCellValue(row, 0));
                     req.setEmail(getCellValue(row, 1));
                     String role = getCellValue(row, 2).toLowerCase();
                     req.setRole(role);
-
                     if (role.equals("student")) {
                         req.setRollNumber(getCellValue(row, 3));
                         req.setYear(getCellValue(row, 4));
@@ -110,7 +106,6 @@ public class AdminService {
                         req.setDepartment(getCellValue(row, 3));
                         req.setDesignation(getCellValue(row, 4));
                     }
-
                     createUser(req);
                     successCount++;
                 } catch (Exception e) {
@@ -126,26 +121,168 @@ public class AdminService {
         return results;
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    //  COURSE MANAGEMENT
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Transactional
+    public CourseResponse createCourse(CourseRequest request) {
+        Course course = Course.builder()
+                .name(request.getName())
+                .code(request.getCode())
+                .department(request.getDepartment())
+                .year(request.getYear())
+                .semester(request.getSemester())
+                .build();
+        Course saved = courseRepository.save(course);
+        return toCourseResponse(saved);
+    }
+
+    public List<CourseResponse> getAllCourses() {
+        return courseRepository.findAll()
+                .stream()
+                .map(this::toCourseResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CourseResponse assignFacultyToCourse(Long courseId, Long facultyId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+        Faculty faculty = facultyRepository.findById(facultyId)
+                .orElseThrow(() -> new RuntimeException("Faculty not found: " + facultyId));
+        course.setFaculty(faculty);
+        return toCourseResponse(courseRepository.save(course));
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  FACULTY LIST
+    // ════════════════════════════════════════════════════════════════════════
+
+    public List<FacultyResponse> getAllFaculties() {
+        return facultyRepository.findAll()
+                .stream()
+                .map(f -> new FacultyResponse(
+                        f.getId(),
+                        f.getUser() != null ? f.getUser().getUsername() : "",
+                        f.getUser() != null ? f.getUser().getEmail() : "",
+                        f.getDepartment(),
+                        f.getDesignation()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  STUDENT FILTERING
+    // ════════════════════════════════════════════════════════════════════════
+
+    public List<StudentResponse> getStudentsFiltered(String year, String semester, String department) {
+        List<Student> students;
+        if (department != null && !department.isBlank()) {
+            students = studentRepository.findByYearAndSemesterAndDepartment(year, semester, department);
+        } else {
+            students = studentRepository.findByYearAndSemester(year, semester);
+        }
+        return students.stream().map(this::toStudentResponse).collect(Collectors.toList());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  ENROLLMENT
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Transactional
+    public String enrollStudentInCourse(Long studentId, Long courseId) {
+        if (enrollmentRepository.existsByStudentIdAndCourseCourseId(studentId, courseId)) {
+            return "Student " + studentId + " is already enrolled in course " + courseId + ". Skipped.";
+        }
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found: " + studentId));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+        enrollmentRepository.save(Enrollment.builder().student(student).course(course).build());
+        return "Student " + studentId + " enrolled in course " + courseId + " successfully.";
+    }
+
+    @Transactional
+    public List<String> enrollStudentsInCourseBulk(List<Long> studentIds, Long courseId) {
+        List<String> results = new ArrayList<>();
+        for (Long studentId : studentIds) {
+            results.add(enrollStudentInCourse(studentId, courseId));
+        }
+        return results;
+    }
+
+    public List<EnrollmentResponse> getEnrollmentsByCourse(Long courseId) {
+        return enrollmentRepository.findByCourseCourseId(courseId)
+                .stream()
+                .map(this::toEnrollmentResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<EnrollmentResponse> getEnrollmentsByStudent(Long studentId) {
+        return enrollmentRepository.findByStudentId(studentId)
+                .stream()
+                .map(this::toEnrollmentResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  PRIVATE HELPERS
+    // ════════════════════════════════════════════════════════════════════════
+
+    private CourseResponse toCourseResponse(Course c) {
+        Long facultyId = null;
+        String facultyName = null;
+        String facultyDept = null;
+        if (c.getFaculty() != null) {
+            Faculty f = c.getFaculty();
+            facultyId = f.getId();
+            facultyName = f.getUser() != null ? f.getUser().getUsername() : null;
+            facultyDept = f.getDepartment();
+        }
+        return new CourseResponse(c.getCourseId(), c.getName(), c.getCode(),
+                c.getDepartment(), c.getYear(), c.getSemester(),
+                facultyId, facultyName, facultyDept);
+    }
+
+    private StudentResponse toStudentResponse(Student s) {
+        return new StudentResponse(
+                s.getId(),
+                s.getUser() != null ? s.getUser().getUsername() : "",
+                s.getUser() != null ? s.getUser().getEmail() : "",
+                s.getRollNumber(),
+                s.getYear(),
+                s.getSemester(),
+                s.getDepartment()
+        );
+    }
+
+    private EnrollmentResponse toEnrollmentResponse(Enrollment e) {
+        return new EnrollmentResponse(
+                e.getId(),
+                e.getStudent().getId(),
+                e.getStudent().getUser() != null ? e.getStudent().getUser().getUsername() : "",
+                e.getStudent().getRollNumber(),
+                e.getCourse().getCourseId(),
+                e.getCourse().getName(),
+                e.getCourse().getCode()
+        );
+    }
+
     private String getCellValue(Row row, int cellIndex) {
         org.apache.poi.ss.usermodel.Cell cell = row.getCell(cellIndex);
         if (cell == null) return "";
-        
         switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue().trim();
+            case STRING: return cell.getStringCellValue().trim();
             case NUMERIC:
                 if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
                     return cell.getDateCellValue().toString();
                 } else {
-                    // Use DataFormatter for consistent numeric to string conversion
                     return new org.apache.poi.ss.usermodel.DataFormatter().formatCellValue(cell).trim();
                 }
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA:
-                return cell.getCellFormula();
-            default:
-                return "";
+            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA: return cell.getCellFormula();
+            default: return "";
         }
     }
 

@@ -1,6 +1,6 @@
 package com.uems.server.controller;
 
-import com.uems.server.dto.CreateUserRequest;
+import com.uems.server.dto.*;
 import com.uems.server.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +16,10 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  EXISTING — User Management
+    // ════════════════════════════════════════════════════════════════════════
 
     @PostMapping("/create-user")
     @PreAuthorize("hasRole('ADMIN')")
@@ -37,5 +41,143 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error uploading file: " + e.getMessage());
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  COURSE MANAGEMENT
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * POST /api/admin/courses
+     * Create a new course.
+     */
+    @PostMapping("/courses")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createCourse(@RequestBody CourseRequest request) {
+        try {
+            CourseResponse course = adminService.createCourse(request);
+            return ResponseEntity.ok(course);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * GET /api/admin/courses
+     * List all courses (with faculty info if assigned).
+     */
+    @GetMapping("/courses")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<CourseResponse>> getAllCourses() {
+        return ResponseEntity.ok(adminService.getAllCourses());
+    }
+
+    /**
+     * POST /api/admin/courses/assign
+     * Assign a faculty member to a course.
+     * Body: { "courseId": 1, "facultyId": 2 }
+     */
+    @PostMapping("/courses/assign")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> assignFaculty(@RequestBody AssignFacultyRequest request) {
+        try {
+            CourseResponse updated = adminService.assignFacultyToCourse(request.getCourseId(), request.getFacultyId());
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  FACULTY LIST
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/admin/faculties
+     * List all faculty members (safe DTO — no course recursion).
+     */
+    @GetMapping("/faculties")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<FacultyResponse>> getAllFaculties() {
+        return ResponseEntity.ok(adminService.getAllFaculties());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  STUDENT FILTERING
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/admin/students?year=3&semester=1&department=CSE
+     * Return students filtered by year, semester and optionally department.
+     */
+    @GetMapping("/students")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getStudents(
+            @RequestParam String year,
+            @RequestParam String semester,
+            @RequestParam(required = false) String department) {
+        try {
+            List<StudentResponse> students = adminService.getStudentsFiltered(year, semester, department);
+            return ResponseEntity.ok(students);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  ENROLLMENT
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * POST /api/admin/enroll
+     * Enroll a single student in a course.
+     * Body: { "studentId": 1, "courseId": 2 }
+     */
+    @PostMapping("/enroll")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> enrollStudent(@RequestBody EnrollRequest request) {
+        try {
+            String msg = adminService.enrollStudentInCourse(request.getStudentId(), request.getCourseId());
+            return ResponseEntity.ok(msg);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/admin/enroll/bulk
+     * Enroll multiple students in a course.
+     * Body: { "studentIds": [1, 2, 3], "courseId": 5 }
+     */
+    @PostMapping("/enroll/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> enrollStudentsBulk(@RequestBody BulkEnrollRequest request) {
+        try {
+            List<String> results = adminService.enrollStudentsInCourseBulk(
+                    request.getStudentIds(), request.getCourseId());
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * GET /api/admin/enrollments/course/{courseId}
+     * Get all enrollments for a specific course.
+     */
+    @GetMapping("/enrollments/course/{courseId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<EnrollmentResponse>> getEnrollmentsByCourse(@PathVariable Long courseId) {
+        return ResponseEntity.ok(adminService.getEnrollmentsByCourse(courseId));
+    }
+
+    /**
+     * GET /api/admin/enrollments/student/{studentId}
+     * Get all enrollments for a specific student.
+     */
+    @GetMapping("/enrollments/student/{studentId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<EnrollmentResponse>> getEnrollmentsByStudent(@PathVariable Long studentId) {
+        return ResponseEntity.ok(adminService.getEnrollmentsByStudent(studentId));
     }
 }
