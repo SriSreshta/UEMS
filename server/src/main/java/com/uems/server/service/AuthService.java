@@ -13,15 +13,18 @@ public class AuthService {
 
     private final UserRepository userRepo;
     private final RoleRepository roleRepo;
+    private final FacultyRepository facultyRepo;
     private final PasswordEncoder encoder;
     private final AuthenticationManager authManager;
     private final JwtService jwtService;
 
     public AuthService(UserRepository userRepo, RoleRepository roleRepo,
+                       FacultyRepository facultyRepo,
                        PasswordEncoder encoder, AuthenticationManager authManager,
                        JwtService jwtService) {
         this.userRepo = userRepo;
         this.roleRepo = roleRepo;
+        this.facultyRepo = facultyRepo;
         this.encoder = encoder;
         this.authManager = authManager;
         this.jwtService = jwtService;
@@ -36,9 +39,15 @@ if (!roleName.startsWith("ROLE_")) {
 }
 String token = jwtService.generateToken(user.getUsername(), roleName);
 
-
+    Long facultyId = null;
+    if ("ROLE_FACULTY".equalsIgnoreCase(roleName) || "faculty".equalsIgnoreCase(user.getRole().getName())) {
+        Faculty faculty = facultyRepo.findByUserId(user.getId());
+        if (faculty != null) {
+            facultyId = faculty.getId();
+        }
+    }
     
-    // ✅ Include username in response
-    return new AuthResponse(token, user.getRole().getName(), user.getUsername());
+    // ✅ Include username and facultyId in response
+    return new AuthResponse(token, user.getRole().getName(), user.getUsername(), facultyId);
 }
 }

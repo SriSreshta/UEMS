@@ -100,8 +100,9 @@ public class AdminService {
                     req.setRole(role);
                     if (role.equals("student")) {
                         req.setRollNumber(getCellValue(row, 3));
-                        req.setYear(getCellValue(row, 4));
-                        req.setSemester(getCellValue(row, 5));
+                        req.setDepartment(getCellValue(row, 4));
+                        req.setYear(getCellValue(row, 5));
+                        req.setSemester(getCellValue(row, 6));
                     } else if (role.equals("faculty")) {
                         req.setDepartment(getCellValue(row, 3));
                         req.setDesignation(getCellValue(row, 4));

@@ -68,11 +68,12 @@ const BulkUserUpload = () => {
                   <span className="block text-xs uppercase text-indigo-400 font-bold mb-2 tracking-tighter">Column Order Mapping</span>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[13px]">
                     <span className="text-slate-500">Col 1: <b className="text-indigo-600">username</b></span>
-                    <span className="text-slate-500">Col 4: <b className="text-indigo-600">rollNumber / dept</b></span>
+                    <span className="text-slate-500">Col 5: <b className="text-indigo-600">dept / designation</b></span>
                     <span className="text-slate-500">Col 2: <b className="text-indigo-600">email</b></span>
-                    <span className="text-slate-500">Col 5: <b className="text-indigo-600">year / designation</b></span>
+                    <span className="text-slate-500">Col 6: <b className="text-indigo-600">year / <i>(blank)</i></b></span>
                     <span className="text-slate-500">Col 3: <b className="text-indigo-600">role</b></span>
-                    <span className="text-slate-500">Col 6: <b className="text-indigo-600">semester</b></span>
+                    <span className="text-slate-500">Col 7: <b className="text-indigo-600">semester / <i>(blank)</i></b></span>
+                    <span className="text-slate-500">Col 4: <b className="text-indigo-600">rollNumber / dept</b></span>
                   </div>
                 </div>
               </div>

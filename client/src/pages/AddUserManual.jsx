@@ -109,10 +109,14 @@ const AddUserManual = () => {
                   <div className="w-8 h-[1px] bg-slate-200"></div>
                   Student Profile
                 </h3>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-tighter">Roll Number</label>
                     <input required type="text" name="rollNumber" placeholder="Roll #" value={formData.rollNumber} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 outline-none text-sm font-bold text-slate-700" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-tighter">Department</label>
+                    <input required type="text" name="department" placeholder="e.g. CSE" value={formData.department} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 outline-none text-sm font-bold text-slate-700" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-tighter">Academic Year</label>

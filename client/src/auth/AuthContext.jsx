@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }) => {
         username: decoded.sub,
         role: normalizedRole, 
         token: data.token,
+        facultyId: data.facultyId || null,
       };
 
       sessionStorage.setItem("uems_user", JSON.stringify(payload));
