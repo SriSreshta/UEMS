@@ -52,8 +52,8 @@ const FacultyAttendancePage = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-slate-800">
                                 {courses.map(course => (
                                     <Link 
-                                        key={course.id} 
-                                        to={`/faculty/attendance/mark/${course.id}`}
+                                        key={course.courseId} 
+                                        to={`/faculty/attendance/mark/${course.courseId}`}
                                         className="group bg-white rounded-3xl p-8 border border-white shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-500 relative overflow-hidden"
                                     >
                                         <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-125 transition-transform duration-700">
