@@ -9,11 +9,19 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import ForgotPassword from "./pages/ForgotPassword";
 import FacultyAttendancePage from "./pages/FacultyAttendancePage";
 import MarkAttendancePage from "./pages/MarkAttendancePage";
+import UploadMarksPage from "./pages/UploadMarksPage";
+import StudentMarksPage from "./pages/StudentMarksPage";
+import AdminFeeNotifications from "./pages/AdminFeeNotifications";
+import StudentPaymentsPage from "./pages/StudentPaymentsPage";
 
 import AddUserManual from "./pages/AddUserManual";
 import BulkUserUpload from "./pages/BulkUserUpload";
 import ManageCourses from "./pages/ManageCourses";
 import CourseEnrollment from "./pages/CourseEnrollment";
+import ManageUsers from "./pages/ManageUsers";
+import FacultyMaterialsPage from "./pages/FacultyMaterialsPage";
+import StudentMaterialsPage from "./pages/StudentMaterialsPage";
+import Footer from "./components/Footer";
 
 export default function App() {
   return (
@@ -54,6 +62,24 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/faculty/marks/upload/:courseId"
+          element={
+            <ProtectedRoute requiredRole="faculty">
+              <UploadMarksPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/faculty/materials"
+          element={
+            <ProtectedRoute requiredRole="faculty">
+              <FacultyMaterialsPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Admin routes */}
         <Route
           path="/admin"
@@ -63,12 +89,29 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/fees"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminFeeNotifications />
+            </ProtectedRoute>
+          }
+        />
         
         <Route
           path="/admin/users/add"
           element={
             <ProtectedRoute requiredRole="admin">
               <AddUserManual />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/users/manage"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <ManageUsers />
             </ProtectedRoute>
           }
         />
@@ -106,6 +149,33 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="student">
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/marks/internal"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentMarksPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/payments"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentPaymentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/materials"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentMaterialsPage />
             </ProtectedRoute>
           }
         />

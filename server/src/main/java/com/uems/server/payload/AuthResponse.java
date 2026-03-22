@@ -5,12 +5,14 @@ public class AuthResponse {
     private String role;
     private String username;
     private Long facultyId; // Nullable for non-faculty
+    private Long studentId; // Nullable for non-student
 
-    public AuthResponse(String token, String role, String username, Long facultyId) {
+    public AuthResponse(String token, String role, String username, Long facultyId, Long studentId) {
         this.token = token;
         this.role = role;
         this.username = username;
         this.facultyId = facultyId;
+        this.studentId = studentId;
     }
 
     // Getters and setters
@@ -25,4 +27,7 @@ public class AuthResponse {
 
     public Long getFacultyId() { return facultyId; }
     public void setFacultyId(Long facultyId) { this.facultyId = facultyId; }
+
+    public Long getStudentId() { return studentId; }
+    public void setStudentId(Long studentId) { this.studentId = studentId; }
 }

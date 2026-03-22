@@ -11,6 +11,7 @@ import {
   ChartBarIcon,
   ClipboardDocumentListIcon,
   ArrowLeftOnRectangleIcon,
+  BookOpenIcon,
 } from "@heroicons/react/24/solid";
 import { useAuth } from "../auth/AuthContext";
 
@@ -83,12 +84,17 @@ export default function Sidebar({ isOpen, role = "student" }) {
         { type: "profile" },
         { type: "section", title: "main" },
 
-        // ✅ Attendance as standalone item
         {
           type: "item",
           label: "Attendance",
           icon: ClipboardDocumentListIcon,
           to: "/faculty/attendance",
+        },
+        {
+          type: "item",
+          label: "Study Resources",
+          icon: BookOpenIcon,
+          to: "/faculty/materials",
         },
 
         // Internal Marks group
@@ -125,6 +131,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
           icon: UserCircleIcon,
           children: [
             { label: "Add User", icon: UserCircleIcon, to: "/admin/users/add" },
+            { label: "Manage Users", icon: UserCircleIcon, to: "/admin/users/manage" },
             { label: "Bulk Upload", icon: DocumentTextIcon, to: "/admin/users/upload" },
           ],
         },
@@ -148,6 +155,12 @@ export default function Sidebar({ isOpen, role = "student" }) {
             { label: "Publish Results", icon: ChartBarIcon, to: "/admin/exams/publish" },
           ],
         },
+        {
+          type: "item",
+          label: "Fee Notifications",
+          icon: BanknotesIcon,
+          to: "/admin/fees",
+        },
       ];
     }
 
@@ -158,13 +171,10 @@ export default function Sidebar({ isOpen, role = "student" }) {
       { type: "item", label: "Student Documents", icon: DocumentTextIcon, to: "/student/documents" },
       { type: "item", label: "Certificates", icon: AcademicCapIcon, to: "/student/certificates" },
       {
-        type: "collapse",
-        label: "Payments",
+        type: "item",
+        label: "Fee Payments",
         icon: BanknotesIcon,
-        children: [
-          { label: "Regular Exams", icon: BanknotesIcon, to: "/student/payments/regular" },
-          { label: "Supplementary", icon: BanknotesIcon, to: "/student/payments/supply" },
-        ],
+        to: "/student/payments",
       },
       { type: "item", label: "Course Materials", icon: FolderIcon, to: "/student/materials" },
       { type: "item", label: "Marks (Internal)", icon: ChartBarIcon, to: "/student/marks/internal" },

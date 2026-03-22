@@ -37,4 +37,18 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
      */
     @Query("SELECT e.student FROM Enrollment e WHERE e.course.courseId = :courseId")
     List<Student> findStudentsByCourseId(@Param("courseId") Long courseId);
+
+    /**
+     * Delete all enrollments for all students of a given year and semester.
+     * Used for clearing a batch before re-enrolling.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Enrollment e WHERE e.student.year = :year AND e.student.semester = :semester")
+    void deleteByStudentYearAndStudentSemester(@Param("year") String year, @Param("semester") String semester);
+
+    /**
+     * Find all enrollments for students of a given year and semester.
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.student.year = :year AND e.student.semester = :semester")
+    List<Enrollment> findByStudentYearAndStudentSemester(@Param("year") String year, @Param("semester") String semester);
 }

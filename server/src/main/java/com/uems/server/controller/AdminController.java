@@ -43,6 +43,23 @@ public class AdminController {
         }
     }
 
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(adminService.getAllUsers());
+    }
+
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        try {
+            adminService.deleteUser(id);
+            return ResponseEntity.ok("User deleted successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     //  COURSE MANAGEMENT
     // ════════════════════════════════════════════════════════════════════════
@@ -158,6 +175,25 @@ public class AdminController {
             return ResponseEntity.ok(results);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/admin/enroll/batch
+     * Smart batch enrollment: clear existing enrollments for year/sem,
+     * then enroll ALL students of that batch into ALL matching courses.
+     * Body: { "year": "2", "semester": "1" }
+     */
+    @PostMapping("/enroll/batch")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> enrollBatch(@RequestBody java.util.Map<String, String> body) {
+        try {
+            String year     = body.get("year");
+            String semester = body.get("semester");
+            String result   = adminService.enrollBatch(year, semester);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Batch enrollment failed: " + e.getMessage());
         }
     }
 

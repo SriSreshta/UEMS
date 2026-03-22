@@ -28,4 +28,13 @@ public class Enrollment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
+
+    @Column(name = "mid1_marks")
+    private Integer mid1Marks;
+
+    @Column(name = "mid2_marks")
+    private Integer mid2Marks;
+
+    @Column(name = "assignment_marks")
+    private Integer assignmentMarks;
 }

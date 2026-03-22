@@ -1,23 +1,20 @@
-// FILE: client/src/pages/ManageCourses.jsx
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import api from "../api/axiosInstance";
 
 /* ─── tiny toast ─────────────────────────────────────────────────────────── */
 function Toast({ msg, type, onClose }) {
   if (!msg) return null;
-  const bg = type === "success" ? "#22c55e" : "#ef4444";
+  const bg = type === "success" ? "#10b981" : "#ef4444";
   return (
     <div
-      style={{
-        position: "fixed", top: 24, right: 24, zIndex: 9999,
-        background: bg, color: "#fff", padding: "12px 20px",
-        borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,.25)",
-        display: "flex", alignItems: "center", gap: 12, minWidth: 260,
-        animation: "fadeIn .25s ease",
-      }}
+      className="fixed top-6 right-6 z-[9999] px-5 py-3 rounded-xl shadow-2xl text-white flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300"
+      style={{ background: bg }}
     >
-      <span style={{ flex: 1, fontSize: 14 }}>{msg}</span>
-      <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+      <span className="text-sm font-bold">{msg}</span>
+      <button onClick={onClose} className="text-xl font-black opacity-70 hover:opacity-100">×</button>
     </div>
   );
 }
@@ -25,43 +22,26 @@ function Toast({ msg, type, onClose }) {
 /* ─── spinner ─────────────────────────────────────────────────────────────── */
 function Spinner() {
   return (
-    <span style={{
-      display: "inline-block", width: 16, height: 16,
-      border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff",
-      borderRadius: "50%", animation: "spin .7s linear infinite", marginRight: 8,
-    }} />
+    <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin mr-2" />
   );
 }
 
-/* ─── label / input helpers ─────────────────────────────────────────────── */
-const lbl = { display: "block", fontSize: 13, fontWeight: 600, color: "#94a3b8", marginBottom: 5 };
-const inp = {
-  width: "100%", padding: "9px 12px", borderRadius: 7,
-  border: "1px solid #334155", background: "#0f172a",
-  color: "#e2e8f0", fontSize: 14, outline: "none", boxSizing: "border-box",
-};
-const sel = { ...inp, cursor: "pointer" };
-const btn = (color) => ({
-  padding: "9px 18px", borderRadius: 7, border: "none", cursor: "pointer",
-  fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center",
-  background: color, color: "#fff", transition: "opacity .2s",
-});
+const lbl = "block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5";
+const inpCls = "w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300";
+const btnCls = (color) => `px-6 py-2.5 rounded-xl font-bold text-xs text-white transition-all active:scale-95 flex items-center justify-center ${color}`;
 
 export default function ManageCourses() {
-  /* ── state ── */
+  const [isOpen, setIsOpen] = useState(true);
   const [courses, setCourses]     = useState([]);
   const [faculties, setFaculties] = useState([]);
   const [toast, setToast]         = useState({ msg: "", type: "success" });
 
-  // Create course form
   const [form, setForm] = useState({ name: "", code: "", department: "", year: "", semester: "" });
   const [creating, setCreating] = useState(false);
 
-  // Assign faculty
   const [assign, setAssign] = useState({ courseId: "", facultyId: "" });
   const [assigning, setAssigning] = useState(false);
 
-  /* ── helpers ── */
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast({ msg: "", type: "success" }), 4000);
@@ -72,7 +52,6 @@ export default function ManageCourses() {
 
   useEffect(() => { loadCourses(); loadFaculties(); }, [loadCourses, loadFaculties]);
 
-  /* ── handlers ── */
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.name || !form.code || !form.year || !form.semester) {
@@ -107,127 +86,142 @@ export default function ManageCourses() {
     } finally { setAssigning(false); }
   };
 
-  /* ── render ── */
   return (
-    <div style={{ minHeight: "100vh", background: "#0f172a", color: "#e2e8f0", fontFamily: "'Inter',sans-serif", padding: "32px 24px" }}>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { padding: 11px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid #1e293b; }
-        th { color: #94a3b8; font-weight: 700; background: #1e293b; }
-        tr:hover td { background: rgba(255,255,255,.03); }
-        input:focus, select:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,.2); }
-      `}</style>
+    <div className="flex min-h-screen bg-slate-50 bg-pattern">
+      <Sidebar isOpen={isOpen} role="admin" />
+      <div className="flex-1 flex flex-col">
+        <Header title="Manage Courses" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
+        <main className="flex-1 p-8">
+          <Toast msg={toast.msg} type={toast.type} onClose={() => setToast({ msg: "", type: "success" })} />
 
-      <Toast msg={toast.msg} type={toast.type} onClose={() => setToast({ msg: "", type: "success" })} />
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-black text-slate-800 mb-2">Manage Courses</h1>
+            <p className="text-slate-500 mb-10 text-sm">System administration for courses and faculty assignments.</p>
 
-      <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 6, background: "linear-gradient(135deg,#818cf8,#38bdf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-        Manage Courses
-      </h1>
-      <p style={{ color: "#64748b", marginBottom: 32, fontSize: 14 }}>Create courses and assign faculty members.</p>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
-
-        {/* ── Create Course ── */}
-        <div style={{ background: "#1e293b", borderRadius: 14, padding: 24, border: "1px solid #334155" }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "#818cf8" }}>➕ Create New Course</h2>
-          <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div>
-              <label style={lbl}>Course Name *</label>
-              <input style={inp} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Data Structures" />
-            </div>
-            <div>
-              <label style={lbl}>Course Code *</label>
-              <input style={inp} value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="e.g. CS301" />
-            </div>
-            <div>
-              <label style={lbl}>Department</label>
-              <input style={inp} value={form.department} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="e.g. CSE" />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <label style={lbl}>Year *</label>
-                <select style={sel} value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))}>
-                  <option value="">Select</option>
-                  {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
-                </select>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+              {/* Create Course */}
+              <div className="bg-white rounded-3xl p-8 border border-white shadow-xl shadow-slate-200/50">
+                <h2 className="text-lg font-black text-indigo-600 mb-6 flex items-center gap-2">
+                  <span className="p-1.5 bg-indigo-50 rounded-lg">➕</span> Create New Course
+                </h2>
+                <form onSubmit={handleCreate} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={lbl}>Name *</label>
+                      <input className={inpCls} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Data Structures" />
+                    </div>
+                    <div>
+                      <label className={lbl}>Code *</label>
+                      <input className={inpCls} value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="e.g. CS301" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={lbl}>Department</label>
+                    <input className={inpCls} value={form.department} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="e.g. CSE" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={lbl}>Year *</label>
+                      <select className={inpCls} value={form.year} onChange={e => setForm(p => ({ ...p, year: e.target.value }))}>
+                        <option value="">Select</option>
+                        {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={lbl}>Semester *</label>
+                      <select className={inpCls} value={form.semester} onChange={e => setForm(p => ({ ...p, semester: e.target.value }))}>
+                        <option value="">Select</option>
+                        {[1, 2].map(s => <option key={s} value={s}>Sem {s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <button type="submit" disabled={creating} className={btnCls("bg-indigo-600 hover:bg-indigo-700 w-full disabled:opacity-50 mt-2")}>
+                    {creating && <Spinner />} {creating ? "Processing..." : "Register Course"}
+                  </button>
+                </form>
               </div>
-              <div>
-                <label style={lbl}>Semester *</label>
-                <select style={sel} value={form.semester} onChange={e => setForm(p => ({ ...p, semester: e.target.value }))}>
-                  <option value="">Select</option>
-                  {[1, 2].map(s => <option key={s} value={s}>Sem {s}</option>)}
-                </select>
+
+              {/* Assign Faculty */}
+              <div className="bg-white rounded-3xl p-8 border border-white shadow-xl shadow-slate-200/50">
+                <h2 className="text-lg font-black text-blue-600 mb-6 flex items-center gap-2">
+                  <span className="p-1.5 bg-blue-50 rounded-lg">🎓</span> Faculty Assignment
+                </h2>
+                <div className="space-y-6">
+                  <div>
+                    <label className={lbl}>Target Course</label>
+                    <select className={inpCls} value={assign.courseId} onChange={e => setAssign(p => ({ ...p, courseId: e.target.value }))}>
+                      <option value="">— choose course —</option>
+                      {courses.map(c => (
+                        <option key={c.courseId} value={c.courseId}>{c.name} ({c.code})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>Faculty Member</label>
+                    <select className={inpCls} value={assign.facultyId} onChange={e => setAssign(p => ({ ...p, facultyId: e.target.value }))}>
+                      <option value="">— select professor —</option>
+                      {faculties.map(f => (
+                        <option key={f.id} value={f.id}>{f.username} ({f.department})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button onClick={handleAssign} disabled={assigning} className={btnCls("bg-blue-600 hover:bg-blue-700 w-full disabled:opacity-50 mt-4")}>
+                    {assigning && <Spinner />} {assigning ? "Processing..." : "Complete Assignment"}
+                  </button>
+                </div>
               </div>
             </div>
-            <button type="submit" disabled={creating} style={{ ...btn("#6366f1"), marginTop: 4, opacity: creating ? .6 : 1 }}>
-              {creating && <Spinner />} {creating ? "Creating…" : "Create Course"}
-            </button>
-          </form>
-        </div>
 
-        {/* ── Assign Faculty ── */}
-        <div style={{ background: "#1e293b", borderRadius: 14, padding: 24, border: "1px solid #334155" }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "#38bdf8" }}>🎓 Assign Faculty to Course</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div>
-              <label style={lbl}>Select Course</label>
-              <select style={sel} value={assign.courseId} onChange={e => setAssign(p => ({ ...p, courseId: e.target.value }))}>
-                <option value="">— choose course —</option>
-                {courses.map(c => (
-                  <option key={c.courseId} value={c.courseId}>{c.name} ({c.code})</option>
-                ))}
-              </select>
+            {/* Course Table */}
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-slate-800">Operational Course Registry</h2>
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{courses.length} ACTIVE COURSES</span>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                            <tr>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Course Info</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Code</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Schedule</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Assigned Personnel</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 transition-all">
+                            {courses.map((c) => (
+                                <tr key={c.courseId} className="hover:bg-slate-50/50 transition">
+                                    <td className="px-8 py-5">
+                                        <div className="font-bold text-slate-800">{c.name}</div>
+                                        <div className="text-[10px] uppercase font-black text-indigo-400 tracking-tighter">{c.department || "General"}</div>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-xs font-black ring-1 ring-indigo-100">{c.code}</span>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <div className="text-sm font-medium text-slate-600">Year {c.year} · Sem {c.semester}</div>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        {c.facultyName
+                                            ? <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                                <span className="text-slate-700 font-bold">{c.facultyName}</span>
+                                                <span className="hidden md:inline text-[10px] text-slate-400">({c.facultyDept})</span>
+                                              </div>
+                                            : <div className="text-rose-500 font-black text-[10px] uppercase tracking-wider flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
+                                                Pending Assignment
+                                              </div>}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div>
-              <label style={lbl}>Select Faculty</label>
-              <select style={sel} value={assign.facultyId} onChange={e => setAssign(p => ({ ...p, facultyId: e.target.value }))}>
-                <option value="">— choose faculty —</option>
-                {faculties.map(f => (
-                  <option key={f.id} value={f.id}>{f.username} — {f.department}</option>
-                ))}
-              </select>
-            </div>
-            <button onClick={handleAssign} disabled={assigning} style={{ ...btn("#0ea5e9"), opacity: assigning ? .6 : 1, marginTop: 8 }}>
-              {assigning && <Spinner />} {assigning ? "Assigning…" : "Assign Faculty"}
-            </button>
           </div>
-        </div>
-      </div>
-
-      {/* ── Course List Table ── */}
-      <div style={{ background: "#1e293b", borderRadius: 14, padding: 24, border: "1px solid #334155", overflowX: "auto" }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: "#e2e8f0" }}>📋 All Courses</h2>
-        {courses.length === 0 ? (
-          <p style={{ color: "#64748b", textAlign: "center", padding: "24px 0" }}>No courses found. Create one above.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Name</th><th>Code</th><th>Department</th>
-                <th>Year</th><th>Semester</th><th>Assigned Faculty</th>
-              </tr>
-            </thead>
-            <tbody>
-              {courses.map((c, i) => (
-                <tr key={c.courseId}>
-                  <td style={{ color: "#64748b" }}>{i + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{c.name}</td>
-                  <td><span style={{ background: "#1d4ed8", color: "#bfdbfe", borderRadius: 5, padding: "2px 8px", fontSize: 12 }}>{c.code}</span></td>
-                  <td style={{ color: "#94a3b8" }}>{c.department || "—"}</td>
-                  <td>{c.year ? `Year ${c.year}` : "—"}</td>
-                  <td>{c.semester ? `Sem ${c.semester}` : "—"}</td>
-                  <td>
-                    {c.facultyName
-                      ? <span style={{ color: "#4ade80" }}>✓ {c.facultyName} <span style={{ color: "#64748b", fontSize: 12 }}>({c.facultyDept})</span></span>
-                      : <span style={{ color: "#ef4444", fontSize: 12 }}>Unassigned</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        </main>
+        <Footer />
       </div>
     </div>
   );

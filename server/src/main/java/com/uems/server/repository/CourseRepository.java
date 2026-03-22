@@ -10,7 +10,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
      List<Course> findByFacultyId(Long facultyId);
 
-    // ✅ Fetch by faculty's username (through faculty.user.username)
     @Query("SELECT c FROM Course c WHERE c.faculty.user.username = :username")
     List<Course> findByFacultyUsername(@Param("username") String username);
+
+    /** Find all courses for a given year and semester — used for batch enrollment. */
+    List<Course> findByYearAndSemester(Integer year, String semester);
 }

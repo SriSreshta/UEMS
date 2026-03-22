@@ -123,6 +123,49 @@ public class AdminService {
     }
 
     // ════════════════════════════════════════════════════════════════════════
+    //  NEW: ALL USER MANAGEMENT
+    // ════════════════════════════════════════════════════════════════════════
+
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream().map(u -> {
+            UserResponse res = UserResponse.builder()
+                    .id(u.getId())
+                    .username(u.getUsername())
+                    .email(u.getEmail())
+                    .role(u.getRole().getName())
+                    .build();
+
+            if (u.getStudent() != null) {
+                res.setRollNumber(u.getStudent().getRollNumber());
+                res.setDepartment(u.getStudent().getDepartment());
+                res.setYear(u.getStudent().getYear());
+                res.setSemester(u.getStudent().getSemester());
+            } else if (u.getFaculty() != null) {
+                res.setDepartment(u.getFaculty().getDepartment());
+                res.setDesignation(u.getFaculty().getDesignation());
+            }
+            return res;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // Unassign faculty from courses if deleting a faculty member
+        if (user.getFaculty() != null) {
+            List<Course> courses = courseRepository.findByFacultyId(user.getFaculty().getId());
+            for (Course c : courses) {
+                c.setFaculty(null);
+                courseRepository.save(c);
+            }
+        }
+
+        userRepository.delete(user);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
     //  COURSE MANAGEMENT
     // ════════════════════════════════════════════════════════════════════════
 
@@ -211,6 +254,39 @@ public class AdminService {
             results.add(enrollStudentInCourse(studentId, courseId));
         }
         return results;
+    }
+
+    /**
+     * Batch enrollment: clear all existing enrollments for the year/semester batch,
+     * then enroll every student of that batch into every course matching same year/semester.
+     */
+    @Transactional
+    public String enrollBatch(String year, String semester) {
+        // 1. Clear existing enrollments for this batch
+        enrollmentRepository.deleteByStudentYearAndStudentSemester(year, semester);
+
+        // 2. Fetch all students in the batch
+        List<Student> students = studentRepository.findByYearAndSemester(year, semester);
+
+        // 3. Fetch all courses for the same year/semester
+        List<Course> courses = courseRepository.findByYearAndSemester(Integer.parseInt(year), semester);
+
+        if (students.isEmpty()) return "No students found for Year " + year + " Sem " + semester;
+        if (courses.isEmpty())  return "No courses found for Year " + year + " Sem " + semester;
+
+        // 4. Cross-enroll every student into every course
+        int count = 0;
+        for (Student student : students) {
+            for (Course course : courses) {
+                enrollmentRepository.save(
+                    Enrollment.builder().student(student).course(course).build()
+                );
+                count++;
+            }
+        }
+
+        return "Enrolled " + students.size() + " students into " + courses.size()
+                + " courses (" + count + " mappings created).";
     }
 
     public List<EnrollmentResponse> getEnrollmentsByCourse(Long courseId) {
