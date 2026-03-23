@@ -37,4 +37,11 @@ public class Enrollment {
 
     @Column(name = "assignment_marks")
     private Integer assignmentMarks;
+
+    @Column(name = "end_sem_marks")
+    private Integer endSemMarks;
+
+    @Column(name = "end_sem_released", nullable = false)
+    @Builder.Default
+    private Boolean endSemReleased = false;
 }

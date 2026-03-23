@@ -14,4 +14,6 @@ public class FacultyMarksResponse {
     private Integer mid1Marks;
     private Integer mid2Marks;
     private Integer assignmentMarks;
+    private Integer endSemMarks;
+    private Boolean endSemReleased;
 }

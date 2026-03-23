@@ -61,7 +61,8 @@ public class StudentController {
             List<Enrollment> enrollments = enrollmentRepository.findByStudentId(student.getId());
             List<StudentMarksResponse> response = enrollments.stream().map(e -> new StudentMarksResponse(
                     e.getCourse().getCourseId(), e.getCourse().getName(), e.getCourse().getCode(),
-                    e.getMid1Marks(), e.getMid2Marks(), e.getAssignmentMarks()
+                    e.getMid1Marks(), e.getMid2Marks(), e.getAssignmentMarks(),
+                    (e.getEndSemReleased() != null && e.getEndSemReleased()) ? e.getEndSemMarks() : null
             )).collect(Collectors.toList());
             return ResponseEntity.ok(response);
         } catch (Exception e) {

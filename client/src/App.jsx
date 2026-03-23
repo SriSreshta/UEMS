@@ -21,6 +21,7 @@ import CourseEnrollment from "./pages/CourseEnrollment";
 import ManageUsers from "./pages/ManageUsers";
 import FacultyMaterialsPage from "./pages/FacultyMaterialsPage";
 import StudentMaterialsPage from "./pages/StudentMaterialsPage";
+import FacultyMarksViewPage from "./pages/FacultyMarksViewPage";
 import Footer from "./components/Footer";
 
 export default function App() {
@@ -76,6 +77,40 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="faculty">
               <FacultyMaterialsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Faculty Marks Sidebar Pages */}
+        <Route
+          path="/faculty/internal/mid1"
+          element={
+            <ProtectedRoute requiredRole="faculty">
+              <FacultyMarksViewPage markType="mid1" title="Mid Term 1" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faculty/internal/mid2"
+          element={
+            <ProtectedRoute requiredRole="faculty">
+              <FacultyMarksViewPage markType="mid2" title="Mid Term 2" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faculty/internal/assignment"
+          element={
+            <ProtectedRoute requiredRole="faculty">
+              <FacultyMarksViewPage markType="assignment" title="Assignment / Seminar" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faculty/external/endsem-theory"
+          element={
+            <ProtectedRoute requiredRole="faculty">
+              <FacultyMarksViewPage markType="endSem" title="End Sem (Theory)" />
             </ProtectedRoute>
           }
         />

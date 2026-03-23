@@ -73,7 +73,9 @@ System.out.println("faculty id"+faculty.getId());
                     e.getStudent().getUser() != null ? e.getStudent().getUser().getUsername() : "N/A",
                     e.getMid1Marks(),
                     e.getMid2Marks(),
-                    e.getAssignmentMarks()
+                    e.getAssignmentMarks(),
+                    e.getEndSemMarks(),
+                    e.getEndSemReleased()
             )).collect(Collectors.toList());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -91,7 +93,21 @@ System.out.println("faculty id"+faculty.getId());
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
             List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
+            // Validating marks mapping logic
             for (MarksUpdateRequest req : marksRequests) {
+                if (req.getMid1Marks() != null && (req.getMid1Marks() < 0 || req.getMid1Marks() > 30)) {
+                    return ResponseEntity.status(400).body("Error: Mid1 marks must be between 0 and 30");
+                }
+                if (req.getMid2Marks() != null && (req.getMid2Marks() < 0 || req.getMid2Marks() > 30)) {
+                    return ResponseEntity.status(400).body("Error: Mid2 marks must be between 0 and 30");
+                }
+                if (req.getAssignmentMarks() != null && (req.getAssignmentMarks() < 0 || req.getAssignmentMarks() > 10)) {
+                    return ResponseEntity.status(400).body("Error: Assignment marks must be between 0 and 10");
+                }
+                if (req.getEndSemMarks() != null && (req.getEndSemMarks() < 0 || req.getEndSemMarks() > 60)) {
+                    return ResponseEntity.status(400).body("Error: End Sem marks must be between 0 and 60");
+                }
+
                 enrollments.stream()
                         .filter(e -> e.getStudent().getId().equals(req.getStudentId()))
                         .findFirst()
@@ -99,6 +115,7 @@ System.out.println("faculty id"+faculty.getId());
                             if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
                             if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
                             if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
+                            if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
                             enrollmentRepository.save(e);
                         });
             }

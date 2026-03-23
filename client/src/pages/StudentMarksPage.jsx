@@ -59,18 +59,31 @@ const StudentMarksPage = () => {
                     <th className="px-6 py-4">Mid 1 (30)</th>
                     <th className="px-6 py-4">Mid 2 (30)</th>
                     <th className="px-6 py-4">Assignment (10)</th>
+                    <th className="px-6 py-4 bg-gray-200">Total Internal (40)</th>
+                    <th className="px-6 py-4 bg-gray-300">End Sem (60)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {marks.map((m) => (
-                    <tr key={m.courseId} className="hover:bg-blue-50 transition">
-                      <td className="px-6 py-4 font-medium text-gray-700">{m.courseCode}</td>
-                      <td className="px-6 py-4 text-gray-800">{m.courseName}</td>
-                      <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.mid1Marks !== null ? m.mid1Marks : "-"}</td>
-                      <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.mid2Marks !== null ? m.mid2Marks : "-"}</td>
-                      <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.assignmentMarks !== null ? m.assignmentMarks : "-"}</td>
-                    </tr>
-                  ))}
+                  {marks.map((m) => {
+                    const mid1 = m.mid1Marks !== null ? m.mid1Marks : 0;
+                    const mid2 = m.mid2Marks !== null ? m.mid2Marks : 0;
+                    const assign = m.assignmentMarks !== null ? m.assignmentMarks : 0;
+                    // Formula: Math.ceil((Mid1 + Mid2) / 2) + Assignment
+                    const hasAnyInternal = m.mid1Marks !== null || m.mid2Marks !== null || m.assignmentMarks !== null;
+                    const totalInternal = hasAnyInternal ? Math.ceil((mid1 + mid2) / 2) + assign : "-";
+
+                    return (
+                      <tr key={m.courseId} className="hover:bg-blue-50 transition">
+                        <td className="px-6 py-4 font-medium text-gray-700">{m.courseCode}</td>
+                        <td className="px-6 py-4 text-gray-800">{m.courseName}</td>
+                        <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.mid1Marks !== null ? m.mid1Marks : "-"}</td>
+                        <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.mid2Marks !== null ? m.mid2Marks : "-"}</td>
+                        <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.assignmentMarks !== null ? m.assignmentMarks : "-"}</td>
+                        <td className="px-6 py-4 font-bold text-center sm:text-left bg-gray-50">{totalInternal}</td>
+                        <td className="px-6 py-4 font-bold text-center sm:text-left bg-gray-100">{m.endSemMarks !== null && m.endSemMarks !== undefined ? m.endSemMarks : "—"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

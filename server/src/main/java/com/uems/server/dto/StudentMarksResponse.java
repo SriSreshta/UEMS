@@ -14,4 +14,5 @@ public class StudentMarksResponse {
     private Integer mid1Marks;
     private Integer mid2Marks;
     private Integer assignmentMarks;
+    private Integer endSemMarks;
 }
