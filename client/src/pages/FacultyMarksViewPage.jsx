@@ -22,12 +22,25 @@ const FacultyMarksViewPage = ({ markType, title }) => {
         setLoading(true);
         // 1. Fetch faculty's courses
         const courseRes = await api.get(`/faculty/courses`);
-        const courses = courseRes.data;
+        let courses = courseRes.data;
+        console.log("courses fetched:", courses);
+        
+        // Ensure courses is an array even if the backend wrapped it in an object
+        if (!Array.isArray(courses) && courses.content) {
+          courses = courses.content;
+        } else if (!Array.isArray(courses) && courses.data) {
+          courses = courses.data;
+        } else if (!Array.isArray(courses)) {
+          console.warn("Expected an array of courses, but received:", typeof courses, courses);
+          courses = [];
+        }
 
         // 2. Fetch marks for each course in parallel
         const marksPromises = courses.map(async (c) => {
           try {
             const id = c.courseId || c.course_id || c.id;
+            console.log("Extracted course id:", id, "from course:", c);
+            
             if (!id) {
                console.error("Missing course identifier in course object:", c);
                return { course: c, marks: [] };

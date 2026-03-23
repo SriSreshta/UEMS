@@ -18,7 +18,10 @@ import java.util.stream.Collectors;
 import com.uems.server.repository.EnrollmentRepository;
 import com.uems.server.model.Enrollment;
 import com.uems.server.dto.FacultyMarksResponse;
+import com.uems.server.dto.FacultyMarksResponse;
 import com.uems.server.dto.MarksUpdateRequest;
+import com.uems.server.dto.CourseResponse;
+import com.uems.server.service.CourseService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -33,6 +36,7 @@ public class FacultyController {
     @Autowired private JwtService jwtService;
     @Autowired private EnrollmentRepository enrollmentRepository;
     @Autowired private MaterialRepository materialRepository;
+    @Autowired private CourseService courseService;
 
     // ✅ Automatically get logged-in faculty’s courses
     @GetMapping("/courses")
@@ -46,15 +50,22 @@ public class FacultyController {
             // Extract username from token
             String token = authHeader.substring(7);
             String username = jwtService.extractUsername(token);
-System.out.println("extracted username"+username);
-            // Find faculty
-            User faculty = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Faculty not found"));
-System.out.println("faculty id"+faculty.getId());
-            // Fetch faculty’s courses
-            List<Course> courses = courseRepository.findByFacultyId(faculty.getId());
-              System.out.println("✅ Courses found: " + courses.size());
-              return ResponseEntity.ok(courses);
+            System.out.println("extracted username "+username);
+            
+            // Use courseService to bypass the ID mismatch between users and faculty tables
+            List<Course> coursesList = courseService.getCoursesByFacultyUsername(username);
+            
+            // Map to safe DTO to prevent lazy-loading recursion errors
+            List<CourseResponse> response = coursesList.stream().map(c -> new CourseResponse(
+                    c.getCourseId(), c.getName(), c.getCode(), c.getDepartment(), 
+                    c.getYear(), c.getSemester(), 
+                    c.getFaculty() != null ? c.getFaculty().getId() : null, 
+                    username, 
+                    c.getFaculty() != null ? c.getFaculty().getDepartment() : null
+            )).collect(Collectors.toList());
+            
+            System.out.println("✅ Courses found: " + response.size());
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
