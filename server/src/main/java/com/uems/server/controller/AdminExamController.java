@@ -36,6 +36,9 @@ public class AdminExamController {
     @Autowired
     private EnrollmentRepository enrollmentRepository;
 
+    @Autowired
+    private com.uems.server.repository.ResultNotificationRepository resultNotificationRepository;
+
     // --- 1. EXAM CREATION ---
 
     @PostMapping
@@ -250,6 +253,34 @@ public class AdminExamController {
                 e.setTotalMarks(cDto.getTotalMarks());
                 e.setEndSemReleased(true);
                 enrollmentRepository.save(e);
+            }
+        }
+    }
+
+    @PostMapping("/{examId}/notify")
+    @Transactional
+    public void notifyResultsPublished(@PathVariable Long examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+        List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
+
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
+        Set<com.uems.server.model.Student> uniqueStudents = enrollments.stream().map(Enrollment::getStudent).collect(Collectors.toSet());
+
+        for (com.uems.server.model.Student s : uniqueStudents) {
+            boolean exists = resultNotificationRepository.existsByExamExamIdAndStudentId(examId, s.getId());
+            if (!exists) {
+                com.uems.server.model.ResultNotification notif = com.uems.server.model.ResultNotification.builder()
+                        .year(exam.getYear())
+                        .semester(String.valueOf(exam.getSemester()))
+                        .exam(exam)
+                        .student(s)
+                        .isSeen(false)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                resultNotificationRepository.save(notif);
             }
         }
     }

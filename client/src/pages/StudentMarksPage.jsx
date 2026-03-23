@@ -60,7 +60,6 @@ const StudentMarksPage = () => {
                     <th className="px-6 py-4">Mid 2 (30)</th>
                     <th className="px-6 py-4">Assignment (10)</th>
                     <th className="px-6 py-4 bg-gray-200">Total Internal (40)</th>
-                    <th className="px-6 py-4 bg-gray-300">End Sem (60)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -80,7 +79,6 @@ const StudentMarksPage = () => {
                         <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.mid2Marks !== null ? m.mid2Marks : "-"}</td>
                         <td className="px-6 py-4 font-semibold text-center sm:text-left">{m.assignmentMarks !== null ? m.assignmentMarks : "-"}</td>
                         <td className="px-6 py-4 font-bold text-center sm:text-left bg-gray-50">{totalInternal}</td>
-                        <td className="px-6 py-4 font-bold text-center sm:text-left bg-gray-100">{m.endSemMarks !== null && m.endSemMarks !== undefined ? m.endSemMarks : "—"}</td>
                       </tr>
                     );
                   })}
