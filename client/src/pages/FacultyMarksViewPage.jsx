@@ -4,12 +4,13 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../auth/AuthContext";
+import api from "../api/axiosInstance";
 import { DocumentMagnifyingGlassIcon, BookOpenIcon, CheckBadgeIcon } from "@heroicons/react/24/outline";
 
 // markType will be one of: 'mid1', 'mid2', 'assignment', 'endSem'
 const FacultyMarksViewPage = ({ markType, title }) => {
   const navigate = useNavigate();
-  const { authFetch, user } = useAuth();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
   const [groupedMarks, setGroupedMarks] = useState({});
   const [loading, setLoading] = useState(true);
@@ -20,24 +21,23 @@ const FacultyMarksViewPage = ({ markType, title }) => {
       try {
         setLoading(true);
         // 1. Fetch faculty's courses
-        const courseRes = await authFetch(`http://localhost:8080/faculty/courses`, {
-          headers: {
-             "Authorization": `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        if (!courseRes.ok) throw new Error("Failed to fetch courses");
-        const courses = await courseRes.json();
+        const courseRes = await api.get(`/faculty/courses`);
+        const courses = courseRes.data;
 
         // 2. Fetch marks for each course in parallel
         const marksPromises = courses.map(async (c) => {
-          const mRes = await authFetch(`http://localhost:8080/faculty/courses/${c.courseId || c.id}/marks`, {
-            headers: {
-               "Authorization": `Bearer ${localStorage.getItem('token')}`
+          try {
+            const id = c.courseId || c.course_id || c.id;
+            if (!id) {
+               console.error("Missing course identifier in course object:", c);
+               return { course: c, marks: [] };
             }
-          });
-          if (!mRes.ok) return { course: c, marks: [] };
-          const mData = await mRes.json();
-          return { course: c, marks: mData };
+            const mRes = await api.get(`/faculty/courses/${id}/marks`);
+            return { course: c, marks: mRes.data || [] };
+          } catch (e) {
+            console.error("Failed to fetch marks for course", c, e.response?.data || e.message);
+            return { course: c, marks: [] };
+          }
         });
 
         const allMarks = await Promise.all(marksPromises);
@@ -51,14 +51,16 @@ const FacultyMarksViewPage = ({ markType, title }) => {
         const grouped = {};
         allMarks.forEach(({ course, marks }) => {
            if (marks && marks.length > 0) {
-              const courseKey = `${course.name} (${course.code})`;
+              const name = course.name || course.course_name || "Unknown Course";
+              const code = course.code || course.course_code || "N/A";
+              const courseKey = `${name} (${code})`;
               grouped[courseKey] = marks;
            }
         });
 
         setGroupedMarks(grouped);
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data || err.message || "An error occurred");
       } finally {
         setLoading(false);
       }
@@ -67,7 +69,7 @@ const FacultyMarksViewPage = ({ markType, title }) => {
     if (user) {
       fetchData();
     }
-  }, [authFetch, user, markType]);
+  }, [user, markType]);
 
   const getMarkDisplay = (student) => {
     let mark;

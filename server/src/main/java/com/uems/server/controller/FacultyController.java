@@ -20,8 +20,11 @@ import com.uems.server.model.Enrollment;
 import com.uems.server.dto.FacultyMarksResponse;
 import com.uems.server.dto.MarksUpdateRequest;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
-@RequestMapping("/faculty")
+@RequestMapping("/api/faculty")
+@PreAuthorize("hasRole('FACULTY')")
 
 public class FacultyController {
 

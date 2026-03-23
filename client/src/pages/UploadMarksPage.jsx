@@ -4,13 +4,13 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../auth/AuthContext";
+import api from "../api/axiosInstance";
 import * as XLSX from "xlsx";
 import { CloudArrowUpIcon, DocumentArrowDownIcon, ArrowLeftIcon, CheckBadgeIcon } from "@heroicons/react/24/outline";
 
 const UploadMarksPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { authFetch } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,12 +23,10 @@ const UploadMarksPage = () => {
 
   const fetchStudents = async () => {
     try {
-      const res = await authFetch(`http://localhost:8080/faculty/courses/${courseId}/marks`);
-      if (!res.ok) throw new Error("Failed to fetch students");
-      const data = await res.json();
-      setStudents(data);
+      const res = await api.get(`/faculty/courses/${courseId}/marks`);
+      setStudents(res.data);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data || err.message || "Failed to fetch students");
     } finally {
       setLoading(false);
     }
@@ -124,17 +122,12 @@ const UploadMarksPage = () => {
         assignmentMarks: s.assignmentMarks,
         endSemMarks: s.endSemMarks
       }));
-      const res = await authFetch(`http://localhost:8080/faculty/courses/${courseId}/marks/bulk`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error("Failed to save marks");
+      await api.post(`/faculty/courses/${courseId}/marks/bulk`, payload);
       setMessage("All marks committed successfully to the ledger!");
       setError("");
       setTimeout(() => navigate("/faculty"), 2500);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data || err.message || "Failed to save marks");
     }
   };
 

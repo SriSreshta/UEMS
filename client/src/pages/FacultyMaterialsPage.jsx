@@ -29,17 +29,17 @@ export default function FacultyMaterialsPage() {
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    authFetch("http://localhost:8080/faculty/courses")
-      .then(r => r.json()).then(setCourses).catch(() => {});
-  }, [authFetch]);
+    axiosInstance.get("/faculty/courses")
+      .then(r => setCourses(r.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!courseId) return;
     setLoading(true);
-    authFetch(`http://localhost:8080/faculty/courses/${courseId}/materials`)
-      .then(r => r.json()).then(setMaterials).catch(() => setMaterials([]))
+    axiosInstance.get(`/faculty/courses/${courseId}/materials`)
+      .then(r => setMaterials(r.data)).catch(() => setMaterials([]))
       .finally(() => setLoading(false));
-  }, [courseId, authFetch]);
+  }, [courseId]);
 
   const showToast = (msg, ok = true) => {
     setToast({ show: true, msg, ok });
@@ -52,16 +52,12 @@ export default function FacultyMaterialsPage() {
     if (!form.title || !form.fileUrl || !form.chapter) return showToast("Chapter, title and URL are required.", false);
     setAdding(true);
     try {
-      const res = await authFetch(`http://localhost:8080/faculty/courses/${courseId}/materials`, {
-        method: "POST",
-        body: JSON.stringify({ ...form, courseId: Number(courseId) }),
-      });
-      if (!res.ok) throw new Error("Failed");
+      await axiosInstance.post(`/faculty/courses/${courseId}/materials`, { ...form, courseId: Number(courseId) });
       showToast("Resource added successfully!");
       setForm({ chapter: "", title: "", type: "VIDEO", fileUrl: "", description: "" });
       // Refresh
-      const updated = await authFetch(`http://localhost:8080/faculty/courses/${courseId}/materials`);
-      setMaterials(await updated.json());
+      const updated = await axiosInstance.get(`/faculty/courses/${courseId}/materials`);
+      setMaterials(updated.data);
     } catch {
       showToast("Failed to add resource.", false);
     } finally {
@@ -71,7 +67,7 @@ export default function FacultyMaterialsPage() {
 
   const handleDelete = async (id) => {
     try {
-      await authFetch(`http://localhost:8080/faculty/materials/${id}`, { method: "DELETE" });
+      await axiosInstance.delete(`/faculty/materials/${id}`);
       setMaterials(prev => prev.filter(m => m.id !== id));
       showToast("Resource removed.");
     } catch {

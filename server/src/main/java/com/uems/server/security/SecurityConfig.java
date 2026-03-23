@@ -37,6 +37,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/courses/faculty/by-username/**").permitAll()
                         
+                        // Faculty specific routes
+                        .requestMatchers("/api/faculty/**").hasRole("FACULTY")
+                        
                         // All others need authentication
                         .anyRequest().authenticated()
                 )
