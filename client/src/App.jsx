@@ -14,6 +14,7 @@ import StudentMarksPage from "./pages/StudentMarksPage";
 import AdminFeeNotifications from "./pages/AdminFeeNotifications";
 import StudentPaymentsPage from "./pages/StudentPaymentsPage";
 import StudentExamSchedule from "./pages/StudentExamSchedule";
+import StudentResults from "./pages/StudentResults";
 
 import AddUserManual from "./pages/AddUserManual";
 import BulkUserUpload from "./pages/BulkUserUpload";
@@ -251,6 +252,15 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="student">
               <StudentExamSchedule />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/results"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentResults />
             </ProtectedRoute>
           }
         />

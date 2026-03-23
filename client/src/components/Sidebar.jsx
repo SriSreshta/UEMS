@@ -179,6 +179,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
       { type: "item", label: "Course Materials", icon: FolderIcon, to: "/student/materials" },
       { type: "item", label: "Exam Schedule", icon: DocumentTextIcon, to: "/student/exam-schedule" },
       { type: "item", label: "Marks (Internal)", icon: ChartBarIcon, to: "/student/marks/internal" },
+      { type: "item", label: "Results", icon: AcademicCapIcon, to: "/student/results" },
     ];
   }, [role]);
 

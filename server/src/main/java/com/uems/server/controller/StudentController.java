@@ -101,4 +101,79 @@ public class StudentController {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
         }
     }
-}
+
+    @GetMapping("/results")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<?> getMyResults(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer "))
+                return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+            String username = jwtService.extractUsername(authHeader.substring(7));
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            Student student = studentRepository.findByUser(user)
+                    .orElseThrow(() -> new RuntimeException("Student profile not found"));
+
+            List<Enrollment> enrollments = enrollmentRepository.findByStudentId(student.getId()).stream()
+                    .filter(e -> e.getGrade() != null && Boolean.TRUE.equals(e.getEndSemReleased()))
+                    .collect(Collectors.toList());
+
+            java.util.Map<String, List<Enrollment>> groupedBySemester = enrollments.stream()
+                    .collect(Collectors.groupingBy(e -> e.getCourse().getYear() + "-" + e.getCourse().getSemester()));
+
+            List<com.uems.server.dto.SemesterResultDto> semesterResults = new java.util.ArrayList<>();
+            double totalSgpa = 0.0;
+            int sgpaCount = 0;
+
+            for (java.util.Map.Entry<String, List<Enrollment>> entry : groupedBySemester.entrySet()) {
+                List<Enrollment> sems = entry.getValue();
+                if (sems.isEmpty()) continue;
+
+                Integer year = sems.get(0).getCourse().getYear();
+                String semester = sems.get(0).getCourse().getSemester();
+
+                List<com.uems.server.dto.CourseResultDto> courseDtos = new java.util.ArrayList<>();
+                int totalPoints = 0;
+                int totalCredits = 0;
+
+                for (Enrollment e : sems) {
+                    com.uems.server.dto.CourseResultDto dto = new com.uems.server.dto.CourseResultDto(
+                            e.getCourse().getCode(),
+                            e.getCourse().getName(),
+                            e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 0,
+                            e.getGrade(),
+                            e.getGradePoints() != null ? e.getGradePoints() : 0
+                    );
+                    courseDtos.add(dto);
+
+                    if (e.getGradePoints() != null && e.getCourse().getCredits() != null) {
+                        totalPoints += e.getGradePoints() * e.getCourse().getCredits();
+                        totalCredits += e.getCourse().getCredits();
+                    }
+                }
+
+                double sgpa = totalCredits > 0 ? (double) totalPoints / totalCredits : 0.0;
+                sgpa = Math.round(sgpa * 100.0) / 100.0;
+
+                semesterResults.add(new com.uems.server.dto.SemesterResultDto(year, semester, sgpa, courseDtos));
+                totalSgpa += sgpa;
+                sgpaCount++;
+            }
+
+            semesterResults.sort((s1, s2) -> {
+                if (!s1.getYear().equals(s2.getYear())) return s1.getYear().compareTo(s2.getYear());
+                if (s1.getSemester() != null && s2.getSemester() != null) return s1.getSemester().compareTo(s2.getSemester());
+                return 0;
+            });
+
+            double cgpa = sgpaCount > 0 ? totalSgpa / sgpaCount : 0.0;
+            cgpa = Math.round(cgpa * 100.0) / 100.0;
+
+            com.uems.server.dto.StudentResultsResponse response = new com.uems.server.dto.StudentResultsResponse(cgpa, semesterResults);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
+        }
+    }
+}
+

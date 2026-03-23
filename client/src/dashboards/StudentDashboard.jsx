@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../auth/AuthContext";
 import studentHero from "../assets/dashboard/student_hero.png";
+import { useNavigate } from "react-router-dom";
 
 const QUOTES = [
   "Learning today, leading tomorrow.",
@@ -19,9 +20,27 @@ const StudentDashboard = () => {
     const [attendanceAlert, setAttendanceAlert] = useState(false);
     const [attendancePercent, setAttendancePercent] = useState(null);
     const [showAlert, setShowAlert] = useState(true);
+    const [resultNotification, setResultNotification] = useState(null);
+    const navigate = useNavigate();
     const quote = QUOTES[new Date().getDay() % QUOTES.length];
 
     useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!user?.studentId) return;
+            try {
+                const res = await authFetch("http://localhost:8080/api/student/notifications/results");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        setResultNotification(data[0]);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch result notifications:", err);
+            }
+        };
+        fetchNotifications();
+
         const checkAttendance = async () => {
             if (!user?.studentId) return;
             try {
@@ -49,6 +68,33 @@ const StudentDashboard = () => {
             <Sidebar isOpen={isOpen} role="student" />
             <div className="flex-1 flex flex-col">
                 <Header title="Student Portal" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
+
+                {/* Result Notification Modal (Non-dismissible) */}
+                {resultNotification && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                        <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-100 transition-all">
+                            <div className="text-6xl mb-6">📋</div>
+                            <h2 className="text-2xl font-black text-white mb-2">Results Published!</h2>
+                            <p className="text-slate-300 mb-8 leading-relaxed">
+                                Your results have been published for <strong>{resultNotification.year} Year {resultNotification.semester} Sem</strong>.
+                            </p>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await authFetch(`http://localhost:8080/api/student/notifications/${resultNotification.id}/seen`, { method: "PUT" });
+                                        setResultNotification(null);
+                                        navigate("/student/results");
+                                    } catch (err) {
+                                        console.error("Failed to mark notification as seen:", err);
+                                    }
+                                }}
+                                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/30"
+                            >
+                                View My Results
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Attendance Alert */}
                 {attendanceAlert && showAlert && (
