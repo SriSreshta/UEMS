@@ -13,6 +13,7 @@ import UploadMarksPage from "./pages/UploadMarksPage";
 import StudentMarksPage from "./pages/StudentMarksPage";
 import AdminFeeNotifications from "./pages/AdminFeeNotifications";
 import StudentPaymentsPage from "./pages/StudentPaymentsPage";
+import StudentExamSchedule from "./pages/StudentExamSchedule";
 
 import AddUserManual from "./pages/AddUserManual";
 import BulkUserUpload from "./pages/BulkUserUpload";
@@ -22,6 +23,9 @@ import ManageUsers from "./pages/ManageUsers";
 import FacultyMaterialsPage from "./pages/FacultyMaterialsPage";
 import StudentMaterialsPage from "./pages/StudentMaterialsPage";
 import FacultyMarksViewPage from "./pages/FacultyMarksViewPage";
+import AdminCreateExam from "./pages/AdminCreateExam";
+import AdminExamSchedules from "./pages/AdminExamSchedules";
+import AdminPublishResults from "./pages/AdminPublishResults";
 import Footer from "./components/Footer";
 
 export default function App() {
@@ -178,6 +182,33 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/admin/exams/create"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminCreateExam />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/exams/schedules"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminExamSchedules />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/exams/results"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminPublishResults />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Student routes */}
         <Route
           path="/student"
@@ -211,6 +242,15 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="student">
               <StudentMaterialsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/exam-schedule"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentExamSchedule />
             </ProtectedRoute>
           }
         />

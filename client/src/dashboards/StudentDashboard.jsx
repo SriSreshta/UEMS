@@ -92,11 +92,69 @@ const StudentDashboard = () => {
                             </p>
                         </div>
                     </div>
+
+                    {/* Schedule Section */}
+                    <ScheduleSection authFetch={authFetch} />
                 </main>
                 <Footer />
             </div>
         </div>
     );
+};
+
+const ScheduleSection = ({ authFetch }) => {
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        const res = await authFetch("http://localhost:8080/api/student/exams/schedules");
+        if (res.ok) {
+          const data = await res.json();
+          setSchedules(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch schedules:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSchedules();
+  }, [authFetch]);
+
+  if (loading) return null;
+  if (schedules.length === 0) return null;
+
+  return (
+    <div className="max-w-5xl mx-auto px-8 py-12 -mt-20 relative z-20">
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl rounded-2xl p-8 text-white">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+          <span className="text-blue-400">📅</span> Upcoming Exam Schedules
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {schedules.map((s, idx) => (
+            <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition">
+              <div className="text-xs uppercase tracking-wide text-blue-300 font-semibold mb-1">
+                {s.courseCode}
+              </div>
+              <h3 className="text-lg font-bold mb-3 truncate" title={s.courseName}>{s.courseName}</h3>
+              <div className="text-sm space-y-2 opacity-90">
+                <div className="flex justify-between items-center border-b border-white/10 pb-1">
+                  <span className="text-white/60 text-xs uppercase">Date</span>
+                  <span className="font-medium">{s.examDate || "TBA"}</span>
+                </div>
+                <div className="flex justify-between items-center pb-1">
+                  <span className="text-white/60 text-xs uppercase">Time</span>
+                  <span className="font-medium">{s.startTime || "TBA"} - {s.endTime || "TBA"}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default StudentDashboard;

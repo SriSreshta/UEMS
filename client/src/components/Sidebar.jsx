@@ -151,8 +151,8 @@ export default function Sidebar({ isOpen, role = "student" }) {
           icon: ClipboardDocumentListIcon,
           children: [
             { label: "Create Exams", icon: DocumentTextIcon, to: "/admin/exams/create" },
-            { label: "Schedules", icon: DocumentTextIcon, to: "/admin/exams/schedule" },
-            { label: "Publish Results", icon: ChartBarIcon, to: "/admin/exams/publish" },
+            { label: "Schedules", icon: DocumentTextIcon, to: "/admin/exams/schedules" },
+            { label: "Publish Results", icon: ChartBarIcon, to: "/admin/exams/results" },
           ],
         },
         {
@@ -177,6 +177,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
         to: "/student/payments",
       },
       { type: "item", label: "Course Materials", icon: FolderIcon, to: "/student/materials" },
+      { type: "item", label: "Exam Schedule", icon: DocumentTextIcon, to: "/student/exam-schedule" },
       { type: "item", label: "Marks (Internal)", icon: ChartBarIcon, to: "/student/marks/internal" },
     ];
   }, [role]);

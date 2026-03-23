@@ -23,6 +23,10 @@ public class Course {
     private String semester;
     private Integer year;
     private Long roleId;
+    
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer credits = 3;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id")

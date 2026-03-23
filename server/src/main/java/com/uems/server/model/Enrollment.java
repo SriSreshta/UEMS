@@ -44,4 +44,16 @@ public class Enrollment {
     @Column(name = "end_sem_released", nullable = false)
     @Builder.Default
     private Boolean endSemReleased = false;
+
+    private String grade;
+
+    @Column(name = "grade_points")
+    private Integer gradePoints;
+
+    @Column(name = "total_marks")
+    private Integer totalMarks;
+
+    @Column(name = "is_absent", nullable = false)
+    @Builder.Default
+    private Boolean isAbsent = false;
 }
