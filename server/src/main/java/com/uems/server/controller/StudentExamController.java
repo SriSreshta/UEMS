@@ -32,13 +32,7 @@ public class StudentExamController {
         User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         Integer year = Integer.parseInt(user.getStudent().getYear());
         
-        String semStr = user.getStudent().getSemester();
-        Integer semester;
-        if (semStr.equalsIgnoreCase("I")) semester = 1;
-        else if (semStr.equalsIgnoreCase("II")) semester = 2;
-        else if (semStr.equalsIgnoreCase("III")) semester = 3;
-        else if (semStr.equalsIgnoreCase("IV")) semester = 4;
-        else semester = Integer.parseInt(semStr);
+        Integer semester = Integer.parseInt(user.getStudent().getSemester());
 
         List<ExamSchedule> schedules = examScheduleRepository.findByExamYearAndExamSemesterAndIsBroadcastedTrue(year, semester);
         

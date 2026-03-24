@@ -80,7 +80,7 @@ public class AdminExamController {
         List<ExamSchedule> existing = examScheduleRepository.findByExamExamId(examId);
 
         if (existing.isEmpty()) {
-            List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), toRoman(exam.getSemester()));
+            List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
             return courses.stream().map(c -> {
                 ExamScheduleDto dto = new ExamScheduleDto();
                 dto.setCourseId(c.getCourseId());
@@ -146,13 +146,18 @@ public class AdminExamController {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
 
-        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), toRoman(exam.getSemester()));
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+        System.out.println("DEBUG: previewResults - semester: " + String.valueOf(exam.getSemester()));
+        System.out.println("DEBUG: previewResults - found " + courses.size() + " courses.");
+
         List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
 
         List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
+        System.out.println("DEBUG: previewResults - found " + enrollments.size() + " enrollments.");
 
         Map<Long, List<Enrollment>> studentGroups = enrollments.stream()
                 .collect(Collectors.groupingBy(e -> e.getStudent().getId()));
+        System.out.println("DEBUG: previewResults - grouped into " + studentGroups.size() + " students.");
 
         List<StudentResultPreviewDto> results = new ArrayList<>();
 
@@ -161,6 +166,7 @@ public class AdminExamController {
             sDto.setStudentId(entry.getKey());
             sDto.setHallTicketNo(entry.getValue().get(0).getStudent().getRollNumber());
             sDto.setStudentName(entry.getValue().get(0).getStudent().getUser().getUsername());
+            System.out.println("DEBUG: previewResults - processing student: " + sDto.getStudentName() + " (ID: " + sDto.getStudentId() + ")");
 
             double totalPoints = 0;
             int totalCredits = 0;
@@ -255,6 +261,9 @@ public class AdminExamController {
                 enrollmentRepository.save(e);
             }
         }
+        
+        // Trigger notifications automatically after publishing
+        notifyResultsPublished(examId);
     }
 
     @PostMapping("/{examId}/notify")
@@ -263,21 +272,25 @@ public class AdminExamController {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
 
-        String romanSem = toRoman(exam.getSemester());
+        String semStr = String.valueOf(exam.getSemester());
         System.out.println("DEBUG: notifyResultsPublished starting for Exam: " + exam.getTitle() 
-                + " (ID: " + examId + ", Year: " + exam.getYear() + ", Sem: " + exam.getSemester() + " -> " + romanSem + ")");
+                + " (ID: " + examId + ", Year: " + exam.getYear() + ", Sem: " + semStr + ")");
 
-        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), romanSem);
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), semStr);
         List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
         System.out.println("DEBUG: Found " + courses.size() + " courses matching year/semester.");
 
         List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
         System.out.println("DEBUG: Found " + enrollments.size() + " enrollments for these courses.");
 
-        Set<com.uems.server.model.Student> uniqueStudents = enrollments.stream()
-                .map(Enrollment::getStudent)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        // IMPORTANT: Group by ID into a Map to avoid Student.hashCode() loop in HashSet
+        Map<Long, com.uems.server.model.Student> studentMap = new HashMap<>();
+        for (Enrollment e : enrollments) {
+            if (e.getStudent() != null) {
+                studentMap.put(e.getStudent().getId(), e.getStudent());
+            }
+        }
+        Collection<com.uems.server.model.Student> uniqueStudents = studentMap.values();
         System.out.println("DEBUG: Identified " + uniqueStudents.size() + " unique students to notify.");
 
         int count = 0;
@@ -330,20 +343,5 @@ public class AdminExamController {
     public void deleteAllSchedules(@PathVariable Long examId) {
         List<ExamSchedule> schedules = examScheduleRepository.findByExamExamId(examId);
         examScheduleRepository.deleteAll(schedules);
-    }
-
-    private String toRoman(Integer semester) {
-        if (semester == null) return null;
-        switch (semester) {
-            case 1: return "I";
-            case 2: return "II";
-            case 3: return "III";
-            case 4: return "IV";
-            case 5: return "V";
-            case 6: return "VI";
-            case 7: return "VII";
-            case 8: return "VIII";
-            default: return String.valueOf(semester);
-        }
     }
 }
