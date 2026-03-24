@@ -137,10 +137,16 @@ public class StudentController {
                 int totalCredits = 0;
 
                 for (Enrollment e : sems) {
+                    double m1 = e.getMid1Marks() != null ? e.getMid1Marks() : 0;
+                    double m2 = e.getMid2Marks() != null ? e.getMid2Marks() : 0;
+                    int assign = e.getAssignmentMarks() != null ? e.getAssignmentMarks() : 0;
+                    int internalMarks = (int) Math.ceil((m1 + m2) / 2.0) + assign;
+
                     com.uems.server.dto.CourseResultDto dto = new com.uems.server.dto.CourseResultDto(
                             e.getCourse().getCode(),
                             e.getCourse().getName(),
                             e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 0,
+                            internalMarks,
                             e.getGrade(),
                             e.getGradePoints() != null ? e.getGradePoints() : 0
                     );
@@ -169,7 +175,13 @@ public class StudentController {
             double cgpa = sgpaCount > 0 ? totalSgpa / sgpaCount : 0.0;
             cgpa = Math.round(cgpa * 100.0) / 100.0;
 
-            com.uems.server.dto.StudentResultsResponse response = new com.uems.server.dto.StudentResultsResponse(cgpa, semesterResults);
+            com.uems.server.dto.StudentResultsResponse response = new com.uems.server.dto.StudentResultsResponse(
+                    cgpa, semesterResults,
+                    user.getUsername(),
+                    student.getRollNumber(),
+                    student.getDepartment(),
+                    student.getYear()
+            );
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());

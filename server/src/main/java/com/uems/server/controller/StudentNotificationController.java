@@ -31,7 +31,7 @@ public class StudentNotificationController {
         User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
         List<ResultNotification> notifs = resultNotificationRepository.findByStudentIdAndIsSeenFalse(user.getStudent().getId());
         
-        return notifs.stream().map(n -> new ResultNotificationDto(
+        List<ResultNotificationDto> dtos = notifs.stream().map(n -> new ResultNotificationDto(
                 n.getId(),
                 n.getExam().getExamId(),
                 n.getExam().getTitle(),
@@ -40,6 +40,18 @@ public class StudentNotificationController {
                 n.getIsSeen(),
                 n.getCreatedAt()
         )).collect(Collectors.toList());
+
+        System.out.println("RAW API RESPONSE SHAPE LOG: Returning " + dtos.size() + " unseen notifications.");
+        if (!dtos.isEmpty()) {
+            ResultNotificationDto first = dtos.get(0);
+            System.out.println("First notification structure: { id: " + first.getId() 
+                + ", examId: " + first.getExamId() 
+                + ", year: " + first.getYear() 
+                + ", semester: " + first.getSemester() 
+                + ", isSeen: " + first.getIsSeen() + " }");
+        }
+
+        return dtos;
     }
 
     @PutMapping("/{id}/seen")

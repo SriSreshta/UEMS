@@ -26,11 +26,12 @@ const StudentDashboard = () => {
 
     useEffect(() => {
         const fetchNotifications = async () => {
-            if (!user?.studentId) return;
             try {
                 const res = await authFetch("http://localhost:8080/api/student/notifications/results");
+                console.log("Notifications API status:", res.status);
                 if (res.ok) {
                     const data = await res.json();
+                    console.log("Notifications API body:", data);
                     if (data && data.length > 0) {
                         setResultNotification(data[0]);
                     }
@@ -61,7 +62,9 @@ const StudentDashboard = () => {
             }
         };
         checkAttendance();
-    }, [user, authFetch]);
+    }, [authFetch, user?.studentId]);
+
+    console.log("Modal trigger state:", resultNotification);
 
     return (
         <div className="flex min-h-screen bg-slate-900">
@@ -75,8 +78,8 @@ const StudentDashboard = () => {
                         <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-100 transition-all">
                             <div className="text-6xl mb-6">📋</div>
                             <h2 className="text-2xl font-black text-white mb-2">Results Published!</h2>
-                            <p className="text-slate-300 mb-8 leading-relaxed">
-                                Your results have been published for <strong>{resultNotification.year} Year {resultNotification.semester} Sem</strong>.
+                            <p className="text-slate-300 mb-8 leading-relaxed font-medium">
+                                Your results have been published for {resultNotification.year} Year {resultNotification.semester} Sem!
                             </p>
                             <button
                                 onClick={async () => {

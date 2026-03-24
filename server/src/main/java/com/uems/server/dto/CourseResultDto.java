@@ -11,6 +11,7 @@ public class CourseResultDto {
     private String courseCode;
     private String courseName;
     private Integer credits;
+    private Integer internalMarks;
     private String grade;
     private Integer gradePoints;
 }

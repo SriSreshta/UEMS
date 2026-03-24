@@ -11,4 +11,8 @@ import lombok.NoArgsConstructor;
 public class StudentResultsResponse {
     private Double cgpa;
     private List<SemesterResultDto> semesters;
+    private String studentName;
+    private String rollNumber;
+    private String department;
+    private String year;
 }
