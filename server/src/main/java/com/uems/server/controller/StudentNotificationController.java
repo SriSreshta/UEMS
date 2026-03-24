@@ -29,7 +29,9 @@ public class StudentNotificationController {
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public List<ResultNotificationDto> getResultNotifications(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
-        List<ResultNotification> notifs = resultNotificationRepository.findByStudentIdAndIsSeenFalse(user.getStudent().getId());
+        Long studentId = user.getStudent().getId();
+        System.out.println("DEBUG: Fetching notifications for Student PK: " + studentId + " (User: " + user.getUsername() + ")");
+        List<ResultNotification> notifs = resultNotificationRepository.findByStudentIdAndIsSeenFalse(studentId);
         
         List<ResultNotificationDto> dtos = notifs.stream().map(n -> new ResultNotificationDto(
                 n.getId(),

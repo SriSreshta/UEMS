@@ -80,7 +80,7 @@ public class AdminExamController {
         List<ExamSchedule> existing = examScheduleRepository.findByExamExamId(examId);
 
         if (existing.isEmpty()) {
-            List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+            List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), toRoman(exam.getSemester()));
             return courses.stream().map(c -> {
                 ExamScheduleDto dto = new ExamScheduleDto();
                 dto.setCourseId(c.getCourseId());
@@ -146,7 +146,7 @@ public class AdminExamController {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
 
-        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), toRoman(exam.getSemester()));
         List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
 
         List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
@@ -263,26 +263,40 @@ public class AdminExamController {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
 
-        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+        String romanSem = toRoman(exam.getSemester());
+        System.out.println("DEBUG: notifyResultsPublished starting for Exam: " + exam.getTitle() 
+                + " (ID: " + examId + ", Year: " + exam.getYear() + ", Sem: " + exam.getSemester() + " -> " + romanSem + ")");
+
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), romanSem);
         List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
+        System.out.println("DEBUG: Found " + courses.size() + " courses matching year/semester.");
 
         List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
-        Set<com.uems.server.model.Student> uniqueStudents = enrollments.stream().map(Enrollment::getStudent).collect(Collectors.toSet());
+        System.out.println("DEBUG: Found " + enrollments.size() + " enrollments for these courses.");
 
+        Set<com.uems.server.model.Student> uniqueStudents = enrollments.stream()
+                .map(Enrollment::getStudent)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        System.out.println("DEBUG: Identified " + uniqueStudents.size() + " unique students to notify.");
+
+        int count = 0;
         for (com.uems.server.model.Student s : uniqueStudents) {
             boolean exists = resultNotificationRepository.existsByExamExamIdAndStudentId(examId, s.getId());
             if (!exists) {
                 com.uems.server.model.ResultNotification notif = com.uems.server.model.ResultNotification.builder()
                         .year(exam.getYear())
-                        .semester(String.valueOf(exam.getSemester()))
+                        .semester(String.valueOf(exam.getSemester())) // Stored as numeric string "1", "2"
                         .exam(exam)
-                        .student(s)
+                        .student(s) // student.getId() is PK
                         .isSeen(false)
                         .createdAt(LocalDateTime.now())
                         .build();
                 resultNotificationRepository.save(notif);
+                count++;
             }
         }
+        System.out.println("DEBUG: Successfully inserted " + count + " new notifications into result_notification table.");
     }
 
     // --- 4. DELETE OPERATIONS ---
@@ -316,5 +330,20 @@ public class AdminExamController {
     public void deleteAllSchedules(@PathVariable Long examId) {
         List<ExamSchedule> schedules = examScheduleRepository.findByExamExamId(examId);
         examScheduleRepository.deleteAll(schedules);
+    }
+
+    private String toRoman(Integer semester) {
+        if (semester == null) return null;
+        switch (semester) {
+            case 1: return "I";
+            case 2: return "II";
+            case 3: return "III";
+            case 4: return "IV";
+            case 5: return "V";
+            case 6: return "VI";
+            case 7: return "VII";
+            case 8: return "VIII";
+            default: return String.valueOf(semester);
+        }
     }
 }
