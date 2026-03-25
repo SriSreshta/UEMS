@@ -10,85 +10,166 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
   let totalCredits = sem.courses?.reduce((acc, c) => acc + (c.credits || 0), 0) || 0;
 
   return (
-    <div className="bg-white text-black w-full p-8 md:p-12 shadow-2xl print:shadow-none mx-auto min-h-[1050px]">
-      {/* Letterhead */}
-      <div className="text-center mb-8">
-        <h1 className="text-xl md:text-2xl font-bold uppercase text-black leading-tight">
-          UNIVERSITY COLLEGE OF ENGINEERING, SCIENCE &amp; TECHNOLOGY HYDERABAD
-        </h1>
-        <p className="text-sm md:text-base font-semibold text-black mt-1">
-          (Formerly JNTUH College of Engineering Hyderabad)
-        </p>
-        <p className="text-sm md:text-base font-semibold text-black mt-1">
-          JAWAHARLAL NEHRU TECHNOLOGICAL UNIVERSITY HYDERABAD
-        </p>
-        <p className="text-sm text-black font-medium mt-1">
-          KUKATPALLY, HYDERABAD - 500 085, TELANGANA, INDIA
-        </p>
-        <div className="bg-green-700 text-white font-bold py-2 mt-5 text-lg tracking-wider w-full">
-          MEMORANDUM OF MARKS / GRADES
+    <div className="bg-[#e8ecef] text-black w-full max-w-[210mm] mx-auto p-4 sm:p-6 shadow-2xl print:shadow-none min-h-[297mm] flex flex-col font-sans relative overflow-hidden">
+      {/* Decorative borders to match the physical memo look */}
+      <div className="absolute inset-0 mix-blend-multiply opacity-50 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-yellow-100 via-pink-100 to-teal-100 pointer-events-none"></div>
+      <div className="absolute inset-1 sm:inset-3 border-[12px] border-double border-[#879d9e] pointer-events-none rounded-sm bg-[#fce8e8] bg-opacity-30"></div>
+      
+      <div className="relative z-10 flex flex-col h-full pt-6 sm:pt-8 px-4 sm:px-6">
+        
+        {/* Memo & Serial No (Top Left) */}
+        <div className="absolute left-6 top-8 text-[10px] sm:text-xs font-bold space-y-1 z-20">
+          <div className="flex"><span className="w-16">MEMO NO.</span><span>: {resultsData.memoNo || ""}</span></div>
+          <div className="flex"><span className="w-16">SERIAL NO.</span><span>: {resultsData.serialNo || ""}</span></div>
         </div>
-      </div>
 
-      {/* Student Details */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm font-semibold mb-8 text-black">
-        <div className="space-y-1.5">
-          <div className="flex"><span className="w-32 inline-block">MEMO NO</span><span>: N/A</span></div>
-          <div className="flex"><span className="w-32 inline-block">SERIAL NO</span><span>: N/A</span></div>
-          <div className="flex"><span className="w-32 inline-block">Examination</span><span>: B.Tech {sem.year || resultsData.year || "N/A"}</span></div>
-          <div className="flex"><span className="w-32 inline-block">Branch</span><span className="uppercase">: {resultsData.department || "N/A"}</span></div>
-          <div className="flex"><span className="w-32 inline-block">Student's Name</span><span className="uppercase">: {resultsData.studentName || "N/A"}</span></div>
+        {/* Header */}
+        <div className="text-center pb-4 relative">
+          <div className="absolute left-0 top-12 sm:top-8 w-14 h-14 sm:w-16 sm:h-16 border border-gray-600 rounded-full flex items-center justify-center text-[10px] text-gray-400 bg-white">
+            LOGO
+          </div>
+          <div className="absolute right-0 top-0 sm:top-4 w-14 h-14 sm:w-16 sm:h-16 border border-gray-400 rounded-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-[10px] text-gray-500 shadow-sm">
+            SEAL
+          </div>
+          
+          <div className="max-w-[70%] lg:max-w-[75%] mx-auto mt-4 sm:mt-0">
+            <h1 className="text-xs sm:text-[15px] font-bold text-black leading-tight pb-0.5">
+              UNIVERSITY COLLEGE OF ENGINEERING, SCIENCE &amp; TECHNOLOGY HYDERABAD
+            </h1>
+            <p className="text-[10px] sm:text-xs font-bold text-black">
+              (Autonomous)
+            </p>
+            <h2 className="text-xs sm:text-[14px] font-bold text-black mt-1">
+              JAWAHARLAL NEHRU TECHNOLOGICAL UNIVERSITY HYDERABAD
+            </h2>
+            <p className="text-[9px] sm:text-[11px] text-black font-semibold mt-0.5">
+              KUKATPALLY, HYDERABAD - 500 085, TELANGANA, INDIA
+            </p>
+          </div>
+          
+          <div className="inline-block bg-[#333] text-white font-bold py-1 px-6 sm:px-10 rounded-full mt-3 text-xs sm:text-sm tracking-widest border border-black shadow">
+            MEMORANDUM OF MARKS / GRADES
+          </div>
         </div>
-        <div className="space-y-1.5 sm:text-right">
-          <div className="flex sm:justify-end"><span className="w-40 sm:w-auto inline-block sm:mr-2">Hall Ticket No</span><span className="uppercase">: {resultsData.rollNumber || "N/A"}</span></div>
-          <div className="flex sm:justify-end"><span className="w-40 sm:w-auto inline-block sm:mr-2">Month &amp; Year of Exam</span><span>: March {new Date().getFullYear()}</span></div>
-        </div>
-      </div>
 
-      {/* Semester Data */}
-      <div className="space-y-8">
-        <div className="break-inside-avoid">
-          <table className="w-full text-sm border-collapse border border-black text-black">
-            <thead>
-              <tr className="border-b border-black">
-                <th className="border-r border-black p-2 w-[8%] text-center">S.No</th>
-                <th className="border-r border-black p-2 w-[22%] text-left">Subject Code</th>
-                <th className="border-r border-black p-2 text-left">Subject Title</th>
-                <th className="border-r border-black p-2 w-[12%] text-center">Grade</th>
-                <th className="border-r border-black p-2 w-[15%] text-center">Grade Point</th>
-                <th className="p-2 w-[12%] text-center">Credits</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sem.courses?.map((c, cIdx) => (
-                <tr key={cIdx} className="border-b border-black">
-                  <td className="border-r border-black p-2 text-center">{cIdx + 1}</td>
-                  <td className="border-r border-black p-2 font-medium">{c.courseCode}</td>
-                  <td className="border-r border-black p-2">{c.courseName}</td>
-                  <td className="border-r border-black p-2 text-center font-bold">{c.grade}</td>
-                  <td className="border-r border-black p-2 text-center">{c.gradePoints}</td>
-                  <td className="p-2 text-center">{c.credits}</td>
+        {/* Student Details */}
+        <div className="mt-4 flex flex-col sm:flex-row justify-between text-xs sm:text-[13px] font-bold text-black gap-2 sm:gap-4 mb-4 relative z-10 w-full pl-2 sm:pl-0">
+          <div className="space-y-4 w-full sm:w-[60%]">
+            <div className="flex items-center">
+              <span className="w-24 sm:w-32 inline-block">EXAMINATION</span>
+              <span className="uppercase">: B.Tech {sem.year || resultsData.year || "N/A"} Year {sem.semester || "N/A"} Sem</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-24 sm:w-32 inline-block">BRANCH</span>
+              <span className="uppercase">: {resultsData.department || "N/A"}</span>
+            </div>
+            <div className="flex items-center mt-2">
+              <span className="w-24 sm:w-32 inline-block shrink-0">STUDENT'S NAME</span>
+              <span className="uppercase border-b-[1.5px] border-black flex-1 ml-1 pl-1 pb-0.5 tracking-wide flex items-center">
+                <span className="mr-2">:</span>{resultsData.studentName || "N/A"}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-4 w-full sm:w-[40%] flex flex-col sm:items-end mt-4 sm:mt-0">
+            <div className="flex w-full justify-start sm:justify-end items-center">
+              <span className="w-32 sm:w-auto inline-block sm:text-right sm:mr-3 textxs sm:text-[13px]">HALL TICKET NO.</span>
+              <span className="uppercase border border-black px-3 py-1 min-w-[140px] text-center bg-[#fceeee] tracking-widest font-black shadow-[inset_0_0_2px_rgba(0,0,0,0.2)]">
+                {resultsData.rollNumber || "N/A"}
+              </span>
+            </div>
+            <div className="flex w-full justify-start sm:justify-end items-center">
+              <span className="w-32 sm:w-auto inline-block sm:text-right sm:mr-3 text-xs sm:text-[13px]">MONTH &amp; YEAR OF EXAM</span>
+              <span className="uppercase sm:min-w-[100px] sm:text-right">: JULY, 2024</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Semester Data Table */}
+        <div className="flex-grow z-10 relative px-1 sm:px-0 mt-2">
+          <div className="border-[1.5px] border-black shadow-[0_0_5px_rgba(0,0,0,0.1)] bg-white/40 mix-blend-multiply">
+            <table className="w-full text-xs sm:text-sm border-collapse border-black text-black">
+              <thead>
+                <tr className="border-b-[1.5px] border-black">
+                  <th className="border-r-[1.5px] border-black p-2 w-[6%] text-center font-bold">S.NO</th>
+                  <th className="border-r-[1.5px] border-black p-2 w-[14%] text-center font-bold">SUBJECT<br/>CODE</th>
+                  <th className="border-r-[1.5px] border-black p-2 text-center font-bold">SUBJECT TITLE</th>
+                  <th className="border-r-[1.5px] border-black p-1 sm:p-2 w-[8%] text-center font-bold">GRADE</th>
+                  <th className="border-r-[1.5px] border-black p-1 sm:p-2 w-[10%] text-center font-bold leading-tight">GRADE<br/>POINT</th>
+                  <th className="p-1 sm:p-2 w-[10%] text-center font-bold">CREDITS</th>
                 </tr>
-              ))}
-              <tr>
-                <td colSpan={6} className="p-2 text-center font-semibold text-sm">
-                  Registered Subjects : {registered} &nbsp;&nbsp;|&nbsp;&nbsp; Passed : {passed} &nbsp;&nbsp;|&nbsp;&nbsp; Total Credits : {totalCredits}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div className="mt-1.5 font-bold text-black text-sm">
-            SGPA: {sem.sgpa?.toFixed(2)}
+              </thead>
+              <tbody>
+                {sem.courses?.map((c, cIdx) => (
+                  <tr key={cIdx} className="border-b-[1px] border-gray-400">
+                    <td className="border-r-[1.5px] border-black p-2 text-center text-[11px] sm:text-xs">{cIdx + 1}</td>
+                    <td className="border-r-[1.5px] border-black p-2 text-center font-medium text-[11px] sm:text-xs tracking-wider">{c.courseCode}</td>
+                    <td className="border-r-[1.5px] border-black p-2 text-[11px] sm:text-xs font-semibold pl-4 uppercase">{c.courseName}</td>
+                    <td className="border-r-[1.5px] border-black p-2 text-center font-bold text-xs sm:text-sm tracking-wide">{c.grade}</td>
+                    <td className="border-r-[1.5px] border-black p-2 text-center text-xs sm:text-sm">{c.gradePoints}</td>
+                    <td className="p-2 text-center text-xs sm:text-sm">{c.credits}</td>
+                  </tr>
+                ))}
+                
+                {/* Empty rows to maintain table height */}
+                {Array.from({ length: Math.max(0, 10 - (sem.courses?.length || 0)) }).map((_, i) => (
+                  <tr key={`empty-${i}`} className="border-b-[1px] border-gray-400 h-[30px] sm:h-[34px]">
+                    <td className="border-r-[1.5px] border-black"></td>
+                    <td className="border-r-[1.5px] border-black"></td>
+                    <td className="border-r-[1.5px] border-black"></td>
+                    <td className="border-r-[1.5px] border-black"></td>
+                    <td className="border-r-[1.5px] border-black"></td>
+                    <td></td>
+                  </tr>
+                ))}
+                
+                <tr className="border-t-[1.5px] border-black bg-white/50">
+                  <td colSpan={3} className="border-r-[1.5px] border-black p-2 text-center font-semibold text-[11px] sm:text-xs tracking-wide">
+                    <div className="flex justify-around px-2 sm:px-4">
+                      <span>Registered Subjects : {registered}</span>
+                      <span>Passed : {passed}</span>
+                    </div>
+                  </td>
+                  <td colSpan={3} className="p-2 text-center font-semibold text-[11px] sm:text-xs tracking-wide">
+                    Total Credits : {totalCredits}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-3 flex flex-col sm:flex-row justify-between items-center sm:items-start text-black px-2 mb-6 gap-2 sm:gap-0">
+              <div className="w-full sm:w-1/3"></div>
+              <div className="w-full sm:w-1/3 text-center text-base sm:text-lg font-black tracking-widest text-[#a81d1d] shrink-0">
+                SGPA: {sem.sgpa?.toFixed(2)}
+              </div>
+              <div className="w-full sm:w-1/3 text-center sm:text-right text-[9px] sm:text-[10px] font-bold leading-tight pt-1">
+                Note : S - Satisfactory, NS - Not Satisfactory
+              </div>
+          </div>
+
+          {showCgpa && (
+            <div className="text-center font-black text-base sm:text-lg text-black mb-6 border-t-2 border-b-2 border-black py-1 sm:py-2 mt-2 max-w-[200px] mx-auto bg-white/50 shadow-sm">
+              CGPA: {resultsData.cgpa?.toFixed(2) || "0.00"}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Signatures */}
+        <div className="mt-auto pt-8 sm:pt-12 flex justify-between items-end text-[10px] sm:text-[11px] font-bold text-black px-2 sm:px-4 pb-2 w-full z-10 relative">
+          <div className="pb-1">
+            DATE OF ISSUE : &nbsp;&nbsp;<span className="font-bold border-b-[1.5px] border-black border-dashed min-w-[80px] inline-block text-center pb-0.5">{new Date().toLocaleDateString('en-GB')}</span>
+          </div>
+          <div className="text-center flex flex-col items-center">
+              <div className="h-4 sm:h-6 mb-1 border-b-[1.5px] border-black w-20 sm:w-28 opacity-80"></div>
+              VERIFIED BY
+              <span className="font-normal mt-0.5 opacity-80 text-[9px]">Clerk</span>
+          </div>
+          <div className="text-center flex flex-col items-center">
+              <div className="h-4 sm:h-6 mb-1 border-b-[1.5px] border-black w-24 sm:w-36 opacity-80"></div>
+              PRINCIPAL
           </div>
         </div>
       </div>
-
-      {/* Overall CGPA */}
-      {showCgpa && (
-        <div className="mt-8 text-right font-black text-xl text-black">
-          CGPA: {resultsData.cgpa?.toFixed(2) || "0.00"}
-        </div>
-      )}
     </div>
   );
 };
