@@ -17,39 +17,33 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
       
       <div className="relative z-10 flex flex-col h-full pt-6 sm:pt-8 px-4 sm:px-6">
         
-        {/* Memo & Serial No (Top Left) */}
-        <div className="absolute left-6 top-8 text-[10px] sm:text-xs font-bold space-y-1 z-20">
+        
+
+        {/* Header - 3 column layout: logo | text center | seal */}
+<div className="flex items-start justify-between pb-3 border-b border-gray-400">
+  {/* Left - Logo */}
+  <img src="/src/assets/jntuh-logo.png" alt="JNTUH" 
+       className="w-16 h-16 object-contain" />
+  
+  {/* Center - University text */}
+  <div className="text-center flex-1 px-2">
+    <p className="font-bold text-xs uppercase">University College of Engineering, Science & Technology Hyderabad</p>
+    <p className="text-xs">(Autonomous)</p>
+    <p className="font-bold text-xs uppercase">Jawaharlal Nehru Technological University Hyderabad</p>
+    <p className="text-xs">Kukatpally, Hyderabad - 500 085, Telangana, India</p>
+    <div className="mt-2">
+      <span className="bg-gray-900 text-white px-8 py-1 text-xs font-bold uppercase tracking-widest">
+        Memorandum of Marks / Grades
+      </span>
+    </div>
+  </div>
+
+  
+</div>
+{/* Memo & Serial No (Top Left) */}
+        <div className="text-[10px] sm:text-xs font-bold space-y-1 z-20">
           <div className="flex"><span className="w-16">MEMO NO.</span><span>: {resultsData.memoNo || ""}</span></div>
           <div className="flex"><span className="w-16">SERIAL NO.</span><span>: {resultsData.serialNo || ""}</span></div>
-        </div>
-
-        {/* Header */}
-        <div className="text-center pb-4 relative">
-          <div className="absolute left-0 top-12 sm:top-8 w-14 h-14 sm:w-16 sm:h-16 border border-gray-600 rounded-full flex items-center justify-center text-[10px] text-gray-400 bg-white">
-            LOGO
-          </div>
-          <div className="absolute right-0 top-0 sm:top-4 w-14 h-14 sm:w-16 sm:h-16 border border-gray-400 rounded-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-[10px] text-gray-500 shadow-sm">
-            SEAL
-          </div>
-          
-          <div className="max-w-[70%] lg:max-w-[75%] mx-auto mt-4 sm:mt-0">
-            <h1 className="text-xs sm:text-[15px] font-bold text-black leading-tight pb-0.5">
-              UNIVERSITY COLLEGE OF ENGINEERING, SCIENCE &amp; TECHNOLOGY HYDERABAD
-            </h1>
-            <p className="text-[10px] sm:text-xs font-bold text-black">
-              (Autonomous)
-            </p>
-            <h2 className="text-xs sm:text-[14px] font-bold text-black mt-1">
-              JAWAHARLAL NEHRU TECHNOLOGICAL UNIVERSITY HYDERABAD
-            </h2>
-            <p className="text-[9px] sm:text-[11px] text-black font-semibold mt-0.5">
-              KUKATPALLY, HYDERABAD - 500 085, TELANGANA, INDIA
-            </p>
-          </div>
-          
-          <div className="inline-block bg-[#333] text-white font-bold py-1 px-6 sm:px-10 rounded-full mt-3 text-xs sm:text-sm tracking-widest border border-black shadow">
-            MEMORANDUM OF MARKS / GRADES
-          </div>
         </div>
 
         {/* Student Details */}
@@ -110,17 +104,7 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
                   </tr>
                 ))}
                 
-                {/* Empty rows to maintain table height */}
-                {Array.from({ length: Math.max(0, 10 - (sem.courses?.length || 0)) }).map((_, i) => (
-                  <tr key={`empty-${i}`} className="border-b-[1px] border-gray-400 h-[30px] sm:h-[34px]">
-                    <td className="border-r-[1.5px] border-black"></td>
-                    <td className="border-r-[1.5px] border-black"></td>
-                    <td className="border-r-[1.5px] border-black"></td>
-                    <td className="border-r-[1.5px] border-black"></td>
-                    <td className="border-r-[1.5px] border-black"></td>
-                    <td></td>
-                  </tr>
-                ))}
+                
                 
                 <tr className="border-t-[1.5px] border-black bg-white/50">
                   <td colSpan={3} className="border-r-[1.5px] border-black p-2 text-center font-semibold text-[11px] sm:text-xs tracking-wide">
