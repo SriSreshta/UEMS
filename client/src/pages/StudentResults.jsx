@@ -20,16 +20,16 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
         
 
         {/* Header - 3 column layout: logo | text center | seal */}
-<div className="flex items-start justify-between pb-3 border-b border-gray-400">
+<div className="flex items-center justify-between pb-3 border-b border-gray-400">
   {/* Left - Logo */}
   <img src="/src/assets/jntuh-logo.png" alt="JNTUH" 
        className="w-16 h-16 object-contain" />
   
   {/* Center - University text */}
   <div className="text-center flex-1 px-2">
-    <p className="font-bold text-xs uppercase">University College of Engineering, Science & Technology Hyderabad</p>
+    <p className="font-bold text-sm uppercase">University College of Engineering, Science & Technology Hyderabad</p>
     <p className="text-xs">(Autonomous)</p>
-    <p className="font-bold text-xs uppercase">Jawaharlal Nehru Technological University Hyderabad</p>
+    <p className="font-bold text-sm uppercase">Jawaharlal Nehru Technological University Hyderabad</p>
     <p className="text-xs">Kukatpally, Hyderabad - 500 085, Telangana, India</p>
     <div className="mt-2">
       <span className="bg-gray-900 text-white px-8 py-1 text-xs font-bold uppercase tracking-widest">
