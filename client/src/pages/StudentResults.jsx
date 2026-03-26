@@ -19,17 +19,17 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
         
         
 
-        {/* Header - 3 column layout: logo | text center | seal */}
-<div className="flex items-center justify-between pb-3 border-b border-gray-400">
+{/* Header - 3 column layout: logo | text center | seal */}
+<div className="flex items-center justify-between pb-3 border-b border-gray-400 min-h-[100px]">
   {/* Left - Logo */}
   <img src="/src/assets/jntuh-logo.png" alt="JNTUH" 
-       className="w-16 h-16 object-contain" />
+       className="w-20 h-20 object-contain self-center flex-shrink-0" />
   
   {/* Center - University text */}
   <div className="text-center flex-1 px-2">
-    <p className="font-bold text-sm uppercase">University College of Engineering, Science & Technology Hyderabad</p>
-    <p className="text-xs">(Autonomous)</p>
-    <p className="font-bold text-sm uppercase">Jawaharlal Nehru Technological University Hyderabad</p>
+    <p className="font-bold text-[13px] uppercase">University College of Engineering, Science & Technology Hyderabad</p>
+    <p className="text-xs text-center w-full">(Autonomous)</p>
+    <p className="font-bold text-xs uppercase">Jawaharlal Nehru Technological University Hyderabad</p>
     <p className="text-xs">Kukatpally, Hyderabad - 500 085, Telangana, India</p>
     <div className="mt-2">
       <span className="bg-gray-900 text-white px-8 py-1 text-xs font-bold uppercase tracking-widest">
@@ -38,8 +38,10 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
     </div>
   </div>
 
-  
+  {/* Right - balancing spacer */}
+  <div className="w-20 h-20 flex-shrink-0" />
 </div>
+
 {/* Memo & Serial No (Top Left) */}
         <div className="text-[10px] sm:text-xs font-bold space-y-1 z-20">
           <div className="flex"><span className="w-16">MEMO NO.</span><span>: {resultsData.memoNo || ""}</span></div>
@@ -80,6 +82,14 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
 
         {/* Semester Data Table */}
         <div className="flex-grow z-10 relative px-1 sm:px-0 mt-2">
+          {/* Watermark */}
+          <div className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center pointer-events-none z-0">
+            <img 
+            src="/src/assets/jntuh-logo.png" 
+            alt="" 
+            className="w-64 h-64 object-contain opacity-10" 
+            />
+          </div>
           <div className="border-[1.5px] border-black shadow-[0_0_5px_rgba(0,0,0,0.1)] bg-white/40 mix-blend-multiply">
             <table className="w-full text-xs sm:text-sm border-collapse border-black text-black">
               <thead>
@@ -123,7 +133,7 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
           
           <div className="mt-3 flex flex-col sm:flex-row justify-between items-center sm:items-start text-black px-2 mb-6 gap-2 sm:gap-0">
               <div className="w-full sm:w-1/3"></div>
-              <div className="w-full sm:w-1/3 text-center text-base sm:text-lg font-black tracking-widest text-[#a81d1d] shrink-0">
+              <div className="w-full sm:w-1/3 text-center text-sm font-bold tracking-wide text-black shrink-0">
                 SGPA: {sem.sgpa?.toFixed(2)}
               </div>
               <div className="w-full sm:w-1/3 text-center sm:text-right text-[9px] sm:text-[10px] font-bold leading-tight pt-1">
@@ -132,7 +142,7 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
           </div>
 
           {showCgpa && (
-            <div className="text-center font-black text-base sm:text-lg text-black mb-6 border-t-2 border-b-2 border-black py-1 sm:py-2 mt-2 max-w-[200px] mx-auto bg-white/50 shadow-sm">
+            <div className="text-center font-bold text-sm text-black mb-6 mt-2">
               CGPA: {resultsData.cgpa?.toFixed(2) || "0.00"}
             </div>
           )}
