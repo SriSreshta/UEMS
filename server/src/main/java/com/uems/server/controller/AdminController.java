@@ -1,6 +1,8 @@
 package com.uems.server.controller;
 
 import com.uems.server.dto.*;
+import com.uems.server.model.Enrollment;
+import com.uems.server.repository.EnrollmentRepository;
 import com.uems.server.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -8,7 +10,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -16,6 +21,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final EnrollmentRepository enrollmentRepository;
 
     // ════════════════════════════════════════════════════════════════════════
     //  EXISTING — User Management
@@ -215,5 +221,58 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<EnrollmentResponse>> getEnrollmentsByStudent(@PathVariable Long studentId) {
         return ResponseEntity.ok(adminService.getEnrollmentsByStudent(studentId));
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  ANALYTICS
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/admin/analytics?year=3&semester=2
+     * Returns per-subject grade analytics for the given year/semester.
+     * Ab (absent) is counted separately and NOT as fail.
+     */
+    @GetMapping("/analytics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<AnalyticsDto>> getAnalytics(
+            @RequestParam Integer year,
+            @RequestParam Integer semester) {
+
+        List<Enrollment> enrollments = enrollmentRepository
+                .findByCourseYearAndCourseSemester(year, String.valueOf(semester));
+
+        // Group by subject name (preserve insertion order)
+        Map<String, List<Enrollment>> bySubject = new LinkedHashMap<>();
+        for (Enrollment e : enrollments) {
+            String name = e.getCourse().getName();
+            bySubject.computeIfAbsent(name, k -> new ArrayList<>()).add(e);
+        }
+
+        List<AnalyticsDto> result = new ArrayList<>();
+        for (Map.Entry<String, List<Enrollment>> entry : bySubject.entrySet()) {
+            AnalyticsDto dto = new AnalyticsDto();
+            dto.setSubjectName(entry.getKey());
+
+            for (Enrollment e : entry.getValue()) {
+                String grade = e.getGrade();
+
+                if (grade == null) continue; // marks not yet published
+
+                switch (grade) {
+                    case "O"  -> { dto.setO(dto.getO() + 1);           dto.setPass(dto.getPass() + 1); }
+                    case "A+" -> { dto.setAplus(dto.getAplus() + 1);   dto.setPass(dto.getPass() + 1); }
+                    case "A"  -> { dto.setA(dto.getA() + 1);           dto.setPass(dto.getPass() + 1); }
+                    case "B+" -> { dto.setBplus(dto.getBplus() + 1);   dto.setPass(dto.getPass() + 1); }
+                    case "B"  -> { dto.setB(dto.getB() + 1);           dto.setPass(dto.getPass() + 1); }
+                    case "C"  -> { dto.setC(dto.getC() + 1);           dto.setPass(dto.getPass() + 1); }
+                    case "F"  -> { dto.setF(dto.getF() + 1);           dto.setFail(dto.getFail() + 1); }
+                    case "Ab" -> dto.setAb(dto.getAb() + 1); // absent — separate bucket
+                    default   -> dto.setFail(dto.getFail() + 1);
+                }
+            }
+            result.add(dto);
+        }
+
+        return ResponseEntity.ok(result);
     }
 }

@@ -53,4 +53,11 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Enrollment> findByStudentYearAndStudentSemester(@Param("year") String year, @Param("semester") String semester);
 
     List<Enrollment> findByCourseCourseIdIn(List<Long> courseIds);
+
+    /**
+     * All enrollments for courses matching a given year and semester.
+     * Used by the analytics endpoint.
+     */
+    @Query("SELECT e FROM Enrollment e JOIN FETCH e.course c WHERE c.year = :year AND c.semester = :semester")
+    List<Enrollment> findByCourseYearAndCourseSemester(@Param("year") Integer year, @Param("semester") String semester);
 }
