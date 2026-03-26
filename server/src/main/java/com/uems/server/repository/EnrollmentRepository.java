@@ -60,4 +60,15 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
      */
     @Query("SELECT e FROM Enrollment e JOIN FETCH e.course c WHERE c.year = :year AND c.semester = :semester")
     List<Enrollment> findByCourseYearAndCourseSemester(@Param("year") Integer year, @Param("semester") String semester);
+
+    /**
+     * All enrollments for courses matching a given year, semester, and faculty.
+     * Used by the faculty analytics endpoint.
+     */
+    @Query("SELECT e FROM Enrollment e JOIN FETCH e.course c WHERE c.year = :year AND c.semester = :semester AND c.faculty.id = :facultyId")
+    List<Enrollment> findByCourseYearAndCourseSemesterAndCourseFacultyId(
+        @Param("year") Integer year,
+        @Param("semester") String semester,
+        @Param("facultyId") Long facultyId);
+
 }

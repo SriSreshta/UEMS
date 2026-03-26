@@ -12,6 +12,14 @@ import com.uems.server.dto.MaterialResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.uems.server.dto.AnalyticsDto;
+import com.uems.server.model.Faculty;
+import com.uems.server.repository.FacultyRepository;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,6 +45,7 @@ public class FacultyController {
     @Autowired private EnrollmentRepository enrollmentRepository;
     @Autowired private MaterialRepository materialRepository;
     @Autowired private CourseService courseService;
+    @Autowired private FacultyRepository facultyRepository;
 
     // ✅ Automatically get logged-in faculty’s courses
     @GetMapping("/courses")
@@ -184,5 +193,51 @@ public class FacultyController {
         if (!materialRepository.existsById(id)) return ResponseEntity.notFound().build();
         materialRepository.deleteById(id);
         return ResponseEntity.ok("Material deleted");
+    }
+
+    @GetMapping("/analytics")
+    public ResponseEntity<List<AnalyticsDto>> getFacultyAnalytics(
+            @RequestParam Integer year,
+            @RequestParam Integer semester,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Faculty faculty = facultyRepository.findByUserUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("Faculty not found"));
+
+            List<Enrollment> enrollments = enrollmentRepository
+                    .findByCourseYearAndCourseSemesterAndCourseFacultyId(
+                        year, String.valueOf(semester), faculty.getId());
+
+            Map<String, List<Enrollment>> bySubject = new LinkedHashMap<>();
+            for (Enrollment e : enrollments) {
+                String name = e.getCourse().getName();
+                bySubject.computeIfAbsent(name, k -> new ArrayList<>()).add(e);
+            }
+
+            List<AnalyticsDto> result = new ArrayList<>();
+            for (Map.Entry<String, List<Enrollment>> entry : bySubject.entrySet()) {
+                AnalyticsDto dto = new AnalyticsDto();
+                dto.setSubjectName(entry.getKey());
+                for (Enrollment e : entry.getValue()) {
+                    String grade = e.getGrade();
+                    if (grade == null) continue;
+                    switch (grade) {
+                        case "O"  -> { dto.setO(dto.getO() + 1);         dto.setPass(dto.getPass() + 1); }
+                        case "A+" -> { dto.setAplus(dto.getAplus() + 1); dto.setPass(dto.getPass() + 1); }
+                        case "A"  -> { dto.setA(dto.getA() + 1);         dto.setPass(dto.getPass() + 1); }
+                        case "B+" -> { dto.setBplus(dto.getBplus() + 1); dto.setPass(dto.getPass() + 1); }
+                        case "B"  -> { dto.setB(dto.getB() + 1);         dto.setPass(dto.getPass() + 1); }
+                        case "C"  -> { dto.setC(dto.getC() + 1);         dto.setPass(dto.getPass() + 1); }
+                        case "F"  -> { dto.setF(dto.getF() + 1);         dto.setFail(dto.getFail() + 1); }
+                        case "Ab" -> dto.setAb(dto.getAb() + 1);
+                        default   -> dto.setFail(dto.getFail() + 1);
+                    }
+                }
+                result.add(dto);
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
+        }
     }
 }
