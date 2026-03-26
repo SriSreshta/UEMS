@@ -10,10 +10,10 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
   let totalCredits = sem.courses?.reduce((acc, c) => acc + (c.credits || 0), 0) || 0;
 
   return (
-    <div className="bg-[#e8ecef] text-black w-full max-w-[210mm] mx-auto p-4 sm:p-6 shadow-2xl print:shadow-none min-h-[297mm] flex flex-col font-sans relative overflow-hidden">
+    <div className="bg-white text-black w-full max-w-[210mm] mx-auto p-4 sm:p-6 shadow-2xl print:shadow-none min-h-[297mm] flex flex-col font-sans relative overflow-hidden">
       {/* Decorative borders to match the physical memo look */}
-      <div className="absolute inset-0 mix-blend-multiply opacity-50 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-yellow-100 via-pink-100 to-teal-100 pointer-events-none"></div>
-      <div className="absolute inset-1 sm:inset-3 border-[12px] border-double border-[#879d9e] pointer-events-none rounded-sm bg-[#fce8e8] bg-opacity-30"></div>
+      
+      <div className="absolute inset-1 sm:inset-3 border-[12px] border-double border-[#879d9e] pointer-events-none rounded-sm"></div>
       
       <div className="relative z-10 flex flex-col h-full pt-6 sm:pt-8 px-4 sm:px-6">
         
@@ -69,7 +69,7 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
           <div className="space-y-4 w-full sm:w-[40%] flex flex-col sm:items-end mt-4 sm:mt-0">
             <div className="flex w-full justify-start sm:justify-end items-center">
               <span className="w-32 sm:w-auto inline-block sm:text-right sm:mr-3 textxs sm:text-[13px]">HALL TICKET NO.</span>
-              <span className="uppercase border border-black px-3 py-1 min-w-[140px] text-center bg-[#fceeee] tracking-widest font-black shadow-[inset_0_0_2px_rgba(0,0,0,0.2)]">
+              <span className="uppercase border border-black px-3 py-1 min-w-[140px] text-center tracking-widest font-black shadow-[inset_0_0_2px_rgba(0,0,0,0.2)]">
                 {resultsData.rollNumber || "N/A"}
               </span>
             </div>
