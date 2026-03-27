@@ -18,6 +18,7 @@ const FacultyDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [studentCount, setStudentCount] = useState(null);
   // Analytics state
   const [analyticsYear, setAnalyticsYear] = useState(4);
   const [analyticsSem, setAnalyticsSem] = useState(2);
@@ -43,6 +44,20 @@ const FacultyDashboard = () => {
     };
     fetchCourses();
   }, [authFetch, user]);
+  // ADD THIS ENTIRE BLOCK BELOW
+  useEffect(() => {
+    if (courses.length === 0) return;
+    Promise.all(
+      courses.map(c =>
+        authFetch(`http://localhost:8080/api/students/course/${c.courseId}`)
+          .then(r => r.json())
+          .then(data => Array.isArray(data) ? data.length : 0)
+          .catch(() => 0)
+      )
+    ).then(counts => {
+      setStudentCount(counts.reduce((sum, n) => sum + n, 0));
+    });
+  }, [courses, authFetch]);
 
   useEffect(() => {
     authFetch(`http://localhost:8080/api/faculty/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
@@ -111,7 +126,9 @@ const FacultyDashboard = () => {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wider font-bold">Students</p>
-                  <p className="text-2xl font-black text-slate-800">--</p>
+                  <p className="text-2xl font-black text-slate-800">
+  {studentCount === null ? "..." : studentCount}
+</p>
                 </div>
               </div>
 
