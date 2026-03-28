@@ -275,4 +275,53 @@ public class AdminController {
 
         return ResponseEntity.ok(result);
     }
+    /**
+ * GET /api/admin/analytics/department
+ * Returns per-department student count, pass, fail, and pass%.
+ */
+@GetMapping("/analytics/department")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<List<DeptAnalyticsDto>> getDeptAnalytics() {
+
+    List<Enrollment> allEnrollments = enrollmentRepository.findAllWithStudent();
+
+    // Group enrollments by department (via student)
+    Map<String, DeptAnalyticsDto> byDept = new LinkedHashMap<>();
+
+    for (Enrollment e : allEnrollments) {
+        // skip if student or department is missing
+        if (e.getStudent() == null) continue;
+        String dept = e.getStudent().getDepartment();
+        if (dept == null || dept.isBlank()) continue;
+
+        String grade = e.getGrade();
+        if (grade == null) continue; // marks not published yet
+
+        DeptAnalyticsDto dto = byDept.computeIfAbsent(dept, k -> {
+            DeptAnalyticsDto d = new DeptAnalyticsDto();
+            d.setDepartment(k);
+            return d;
+        });
+
+        switch (grade) {
+            case "O", "A+", "A", "B+", "B", "C" -> {
+                dto.setPass(dto.getPass() + 1);
+            }
+            case "F" -> {
+                dto.setFail(dto.getFail() + 1);
+            }
+            // "Ab" (absent) — skip, same as existing analytics logic
+        }
+    }
+
+    // Calculate studentCount and passPercent for each dept
+    List<DeptAnalyticsDto> result = new ArrayList<>(byDept.values());
+    for (DeptAnalyticsDto dto : result) {
+        int total = dto.getPass() + dto.getFail();
+        dto.setStudentCount(total);
+        dto.setPassPercent(total > 0 ? Math.round((dto.getPass() * 100.0) / total) : 0);
+    }
+
+    return ResponseEntity.ok(result);
+}
 }

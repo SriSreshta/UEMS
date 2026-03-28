@@ -28,6 +28,8 @@ import AdminCreateExam from "./pages/AdminCreateExam";
 import AdminExamSchedules from "./pages/AdminExamSchedules";
 import AdminPublishResults from "./pages/AdminPublishResults";
 import Footer from "./components/Footer";
+import YearSemAnalytics from "./pages/analytics/YearSemAnalytics";
+import DeptAnalytics from "./pages/analytics/DeptAnalytics";
 
 export default function App() {
   return (
@@ -263,6 +265,18 @@ export default function App() {
               <StudentResults />
             </ProtectedRoute>
           }
+        />
+
+        <Route 
+        path="/admin/analytics/year-sem" 
+        element={
+        <YearSemAnalytics />
+        } 
+        />
+        <Route 
+        path="/admin/analytics/dept"     
+        element={<DeptAnalytics />
+        } 
         />
 
         {/* 404 fallback */}

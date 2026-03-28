@@ -1,23 +1,17 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../auth/AuthContext";
 import adminHero from "../assets/dashboard/admin_hero.png";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  PieChart, Pie, Cell, ResponsiveContainer
-} from 'recharts';
 
 const AdminDashboard = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { authFetch } = useAuth();
   const [stats, setStats] = useState({ users: null, courses: null, fees: null });
   const [loading, setLoading] = useState(true);
-
-  const [analyticsYear, setAnalyticsYear] = useState(4);
-  const [analyticsSem, setAnalyticsSem] = useState(2);
-  const [analyticsData, setAnalyticsData] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -46,17 +40,33 @@ const AdminDashboard = () => {
     fetchStats();
   }, [authFetch]);
 
-  useEffect(() => {
-    authFetch(`http://localhost:8080/api/admin/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
-      .then(r => r.json())
-      .then(data => setAnalyticsData(Array.isArray(data) ? data : []))
-      .catch(console.error);
-  }, [analyticsYear, analyticsSem, authFetch]);
-
   const statCards = [
     { label: "Total Users",       value: stats.users,   color: "text-indigo-600",  bg: "bg-indigo-50" },
     { label: "Active Courses",    value: stats.courses, color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "Fee Notifications", value: stats.fees,    color: "text-amber-600",   bg: "bg-amber-50" },
+  ];
+
+  const analyticsCards = [
+    {
+      title: "Year & Semester Analytics",
+      description: "Explore pass/fail rates, grade distributions, and subject-wise performance filtered by academic year and semester.",
+      icon: "📅",
+      color: "from-indigo-500 to-indigo-700",
+      border: "border-indigo-100",
+      badge: "bg-indigo-100 text-indigo-700",
+      badgeLabel: "Year · Semester · Grades",
+      route: "/admin/analytics/year-sem",
+    },
+    {
+      title: "Department Analytics",
+      description: "Compare enrollment counts, performance trends, and grade breakdowns across all departments.",
+      icon: "🏛️",
+      color: "from-emerald-500 to-emerald-700",
+      border: "border-emerald-100",
+      badge: "bg-emerald-100 text-emerald-700",
+      badgeLabel: "Departments · Enrollment · Trends",
+      route: "/admin/analytics/dept",
+    },
   ];
 
   return (
@@ -79,8 +89,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Real-time stats */}
           <div className="p-8 max-w-4xl mx-auto">
+            {/* Real-time stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {statCards.map(card => (
                 <div key={card.label} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
@@ -94,124 +104,49 @@ const AdminDashboard = () => {
               ))}
             </div>
 
-            {/* ===== ANALYTICS SECTION ===== */}
-            <div style={{ marginTop: '2rem' }}>
-              <h2 className="text-2xl font-black text-slate-700 mb-4">Analytics</h2>
-
-              {/* Filters */}
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                <select
-                  value={analyticsYear}
-                  onChange={e => setAnalyticsYear(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                >
-                  {[1, 2, 3, 4].map(y => (
-                    <option key={y} value={y}>Year {y}</option>
-                  ))}
-                </select>
-                <select
-                  value={analyticsSem}
-                  onChange={e => setAnalyticsSem(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                >
-                  <option value={1}>Semester 1</option>
-                  <option value={2}>Semester 2</option>
-                </select>
+            {/* Analytics Navigation */}
+            <div className="mt-10">
+              <div className="flex items-center gap-3 mb-6">
+                <h2 className="text-2xl font-black text-slate-700">Analytics</h2>
+                <span className="text-xs font-bold bg-slate-100 text-slate-500 px-3 py-1 rounded-full uppercase tracking-widest">
+                  2 Reports
+                </span>
               </div>
 
-              {/* Chart 1: Pass % per Subject */}
-              <h3 className="text-lg font-bold text-slate-600 mt-6 mb-2">Pass % per Subject</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={analyticsData.map(d => ({
-                    name: d.subjectName,
-                    passPercent: d.pass + d.fail > 0
-                      ? Math.round((d.pass / (d.pass + d.fail)) * 100)
-                      : 0
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="passPercent" fill="#22c55e" name="Pass %" />
-                </BarChart>
-              </ResponsiveContainer>
-
-              {/* Chart 2: Overall Pass vs Fail Pie */}
-              <h3 className="text-lg font-bold text-slate-600 mt-6 mb-2">Overall Pass vs Fail</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Pass', value: analyticsData.reduce((s, d) => s + d.pass, 0) },
-                      { name: 'Fail', value: analyticsData.reduce((s, d) => s + d.fail, 0) }
-                    ]}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {analyticsCards.map(card => (
+                  <button
+                    key={card.route}
+                    onClick={() => navigate(card.route)}
+                    className={`text-left bg-white rounded-2xl border ${card.border} shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400`}
                   >
-                    <Cell fill="#22c55e" />
-                    <Cell fill="#ef4444" />
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+                    {/* Gradient top bar */}
+                    <div className={`h-2 w-full bg-gradient-to-r ${card.color}`} />
 
-              {/* Chart 3: Grade Distribution per Subject */}
-              <h3 className="text-lg font-bold text-slate-600 mt-6 mb-2">Grade Distribution per Subject</h3>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart
-                  data={analyticsData.map(d => ({
-                    name: d.subjectName,
-                    O: d.o,
-                    'A+': d.aplus,
-                    A: d.a,
-                    'B+': d.bplus,
-                    B: d.b,
-                    C: d.c,
-                    F: d.f
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="O"  fill="#6366f1" />
-                  <Bar dataKey="A+" fill="#8b5cf6" />
-                  <Bar dataKey="A"  fill="#06b6d4" />
-                  <Bar dataKey="B+" fill="#0ea5e9" />
-                  <Bar dataKey="B"  fill="#84cc16" />
-                  <Bar dataKey="C"  fill="#f59e0b" />
-                  <Bar dataKey="F"  fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-3xl">{card.icon}</span>
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${card.badge}`}>
+                          {card.badgeLabel}
+                        </span>
+                      </div>
 
-              {/* Chart 4: Overall Grade Distribution */}
-              <h3 className="text-lg font-bold text-slate-600 mt-6 mb-2">Overall Grade Distribution</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={['o', 'aplus', 'a', 'bplus', 'b', 'c', 'f'].map(g => ({
-                    grade: g === 'aplus' ? 'A+' : g === 'bplus' ? 'B+' : g.toUpperCase(),
-                    count: analyticsData.reduce((s, d) => s + (d[g] || 0), 0)
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="grade" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#6366f1" />
-                </BarChart>
-              </ResponsiveContainer>
+                      <h3 className="text-lg font-black text-slate-700 mb-2 group-hover:text-indigo-600 transition-colors">
+                        {card.title}
+                      </h3>
+                      <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                        {card.description}
+                      </p>
 
+                      <div className="flex items-center gap-1 text-xs font-bold text-slate-400 group-hover:text-indigo-500 transition-colors">
+                        <span>View Report</span>
+                        <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-            {/* ===== END ANALYTICS SECTION ===== */}
-
           </div>
         </main>
 
