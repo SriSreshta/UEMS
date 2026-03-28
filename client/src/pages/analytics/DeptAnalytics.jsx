@@ -60,7 +60,7 @@ const DeptAnalytics = () => {
           {/* Page Header */}
           <div className="flex items-center gap-4 mb-8">
             <button
-              onClick={() => navigate("/admin/dashboard")}
+              onClick={() => navigate("/admin")}
               className="text-sm font-bold text-slate-400 hover:text-emerald-600 transition-colors flex items-center gap-1"
             >
               ← Back
