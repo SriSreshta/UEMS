@@ -21,6 +21,10 @@ public class ActiveFeeResponse {
     // Dynamically calculated per student context
     private Double currentLateFee; 
     private Double totalAmountDue;
+    
+    // Supplementary metadata
+    private Boolean isSupply;
+    private java.util.List<String> failedSubjects;
 
     private LocalDateTime createdAt;
     private boolean isPaid; // if already paid

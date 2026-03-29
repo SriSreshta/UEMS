@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import api from "../api/axiosInstance";
 
 /* ─── tiny toast ─────────────────────────────────────────────────────────── */
@@ -36,8 +37,9 @@ export default function ManageCourses() {
   const [faculties, setFaculties] = useState([]);
   const [toast, setToast]         = useState({ msg: "", type: "success" });
 
-  const [form, setForm] = useState({ name: "", code: "", department: "", year: "", semester: "" });
+  const [form, setForm] = useState({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false });
   const [creating, setCreating] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState(null);
 
   const [assign, setAssign] = useState({ courseId: "", facultyId: "" });
   const [assigning, setAssigning] = useState(false);
@@ -52,20 +54,55 @@ export default function ManageCourses() {
 
   useEffect(() => { loadCourses(); loadFaculties(); }, [loadCourses, loadFaculties]);
 
-  const handleCreate = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.code || !form.year || !form.semester) {
       showToast("Please fill all required fields.", "error"); return;
     }
     setCreating(true);
     try {
-      await api.post("/admin/courses", { ...form, year: parseInt(form.year) });
-      showToast("Course created successfully!");
-      setForm({ name: "", code: "", department: "", year: "", semester: "" });
+      const payload = { ...form, year: parseInt(form.year) };
+      if (editingCourseId) {
+        await api.put(`/admin/courses/${editingCourseId}`, payload);
+        showToast("Course updated successfully!");
+      } else {
+        await api.post("/admin/courses", payload);
+        showToast("Course created successfully!");
+      }
+      setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false });
+      setEditingCourseId(null);
       await loadCourses();
     } catch {
-      showToast("Failed to create course.", "error");
+      showToast(`Failed to ${editingCourseId ? 'update' : 'create'} course.`, "error");
     } finally { setCreating(false); }
+  };
+
+  const handleEdit = (course) => {
+    setEditingCourseId(course.courseId);
+    setForm({
+      name: course.name,
+      code: course.code,
+      department: course.department || "",
+      year: course.year,
+      semester: course.semester,
+      isOpenElective: course.isOpenElective || false
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (courseId) => {
+    if (!window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) return;
+    try {
+      await api.delete(`/admin/courses/${courseId}`);
+      showToast("Course deleted successfully!");
+      if (editingCourseId === courseId) {
+        setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false });
+        setEditingCourseId(null);
+      }
+      await loadCourses();
+    } catch {
+      showToast("Failed to delete course.", "error");
+    }
   };
 
   const handleAssign = async () => {
@@ -99,12 +136,23 @@ export default function ManageCourses() {
             <p className="text-slate-500 mb-10 text-sm">System administration for courses and faculty assignments.</p>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-              {/* Create Course */}
+              {/* Create/Edit Course */}
               <div className="bg-white rounded-3xl p-8 border border-white shadow-xl shadow-slate-200/50">
-                <h2 className="text-lg font-black text-indigo-600 mb-6 flex items-center gap-2">
-                  <span className="p-1.5 bg-indigo-50 rounded-lg">➕</span> Create New Course
-                </h2>
-                <form onSubmit={handleCreate} className="space-y-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-black text-indigo-600 flex items-center gap-2">
+                    <span className="p-1.5 bg-indigo-50 rounded-lg">{editingCourseId ? '✏️' : '➕'}</span>
+                    {editingCourseId ? 'Edit Course' : 'Create New Course'}
+                  </h2>
+                  {editingCourseId && (
+                    <button 
+                      onClick={() => { setEditingCourseId(null); setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false }); }}
+                      className="text-xs font-bold text-slate-400 hover:text-slate-600 transition"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={lbl}>Name *</label>
@@ -135,8 +183,18 @@ export default function ManageCourses() {
                       </select>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <input 
+                      type="checkbox" 
+                      id="isOpenElective" 
+                      checked={form.isOpenElective} 
+                      onChange={e => setForm(p => ({ ...p, isOpenElective: e.target.checked }))}
+                      className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500"
+                    />
+                    <label htmlFor="isOpenElective" className="text-sm font-bold text-slate-700">This is an Open Elective Course</label>
+                  </div>
                   <button type="submit" disabled={creating} className={btnCls("bg-indigo-600 hover:bg-indigo-700 w-full disabled:opacity-50 mt-2")}>
-                    {creating && <Spinner />} {creating ? "Processing..." : "Register Course"}
+                    {creating && <Spinner />} {creating ? "Processing..." : (editingCourseId ? "Update Course" : "Register Course")}
                   </button>
                 </form>
               </div>
@@ -186,13 +244,17 @@ export default function ManageCourses() {
                                 <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Code</th>
                                 <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Schedule</th>
                                 <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Assigned Personnel</th>
+                                <th className="px-8 py-4 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 transition-all">
                             {courses.map((c) => (
                                 <tr key={c.courseId} className="hover:bg-slate-50/50 transition">
                                     <td className="px-8 py-5">
-                                        <div className="font-bold text-slate-800">{c.name}</div>
+                                        <div className="font-bold text-slate-800">
+                                          {c.name}
+                                          {c.isOpenElective && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-800 tracking-wide uppercase">OE</span>}
+                                        </div>
                                         <div className="text-[10px] uppercase font-black text-indigo-400 tracking-tighter">{c.department || "General"}</div>
                                     </td>
                                     <td className="px-8 py-5">
@@ -212,6 +274,24 @@ export default function ManageCourses() {
                                                 <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
                                                 Pending Assignment
                                               </div>}
+                                    </td>
+                                    <td className="px-8 py-5 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button 
+                                                onClick={() => handleEdit(c)}
+                                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                                title="Edit Course"
+                                            >
+                                                <PencilSquareIcon className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(c.courseId)}
+                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                                title="Delete Course"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

@@ -15,6 +15,7 @@ const StudentPaymentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [payingId, setPayingId] = useState(null);
+  const [selectedSupplySubjects, setSelectedSupplySubjects] = useState({});
 
   const fetchPaymentData = async () => {
     try {
@@ -29,6 +30,15 @@ const StudentPaymentsPage = () => {
       
       const actData = await actRes.json();
       const histData = await histRes.json();
+
+      const initialSelections = {};
+      actData.forEach(fee => {
+        if (fee.isSupply && fee.failedSubjects) {
+          initialSelections[fee.id] = [...fee.failedSubjects];
+        }
+      });
+      setSelectedSupplySubjects(initialSelections);
+
       setActiveFees(actData);
       setHistory(histData);
     } catch (err) {
@@ -42,10 +52,38 @@ const StudentPaymentsPage = () => {
     fetchPaymentData();
   }, [authFetch]);
 
-  const handlePay = (feeId) => {
+  const handleSubjectToggle = (feeId, subject) => {
+    setSelectedSupplySubjects(prev => {
+      const current = prev[feeId] || [];
+      if (current.includes(subject)) {
+        return { ...prev, [feeId]: current.filter(s => s !== subject) };
+      } else {
+        return { ...prev, [feeId]: [...current, subject] };
+      }
+    });
+  };
+
+  const getDynamicFeeInfo = (fee) => {
+    if (!fee.isSupply || !fee.failedSubjects || fee.failedSubjects.length === 0) {
+      return { base: fee.baseAmount || 0, total: fee.totalAmountDue || 0 };
+    }
+    
+    const selected = selectedSupplySubjects[fee.id] || [];
+    const count = selected.length;
+    let base = 0;
+    if (count === 1) base = 365;
+    else if (count === 2) base = 465;
+    else if (count === 3) base = 565;
+    else if (count >= 4) base = 765;
+    
+    const total = base === 0 ? 0 : base + (fee.currentLateFee || 0);
+    return { base, total, count };
+  };
+
+  const handlePay = (feeId, dynamicTotal) => {
     // Navigating to an unhandled route to trigger the 404 screen, 
     // simulating a payment gateway that we haven't built yet!
-    navigate(`/payment-gateway/${feeId}`);
+    navigate(`/payment-gateway/${feeId}`, { state: { amount: dynamicTotal } });
   };
 
   return (
@@ -69,13 +107,16 @@ const StudentPaymentsPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {activeFees.map(fee => (
+                {activeFees.map(fee => {
+                  const dynamicFee = getDynamicFeeInfo(fee);
+                  
+                  return (
                   <div key={fee.id} className="bg-white p-6 rounded-lg shadow-sm border border-red-200 flex flex-col justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-gray-800 mb-2">{fee.title}</h3>
                       <div className="flex justify-between items-center text-sm mb-1 mt-4 border-b border-gray-100 pb-2">
                         <span className="text-gray-600">Base Amount:</span>
-                        <span className="font-medium text-gray-800">₹{fee.baseAmount}</span>
+                        <span className="font-medium text-gray-800">₹{dynamicFee.base}</span>
                       </div>
                       <div className="flex justify-between items-center text-sm mb-1 border-b border-gray-100 pb-2">
                         <span className="text-gray-600">Expected Due Date:</span>
@@ -87,23 +128,45 @@ const StudentPaymentsPage = () => {
                         <span>Late Fee Penalty Applied:</span>
                         <span className="font-bold">+ ₹{fee.currentLateFee}</span>
                       </div>
+
+                      {fee.isSupply && fee.failedSubjects && fee.failedSubjects.length > 0 && (
+                        <div className="mt-4 mb-2 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                          <p className="font-semibold text-yellow-800 mb-2">Select subjects to clear this attempt:</p>
+                          <div className="flex flex-col gap-2">
+                            {fee.failedSubjects.map((sub, idx) => {
+                              const isChecked = (selectedSupplySubjects[fee.id] || []).includes(sub);
+                              return (
+                                <label key={idx} className="flex items-center gap-3 cursor-pointer p-1 rounded hover:bg-yellow-100 transition">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isChecked} 
+                                    onChange={() => handleSubjectToggle(fee.id, sub)}
+                                    className="rounded text-blue-600 focus:ring-blue-500 bg-white border-gray-300 w-4 h-4 cursor-pointer"
+                                  />
+                                  <span className={isChecked ? "text-gray-900 font-medium" : "text-gray-600"}>{sub}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="mt-6 flex flex-col sm:flex-row justify-between items-center bg-gray-50 -mx-6 -mb-6 p-4 rounded-b-lg border-t border-gray-200">
                       <div className="mb-4 sm:mb-0 text-center sm:text-left">
                         <span className="block text-xs uppercase text-gray-500 font-semibold tracking-wider">Total Due</span>
-                        <span className="text-2xl font-black text-gray-900">₹{fee.totalAmountDue}</span>
+                        <span className="text-2xl font-black text-gray-900">₹{dynamicFee.total}</span>
                       </div>
                       <button 
-                        onClick={() => handlePay(fee.id)}
-                        disabled={payingId === fee.id}
-                        className={`px-8 py-3 rounded text-white font-bold shadow-sm transition ${payingId === fee.id ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        onClick={() => handlePay(fee.id, dynamicFee.total)}
+                        disabled={payingId === fee.id || dynamicFee.total === 0}
+                        className={`px-8 py-3 rounded text-white font-bold shadow-sm transition ${payingId === fee.id || dynamicFee.total === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                       >
                         {payingId === fee.id ? 'Processing...' : 'Pay Now'}
                       </button>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </section>

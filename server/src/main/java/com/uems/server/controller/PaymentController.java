@@ -9,6 +9,8 @@ import com.uems.server.repository.FeeNotificationRepository;
 import com.uems.server.repository.StudentPaymentRepository;
 import com.uems.server.repository.StudentRepository;
 import com.uems.server.repository.UserRepository;
+import com.uems.server.repository.EnrollmentRepository;
+import com.uems.server.model.Enrollment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -30,15 +32,18 @@ public class PaymentController {
     private final StudentPaymentRepository paymentRepository;
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     public PaymentController(FeeNotificationRepository feeRepository, 
                              StudentPaymentRepository paymentRepository,
                              StudentRepository studentRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             EnrollmentRepository enrollmentRepository) {
         this.feeRepository = feeRepository;
         this.paymentRepository = paymentRepository;
         this.studentRepository = studentRepository;
         this.userRepository = userRepository;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
     private Student getAuthenticatedStudent(Authentication auth) {
@@ -67,6 +72,41 @@ public class PaymentController {
             );
             if (existingPayment.isPresent()) continue; // Skip strictly paid ones from Active view
 
+            // Supply examination fee logic
+            boolean isSupply = false;
+            if (fee.getTitle() != null) {
+                String titleLower = fee.getTitle().toLowerCase();
+                isSupply = titleLower.contains("supply") || titleLower.contains("supple");
+            }
+            List<String> failedSubjects = new ArrayList<>();
+            Double computedBaseAmount = fee.getBaseAmount();
+
+            if (isSupply) {
+                List<Enrollment> enrollments = enrollmentRepository.findByStudentId(student.getId());
+                for (Enrollment e : enrollments) {
+                    if ("F".equals(e.getGrade()) || "Ab".equals(e.getGrade())) {
+                        failedSubjects.add(e.getCourse().getName());
+                    }
+                }
+                
+                System.out.println("DEBUG ActiveFee: Student " + student.getRollNumber() + " failed subjects: " + failedSubjects.size());
+
+                if (failedSubjects.isEmpty()) {
+                    continue; // Skip supply fee if no subjects failed
+                }
+                
+                int failCount = failedSubjects.size();
+                if (failCount == 1) {
+                    computedBaseAmount = 365.0;
+                } else if (failCount == 2) {
+                    computedBaseAmount = 465.0;
+                } else if (failCount == 3) {
+                    computedBaseAmount = 565.0;
+                } else {
+                    computedBaseAmount = 765.0;
+                }
+            }
+
             long weeksLate = 0;
             if (fee.getDueDate() != null && today.isAfter(fee.getDueDate())) {
                 long daysLate = ChronoUnit.DAYS.between(fee.getDueDate(), today);
@@ -74,16 +114,18 @@ public class PaymentController {
             }
             
             Double calcLateFee = weeksLate * (fee.getLateFeePerWeek() != null ? fee.getLateFeePerWeek() : 0.0);
-            Double totalAmount = fee.getBaseAmount() + calcLateFee;
+            Double totalAmount = computedBaseAmount + calcLateFee;
 
             responses.add(ActiveFeeResponse.builder()
                     .id(fee.getId())
                     .title(fee.getTitle())
-                    .baseAmount(fee.getBaseAmount())
+                    .baseAmount(computedBaseAmount)
                     .dueDate(fee.getDueDate())
                     .lateFeePerWeek(fee.getLateFeePerWeek())
                     .currentLateFee(calcLateFee)
                     .totalAmountDue(totalAmount)
+                    .isSupply(isSupply)
+                    .failedSubjects(failedSubjects)
                     .createdAt(fee.getCreatedAt())
                     .isPaid(false)
                     .build());
@@ -108,6 +150,30 @@ public class PaymentController {
         }
 
         // Calculate amount to record
+        boolean isSupply = false;
+        if (fee.getTitle() != null) {
+            String titleLower = fee.getTitle().toLowerCase();
+            isSupply = titleLower.contains("supply") || titleLower.contains("supple");
+        }
+        Double computedBaseAmount = fee.getBaseAmount();
+        
+        if (isSupply) {
+            List<Enrollment> enrollments = enrollmentRepository.findByStudentId(student.getId());
+            int failCount = 0;
+            for (Enrollment e : enrollments) {
+                if ("F".equals(e.getGrade()) || "Ab".equals(e.getGrade())) {
+                    failCount++;
+                }
+            }
+            if (failCount == 0) {
+                return ResponseEntity.badRequest().body("No failed subjects, supply fee is not applicable.");
+            }
+            if (failCount == 1) computedBaseAmount = 365.0;
+            else if (failCount == 2) computedBaseAmount = 465.0;
+            else if (failCount == 3) computedBaseAmount = 565.0;
+            else computedBaseAmount = 765.0;
+        }
+
         LocalDate today = LocalDate.now();
         long weeksLate = 0;
         if (fee.getDueDate() != null && today.isAfter(fee.getDueDate())) {
@@ -115,7 +181,7 @@ public class PaymentController {
             weeksLate = (daysLate / 7) + 1;
         }
         Double calcLateFee = weeksLate * (fee.getLateFeePerWeek() != null ? fee.getLateFeePerWeek() : 0.0);
-        Double totalAmount = fee.getBaseAmount() + calcLateFee;
+        Double totalAmount = computedBaseAmount + calcLateFee;
 
         StudentPayment payment = StudentPayment.builder()
                 .student(student)

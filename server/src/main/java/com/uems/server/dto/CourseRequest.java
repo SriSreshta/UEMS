@@ -9,4 +9,5 @@ public class CourseRequest {
     private String department;
     private Integer year;
     private String semester;
+    private Boolean isOpenElective;
 }

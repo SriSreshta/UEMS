@@ -41,7 +41,7 @@ public class CourseController {
             }
             return new CourseResponse(c.getCourseId(), c.getName(), c.getCode(),
                     c.getDepartment(), c.getYear(), c.getSemester(),
-                    facultyId, facultyName, facultyDept);
+                    facultyId, facultyName, facultyDept, c.getIsOpenElective());
         }).collect(Collectors.toList());
     }
 }

@@ -22,4 +22,5 @@ public class CourseResponse {
     private Long facultyId;
     private String facultyName;   // faculty.user.username
     private String facultyDept;   // faculty.department
+    private Boolean isOpenElective;
 }

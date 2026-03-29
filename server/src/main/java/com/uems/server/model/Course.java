@@ -24,6 +24,9 @@ public class Course {
     private Integer year;
     private Long roleId;
     
+    @Column(name = "is_open_elective")
+    private Boolean isOpenElective = false;
+    
     @Column(nullable = false)
     @Builder.Default
     private Integer credits = 3;

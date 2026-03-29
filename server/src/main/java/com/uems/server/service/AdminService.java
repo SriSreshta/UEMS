@@ -177,9 +177,35 @@ public class AdminService {
                 .department(request.getDepartment())
                 .year(request.getYear())
                 .semester(request.getSemester())
+                .isOpenElective(request.getIsOpenElective() != null && request.getIsOpenElective())
                 .build();
         Course saved = courseRepository.save(course);
         return toCourseResponse(saved);
+    }
+
+    @Transactional
+    public CourseResponse updateCourse(Long courseId, CourseRequest request) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+        course.setName(request.getName());
+        course.setCode(request.getCode());
+        course.setDepartment(request.getDepartment());
+        course.setYear(request.getYear());
+        course.setSemester(request.getSemester());
+        course.setIsOpenElective(request.getIsOpenElective() != null && request.getIsOpenElective());
+        return toCourseResponse(courseRepository.save(course));
+    }
+
+    @Transactional
+    public void deleteCourse(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+        
+        // Remove enrollments associated with this course first
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
+        enrollmentRepository.deleteAll(enrollments);
+        
+        courseRepository.delete(course);
     }
 
     public List<CourseResponse> getAllCourses() {
@@ -257,36 +283,51 @@ public class AdminService {
     }
 
     /**
-     * Batch enrollment: clear all existing enrollments for the year/semester batch,
-     * then enroll every student of that batch into every course matching same year/semester.
+     * Batch enrollment: ONLY enrolls students in Core courses (matches department and not open elective).
+     * Open Electives are manually enrolled and preserved.
      */
     @Transactional
     public String enrollBatch(String year, String semester) {
-        // 1. Clear existing enrollments for this batch
-        enrollmentRepository.deleteByStudentYearAndStudentSemester(year, semester);
-
-        // 2. Fetch all students in the batch
         List<Student> students = studentRepository.findByYearAndSemester(year, semester);
-
-        // 3. Fetch all courses for the same year/semester
         List<Course> courses = courseRepository.findByYearAndSemester(Integer.parseInt(year), semester);
 
         if (students.isEmpty()) return "No students found for Year " + year + " Sem " + semester;
         if (courses.isEmpty())  return "No courses found for Year " + year + " Sem " + semester;
 
-        // 4. Cross-enroll every student into every course
-        int count = 0;
+        // 1. Delete existing CORE enrollments for this batch, preserving OEs.
         for (Student student : students) {
-            for (Course course : courses) {
-                enrollmentRepository.save(
-                    Enrollment.builder().student(student).course(course).build()
-                );
-                count++;
+            List<Enrollment> existing = enrollmentRepository.findByStudentId(student.getId());
+            for (Enrollment e : existing) {
+                Boolean isOe = e.getCourse().getIsOpenElective();
+                if ((isOe == null || !isOe) && 
+                    e.getCourse().getYear().equals(Integer.parseInt(year)) && 
+                    e.getCourse().getSemester().equals(semester)) {
+                    enrollmentRepository.delete(e);
+                }
             }
         }
 
-        return "Enrolled " + students.size() + " students into " + courses.size()
-                + " courses (" + count + " mappings created).";
+        // 4. Enroll every student into matching CORE courses
+        int count = 0;
+        for (Student student : students) {
+            for (Course course : courses) {
+                Boolean isOe = course.getIsOpenElective();
+                if ((isOe == null || !isOe)) {
+                    // Only match if student department equals course department
+                    // Added a null check/empty check just in case
+                    String sDept = student.getDepartment();
+                    String cDept = course.getDepartment();
+                    if (sDept != null && cDept != null && sDept.equalsIgnoreCase(cDept)) {
+                        enrollmentRepository.save(
+                            Enrollment.builder().student(student).course(course).build()
+                        );
+                        count++;
+                    }
+                }
+            }
+        }
+
+        return "Processed " + students.size() + " students and restored " + count + " core course mappings.";
     }
 
     public List<EnrollmentResponse> getEnrollmentsByCourse(Long courseId) {
@@ -319,7 +360,7 @@ public class AdminService {
         }
         return new CourseResponse(c.getCourseId(), c.getName(), c.getCode(),
                 c.getDepartment(), c.getYear(), c.getSemester(),
-                facultyId, facultyName, facultyDept);
+                facultyId, facultyName, facultyDept, c.getIsOpenElective());
     }
 
     private StudentResponse toStudentResponse(Student s) {

@@ -70,7 +70,8 @@ public class FacultyController {
                     c.getYear(), c.getSemester(), 
                     c.getFaculty() != null ? c.getFaculty().getId() : null, 
                     username, 
-                    c.getFaculty() != null ? c.getFaculty().getDepartment() : null
+                    c.getFaculty() != null ? c.getFaculty().getDepartment() : null,
+                    c.getIsOpenElective()
             )).collect(Collectors.toList());
             
             System.out.println("✅ Courses found: " + response.size());

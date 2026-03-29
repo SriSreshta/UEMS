@@ -96,6 +96,36 @@ public class AdminController {
     }
 
     /**
+     * PUT /api/admin/courses/{id}
+     * Update an existing course.
+     */
+    @PutMapping("/courses/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody CourseRequest request) {
+        try {
+            CourseResponse course = adminService.updateCourse(id, request);
+            return ResponseEntity.ok(course);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * DELETE /api/admin/courses/{id}
+     * Delete an existing course.
+     */
+    @DeleteMapping("/courses/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
+        try {
+            adminService.deleteCourse(id);
+            return ResponseEntity.ok("Course deleted successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
      * POST /api/admin/courses/assign
      * Assign a faculty member to a course.
      * Body: { "courseId": 1, "facultyId": 2 }
