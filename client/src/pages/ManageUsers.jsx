@@ -3,20 +3,22 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../auth/AuthContext";
-import { TrashIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-
+import { TrashIcon, MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
 const ManageUsers = () => {
     const [isOpen, setIsOpen] = useState(true);
     const { authFetch } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [roleFilter, setRoleFilter] = useState("");
+    const [deptFilter, setDeptFilter] = useState("");
+    const [rollNoFilter, setRollNoFilter] = useState("");
     const [message, setMessage] = useState({ type: "", text: "" });
 
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const res = await authFetch("http://localhost:8080/api/admin/users");
+            const res = await authFetch("http://localhost:8081/api/admin/users");
             if (!res.ok) throw new Error("Failed to fetch users");
             const data = await res.json();
             setUsers(data);
@@ -37,7 +39,7 @@ const ManageUsers = () => {
         }
 
         try {
-            const res = await authFetch(`http://localhost:8080/api/admin/users/${id}`, {
+            const res = await authFetch(`http://localhost:8081/api/admin/users/${id}`, {
                 method: "DELETE"
             });
             if (!res.ok) throw new Error("Failed to delete user");
@@ -49,11 +51,19 @@ const ManageUsers = () => {
         }
     };
 
-    const filteredUsers = users.filter(u => 
-        u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.rollNumber && u.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredUsers = users.filter(u => {
+        if (u.role === 'ROLE_ADMIN') return false;
+
+        const matchSearch = searchTerm === "" || 
+            u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchTerm.toLowerCase());
+            
+        const matchRole = roleFilter === "" || u.role === roleFilter;
+        const matchDept = deptFilter === "" || u.department === deptFilter;
+        const matchRoll = rollNoFilter === "" || (u.rollNumber && u.rollNumber.toLowerCase().includes(rollNoFilter.toLowerCase()));
+        
+        return matchSearch && matchRole && matchDept && matchRoll;
+    });
 
     return (
         <div className="flex min-h-screen bg-gray-50">
@@ -69,20 +79,99 @@ const ManageUsers = () => {
                     )}
 
                     <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-8">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <h2 className="text-xl font-bold">All Registered Users</h2>
-                            <div className="relative w-full md:w-80">
-                                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                                    <MagnifyingGlassIcon className="h-5 w-5" />
-                                </span>
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by username, email or roll no..." 
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                                <h2 className="text-xl font-bold">All Registered Users</h2>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="relative w-full xl:w-64">
+                                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                            <MagnifyingGlassIcon className="h-5 w-5" />
+                                        </span>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search username, email..." 
+                                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <FunnelIcon className="h-5 w-5 text-gray-400 hidden xl:block" />
+                                        <select 
+                                            className="block w-full sm:w-auto py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value={roleFilter}
+                                            onChange={(e) => setRoleFilter(e.target.value)}
+                                        >
+                                            <option value="">All Roles</option>
+                                            <option value="ROLE_FACULTY">Faculty</option>
+                                            <option value="ROLE_STUDENT">Student</option>
+                                        </select>
+            
+                                        <select 
+                                            className="block w-full sm:w-auto py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value={deptFilter}
+                                            onChange={(e) => setDeptFilter(e.target.value)}
+                                        >
+                                            <option value="">All Depts</option>
+                                            {[...new Set(users.map(u => u.department).filter(Boolean))].map(dept => (
+                                                <option key={dept} value={dept}>{dept}</option>
+                                            ))}
+                                        </select>
+
+                                        <input 
+                                            type="text" 
+                                            placeholder="Filter Roll No" 
+                                            className="block w-full sm:w-auto py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value={rollNoFilter}
+                                            onChange={(e) => setRollNoFilter(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
                             </div>
+                            
+                            {(roleFilter || deptFilter || rollNoFilter) && (
+                                <div className="flex flex-wrap items-center gap-2 mt-2 pt-4 border-t border-gray-100">
+                                    <span className="text-sm font-medium text-gray-500 mr-2">Active Filters:</span>
+                                    
+                                    {roleFilter && (
+                                        <span className="inline-flex items-center py-1 px-3 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-200">
+                                            Role: {roleFilter.replace('ROLE_', '')}
+                                            <button onClick={() => setRoleFilter('')} className="ml-1.5 p-0.5 rounded-full hover:bg-blue-100 focus:outline-none">
+                                                <XMarkIcon className="h-4 w-4" />
+                                            </button>
+                                        </span>
+                                    )}
+                                    
+                                    {deptFilter && (
+                                        <span className="inline-flex items-center py-1 px-3 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-200">
+                                            Dept: {deptFilter}
+                                            <button onClick={() => setDeptFilter('')} className="ml-1.5 p-0.5 rounded-full hover:bg-blue-100 focus:outline-none">
+                                                <XMarkIcon className="h-4 w-4" />
+                                            </button>
+                                        </span>
+                                    )}
+                                    
+                                    {rollNoFilter && (
+                                        <span className="inline-flex items-center py-1 px-3 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-200">
+                                            Roll No: {rollNoFilter}
+                                            <button onClick={() => setRollNoFilter('')} className="ml-1.5 p-0.5 rounded-full hover:bg-blue-100 focus:outline-none">
+                                                <XMarkIcon className="h-4 w-4" />
+                                            </button>
+                                        </span>
+                                    )}
+                                    
+                                    <button 
+                                        onClick={() => {
+                                            setRoleFilter('');
+                                            setDeptFilter('');
+                                            setRollNoFilter('');
+                                        }}
+                                        className="text-sm text-gray-500 hover:text-gray-700 ml-2"
+                                    >
+                                        Clear All
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 

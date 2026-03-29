@@ -41,7 +41,7 @@ const DeptAnalytics = () => {
 
   useEffect(() => {
     setLoading(true);
-    authFetch("http://localhost:8080/api/admin/analytics/department")
+    authFetch("http://localhost:8081/api/admin/analytics/department")
       .then(r => r.json())
       .then(data => setDeptData(Array.isArray(data) ? data : []))
       .catch(console.error)

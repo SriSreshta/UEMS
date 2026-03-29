@@ -17,9 +17,9 @@ const AdminDashboard = () => {
     const fetchStats = async () => {
       try {
         const [usersRes, coursesRes, feesRes] = await Promise.all([
-          authFetch("http://localhost:8080/api/admin/users"),
-          authFetch("http://localhost:8080/api/admin/courses"),
-          authFetch("http://localhost:8080/api/admin/fees"),
+          authFetch("http://localhost:8081/api/admin/users"),
+          authFetch("http://localhost:8081/api/admin/courses"),
+          authFetch("http://localhost:8081/api/admin/fees"),
         ]);
 
         const users   = usersRes.ok   ? await usersRes.json()   : [];

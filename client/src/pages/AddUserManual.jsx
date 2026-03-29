@@ -30,7 +30,7 @@ const AddUserManual = () => {
     setMessage({ type: "", text: "" });
 
     try {
-      const res = await authFetch("http://localhost:8080/api/admin/create-user", {
+      const res = await authFetch("http://localhost:8081/api/admin/create-user", {
         method: "POST",
         body: JSON.stringify(formData),
       });

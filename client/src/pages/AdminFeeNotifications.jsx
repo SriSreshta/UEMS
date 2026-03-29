@@ -27,7 +27,7 @@ const AdminFeeNotifications = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const res = await authFetch("http://localhost:8080/api/admin/fees");
+      const res = await authFetch("http://localhost:8081/api/admin/fees");
       if (!res.ok) throw new Error("Failed to fetch notifications");
       const data = await res.json();
       setNotifications(data);
@@ -57,7 +57,7 @@ const AdminFeeNotifications = () => {
         lateFeePerWeek: Number(formData.lateFeePerWeek)
       };
       
-      const res = await authFetch("http://localhost:8080/api/admin/fees/notify", {
+      const res = await authFetch("http://localhost:8081/api/admin/fees/notify", {
         method: "POST",
         body: JSON.stringify(payload)
       });
@@ -80,7 +80,7 @@ const AdminFeeNotifications = () => {
     }
 
     try {
-      const res = await authFetch(`http://localhost:8080/api/admin/fees/${id}`, {
+      const res = await authFetch(`http://localhost:8081/api/admin/fees/${id}`, {
         method: "DELETE"
       });
       if (!res.ok) throw new Error("Failed to delete notification");

@@ -62,7 +62,7 @@ const YearSemAnalytics = () => {
 
   useEffect(() => {
     setLoading(true);
-    authFetch(`http://localhost:8080/api/admin/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
+    authFetch(`http://localhost:8081/api/admin/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
       .then(r => r.json())
       .then(data => setAnalyticsData(Array.isArray(data) ? data : []))
       .catch(console.error)

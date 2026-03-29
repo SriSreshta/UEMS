@@ -22,7 +22,7 @@ const AdminCreateExam = () => {
   const fetchExams = async () => {
     try {
       setLoading(true);
-      const res = await authFetch("http://localhost:8080/api/admin/exams");
+      const res = await authFetch("http://localhost:8081/api/admin/exams");
       if (!res.ok) throw new Error("Failed to fetch exams");
       const data = await res.json();
       setExams(data);
@@ -81,7 +81,7 @@ const AdminCreateExam = () => {
         examType: formData.examType
       };
       
-      const res = await authFetch("http://localhost:8080/api/admin/exams", {
+      const res = await authFetch("http://localhost:8081/api/admin/exams", {
         method: "POST",
         body: JSON.stringify(payload)
       });
@@ -100,7 +100,7 @@ const AdminCreateExam = () => {
   const handleDelete = async (examId, title) => {
     if (!window.confirm(`Are you sure you want to delete ${title}? This will also delete all its schedules.`)) return;
     try {
-      const res = await authFetch(`http://localhost:8080/api/admin/exams/${examId}`, {
+      const res = await authFetch(`http://localhost:8081/api/admin/exams/${examId}`, {
         method: "DELETE"
       });
       if (!res.ok) throw new Error("Failed to delete exam");

@@ -433,7 +433,7 @@ export default function StudentResults() {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const res = await authFetch("http://localhost:8080/api/students/results");
+        const res = await authFetch("http://localhost:8081/api/students/results");
         if (res.ok) {
           const data = await res.json();
           setResultsData(data);

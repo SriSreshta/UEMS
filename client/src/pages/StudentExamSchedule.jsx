@@ -16,7 +16,7 @@ const StudentExamSchedule = () => {
     const fetchSchedules = async () => {
       try {
         setLoading(true);
-        const res = await authFetch("http://localhost:8080/api/student/exams/schedules");
+        const res = await authFetch("http://localhost:8081/api/student/exams/schedules");
         if (!res.ok) throw new Error("Failed to fetch exam schedules");
         
         const data = await res.json();

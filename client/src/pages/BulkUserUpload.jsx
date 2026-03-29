@@ -27,7 +27,7 @@ const BulkUserUpload = () => {
     formData.append("file", file);
 
     try {
-      const res = await authFetch("http://localhost:8080/api/admin/upload-users", {
+      const res = await authFetch("http://localhost:8081/api/admin/upload-users", {
         method: "POST",
         body: formData,
       });

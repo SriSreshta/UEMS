@@ -15,6 +15,7 @@ import AdminFeeNotifications from "./pages/AdminFeeNotifications";
 import StudentPaymentsPage from "./pages/StudentPaymentsPage";
 import StudentExamSchedule from "./pages/StudentExamSchedule";
 import StudentResults from "./pages/StudentResults";
+import StudentDocumentStore from "./pages/StudentDocumentStore";
 
 import AddUserManual from "./pages/AddUserManual";
 import BulkUserUpload from "./pages/BulkUserUpload";
@@ -263,6 +264,24 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="student">
               <StudentResults />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/documents"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentDocumentStore type="document" />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/certificates"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentDocumentStore type="certificate" />
             </ProtectedRoute>
           }
         />

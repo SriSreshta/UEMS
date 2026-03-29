@@ -27,7 +27,7 @@ const StudentDashboard = () => {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const res = await authFetch("http://localhost:8080/api/student/notifications/results");
+                const res = await authFetch("http://localhost:8081/api/student/notifications/results");
                 console.log("Notifications API status:", res.status);
                 if (res.ok) {
                     const data = await res.json();
@@ -45,7 +45,7 @@ const StudentDashboard = () => {
         const checkAttendance = async () => {
             if (!user?.studentId) return;
             try {
-                const res = await authFetch(`http://localhost:8080/api/attendance/student/${user.studentId}`);
+                const res = await authFetch(`http://localhost:8081/api/attendance/student/${user.studentId}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data.length > 0) {
@@ -84,7 +84,7 @@ const StudentDashboard = () => {
                             <button
                                 onClick={async () => {
                                     try {
-                                        await authFetch(`http://localhost:8080/api/student/notifications/${resultNotification.id}/seen`, { method: "PUT" });
+                                        await authFetch(`http://localhost:8081/api/student/notifications/${resultNotification.id}/seen`, { method: "PUT" });
                                         setResultNotification(null);
                                         navigate("/student/results");
                                     } catch (err) {
@@ -158,7 +158,7 @@ const ScheduleSection = ({ authFetch }) => {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const res = await authFetch("http://localhost:8080/api/student/exams/schedules");
+        const res = await authFetch("http://localhost:8081/api/student/exams/schedules");
         if (res.ok) {
           const data = await res.json();
           setSchedules(data);

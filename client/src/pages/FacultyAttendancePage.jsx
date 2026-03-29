@@ -16,7 +16,7 @@ const FacultyAttendancePage = () => {
         const fetchCourses = async () => {
             try {
                 if (!user?.username) return;
-                const res = await authFetch(`http://localhost:8080/api/courses/faculty/by-username/${user.username}`);
+                const res = await authFetch(`http://localhost:8081/api/courses/faculty/by-username/${user.username}`);
                 if (!res.ok) throw new Error("Failed to fetch");
                 const data = await res.json();
                 setCourses(data);

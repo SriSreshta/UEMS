@@ -18,7 +18,7 @@ const AdminExamSchedules = () => {
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const res = await authFetch("http://localhost:8080/api/admin/exams");
+        const res = await authFetch("http://localhost:8081/api/admin/exams");
         if (!res.ok) throw new Error("Failed to fetch exams");
         const data = await res.json();
         setExams(data);
@@ -36,7 +36,7 @@ const AdminExamSchedules = () => {
     if (!selectedExamId) return;
     const fetchSchedules = async () => {
       try {
-        const res = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/schedules`);
+        const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`);
         if (!res.ok) throw new Error("Failed to fetch schedules");
         const data = await res.json();
         setSchedules(data);
@@ -58,7 +58,7 @@ const AdminExamSchedules = () => {
     setMessage({ type: "", text: "" });
     try {
       const payload = { schedules };
-      const res = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/schedules`, {
+      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`, {
         method: "POST",
         body: JSON.stringify(payload)
       });
@@ -75,14 +75,14 @@ const AdminExamSchedules = () => {
     setSaving(true);
     setMessage({ type: "", text: "" });
     try {
-      const res = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/broadcast`, {
+      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/broadcast`, {
         method: "PUT"
       });
       if (!res.ok) throw new Error("Failed to broadcast schedules");
       setMessage({ type: "success", text: "Schedule broadcasted successfully!" });
       
       // refresh schedules to see isBroadcasted changes
-      const refresh = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/schedules`);
+      const refresh = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`);
       const data = await refresh.json();
       setSchedules(data);
     } catch (err) {
@@ -97,7 +97,7 @@ const AdminExamSchedules = () => {
     
     if (scheduleId) {
       try {
-        const res = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/schedules/${scheduleId}`, { method: "DELETE" });
+        const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules/${scheduleId}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Failed to delete schedule item from database");
       } catch (err) {
         setMessage({ type: "error", text: err.message });
@@ -114,7 +114,7 @@ const AdminExamSchedules = () => {
     if (!window.confirm("Are you sure you want to delete this ENTIRE schedule? This cannot be undone.")) return;
     
     try {
-      const res = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/schedules`, { method: "DELETE" });
+      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete the entire schedule");
       
       setMessage({ type: "success", text: "Entire schedule deleted successfully!" });

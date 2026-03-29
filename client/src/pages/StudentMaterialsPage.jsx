@@ -20,7 +20,7 @@ export default function StudentMaterialsPage() {
   const [filterType, setFilterType] = useState("ALL");
 
   useEffect(() => {
-    authFetch("http://localhost:8080/api/students/my-materials")
+    authFetch("http://localhost:8081/api/students/my-materials")
       .then(r => r.ok ? r.json() : [])
       .then(setMaterials)
       .catch(() => setMaterials([]))

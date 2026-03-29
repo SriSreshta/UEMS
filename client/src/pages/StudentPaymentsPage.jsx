@@ -21,8 +21,8 @@ const StudentPaymentsPage = () => {
       setLoading(true);
       setError("");
       const [actRes, histRes] = await Promise.all([
-        authFetch("http://localhost:8080/api/payments/active"),
-        authFetch("http://localhost:8080/api/payments/history")
+        authFetch("http://localhost:8081/api/payments/active"),
+        authFetch("http://localhost:8081/api/payments/history")
       ]);
       
       if (!actRes.ok || !histRes.ok) throw new Error("Failed to fetch payment data");

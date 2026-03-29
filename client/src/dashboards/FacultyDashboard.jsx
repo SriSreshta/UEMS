@@ -30,7 +30,7 @@ const FacultyDashboard = () => {
       try {
         if (!user?.username) return;
         const res = await authFetch(
-          `http://localhost:8080/api/courses/faculty/by-username/${user.username}`
+          `http://localhost:8081/api/courses/faculty/by-username/${user.username}`
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -49,7 +49,7 @@ const FacultyDashboard = () => {
     if (courses.length === 0) return;
     Promise.all(
       courses.map(c =>
-        authFetch(`http://localhost:8080/api/students/course/${c.courseId}`)
+        authFetch(`http://localhost:8081/api/students/course/${c.courseId}`)
           .then(r => r.json())
           .then(data => Array.isArray(data) ? data.length : 0)
           .catch(() => 0)
@@ -60,7 +60,7 @@ const FacultyDashboard = () => {
   }, [courses, authFetch]);
 
   useEffect(() => {
-    authFetch(`http://localhost:8080/api/faculty/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
+    authFetch(`http://localhost:8081/api/faculty/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
       .then(r => r.json())
       .then(data => {
         const arr = Array.isArray(data) ? data : [];

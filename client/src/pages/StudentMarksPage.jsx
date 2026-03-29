@@ -14,7 +14,7 @@ const StudentMarksPage = () => {
   useEffect(() => {
     const fetchMarks = async () => {
       try {
-        const res = await authFetch("http://localhost:8080/api/students/my-marks");
+        const res = await authFetch("http://localhost:8081/api/students/my-marks");
         if (!res.ok) throw new Error("Failed to fetch marks");
         const data = await res.json();
         setMarks(data);

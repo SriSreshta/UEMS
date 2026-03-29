@@ -18,7 +18,7 @@ const AdminPublishResults = () => {
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const res = await authFetch("http://localhost:8080/api/admin/exams");
+        const res = await authFetch("http://localhost:8081/api/admin/exams");
         if (!res.ok) throw new Error("Failed to fetch exams");
         const data = await res.json();
         setExams(data);
@@ -36,7 +36,7 @@ const AdminPublishResults = () => {
     if (!selectedExamId) return;
     const fetchResultsPreview = async () => {
       try {
-        const res = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/results/preview`);
+        const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/results/preview`);
         if (!res.ok) throw new Error("Failed to fetch preview");
         const data = await res.json();
         setStudents(data);
@@ -103,7 +103,7 @@ const AdminPublishResults = () => {
     setMessage({ type: "", text: "" });
     try {
       const payload = { students };
-      const res = await authFetch(`http://localhost:8080/api/admin/exams/${selectedExamId}/results/publish`, {
+      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/results/publish`, {
         method: "POST",
         body: JSON.stringify(payload)
       });
