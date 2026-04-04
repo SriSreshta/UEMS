@@ -1,5 +1,2 @@
-### Antigravity ###
-.antigravityignore
-CONTEXT.md
 .env
 server/.env
