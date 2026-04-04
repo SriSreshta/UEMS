@@ -7,6 +7,7 @@ import FacultyDashboard from "./dashboards/FacultyDashboard";
 import StudentDashboard from "./dashboards/StudentDashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import FacultyAttendancePage from "./pages/FacultyAttendancePage";
 import MarkAttendancePage from "./pages/MarkAttendancePage";
 import UploadMarksPage from "./pages/UploadMarksPage";
@@ -42,6 +43,7 @@ export default function App() {
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Faculty routes */}
         <Route

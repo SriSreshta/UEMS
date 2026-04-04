@@ -18,11 +18,12 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final AuthenticationManager authManager;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
     public AuthService(UserRepository userRepo, RoleRepository roleRepo,
                        FacultyRepository facultyRepo, StudentRepository studentRepo,
                        PasswordEncoder encoder, AuthenticationManager authManager,
-                       JwtService jwtService) {
+                       JwtService jwtService, EmailService emailService) {
         this.userRepo = userRepo;
         this.roleRepo = roleRepo;
         this.facultyRepo = facultyRepo;
@@ -30,6 +31,7 @@ public class AuthService {
         this.encoder = encoder;
         this.authManager = authManager;
         this.jwtService = jwtService;
+        this.emailService = emailService;
     }
 public AuthResponse login(LoginRequest req) {
     authManager.authenticate(new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
@@ -57,5 +59,46 @@ String token = jwtService.generateToken(user.getUsername(), roleName);
     
     // ✅ Include username, facultyId, and studentId in response
     return new AuthResponse(token, user.getRole().getName(), user.getUsername(), facultyId, studentId);
+}
+
+public void forgotPassword(ForgotPasswordRequest req) {
+    User user = userRepo.findByEmail(req.getEmail())
+            .orElseThrow(() -> new RuntimeException("User not found with this email"));
+
+    String roleName = user.getRole().getName().toUpperCase();
+    
+    // Identity Validation
+    if (roleName.contains("STUDENT")) {
+        if (user.getStudent() == null || !user.getStudent().getRollNumber().equals(req.getRollNumber())) {
+            throw new RuntimeException("Identity mismatch: Roll number does not match");
+        }
+    } else if (roleName.contains("FACULTY")) {
+        if (!user.getUsername().equals(req.getUsername())) {
+            throw new RuntimeException("Identity mismatch: Username does not match");
+        }
+    }
+
+    // Generate Token
+    String token = java.util.UUID.randomUUID().toString();
+    user.setResetToken(token);
+    user.setResetTokenExpiry(java.time.LocalDateTime.now().plusMinutes(15));
+    userRepo.save(user);
+
+    // Send Email
+    emailService.sendResetPasswordEmail(user.getEmail(), token);
+}
+
+public void resetPassword(ResetPasswordRequest req) {
+    User user = userRepo.findByResetToken(req.getToken())
+            .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+
+    if (user.getResetTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+        throw new RuntimeException("Reset token has expired");
+    }
+
+    user.setPassword(encoder.encode(req.getNewPassword()));
+    user.setResetToken(null);
+    user.setResetTokenExpiry(null);
+    userRepo.save(user);
 }
 }
