@@ -36,6 +36,7 @@ public class SecurityConfig {
                         // Public endpoints (no auth required)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/courses/faculty/by-username/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         
                         // Faculty specific routes
                         .requestMatchers("/api/faculty/**").hasRole("FACULTY")

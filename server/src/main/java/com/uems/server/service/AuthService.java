@@ -34,31 +34,54 @@ public class AuthService {
         this.emailService = emailService;
     }
 public AuthResponse login(LoginRequest req) {
-    authManager.authenticate(new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
-    User user = userRepo.findByUsername(req.getUsername())
-            .orElseThrow(() -> new RuntimeException("User not found"));
-    String roleName = user.getRole().getName();
-if (!roleName.startsWith("ROLE_")) {
-    roleName = "ROLE_" + roleName;
-}
-String token = jwtService.generateToken(user.getUsername(), roleName);
+    // 1. Sanitization (Trim spaces)
+    String username = req.getUsername() != null ? req.getUsername().trim() : "";
+    String password = req.getPassword() != null ? req.getPassword().trim() : "";
+    String rollNumber = req.getRollNumber() != null ? req.getRollNumber().trim() : "";
 
-    Long facultyId = null;
-    Long studentId = null;
-    if ("ROLE_FACULTY".equalsIgnoreCase(roleName) || "faculty".equalsIgnoreCase(user.getRole().getName())) {
-        Faculty faculty = facultyRepo.findByUserId(user.getId());
-        if (faculty != null) {
-            facultyId = faculty.getId();
+    try {
+        // 2. Authentication (Username + Password)
+        authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+
+        // 3. User Info Retrieval
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+
+        String roleName = user.getRole().getName();
+        if (!roleName.startsWith("ROLE_")) {
+            roleName = "ROLE_" + roleName;
         }
-    } else if ("ROLE_STUDENT".equalsIgnoreCase(roleName) || "student".equalsIgnoreCase(user.getRole().getName())) {
-        Student student = studentRepo.findByUserId(user.getId());
-        if (student != null) {
-            studentId = student.getId();
+
+        // 4. Student-Specific Validation (Roll Number Check)
+        if ("ROLE_STUDENT".equalsIgnoreCase(roleName) || "student".equalsIgnoreCase(user.getRole().getName())) {
+            Student student = studentRepo.findByUserId(user.getId());
+            if (student == null || !student.getRollNumber().equals(rollNumber)) {
+                throw new RuntimeException("Invalid credentials");
+            }
         }
+
+        // 5. Generate Token and Response
+        String token = jwtService.generateToken(user.getUsername(), roleName);
+
+        Long facultyId = null;
+        Long studentId = null;
+        if ("ROLE_FACULTY".equalsIgnoreCase(roleName) || "faculty".equalsIgnoreCase(user.getRole().getName())) {
+            Faculty faculty = facultyRepo.findByUserId(user.getId());
+            if (faculty != null) {
+                facultyId = faculty.getId();
+            }
+        } else if ("ROLE_STUDENT".equalsIgnoreCase(roleName) || "student".equalsIgnoreCase(user.getRole().getName())) {
+            Student student = studentRepo.findByUserId(user.getId());
+            if (student != null) {
+                studentId = student.getId();
+            }
+        }
+
+        return new AuthResponse(token, user.getRole().getName(), user.getUsername(), facultyId, studentId);
+        
+    } catch (org.springframework.security.core.AuthenticationException e) {
+        throw new RuntimeException("Invalid credentials");
     }
-    
-    // ✅ Include username, facultyId, and studentId in response
-    return new AuthResponse(token, user.getRole().getName(), user.getUsername(), facultyId, studentId);
 }
 
 public void forgotPassword(ForgotPasswordRequest req) {
@@ -85,7 +108,11 @@ public void forgotPassword(ForgotPasswordRequest req) {
     userRepo.save(user);
 
     // Send Email
-    emailService.sendResetPasswordEmail(user.getEmail(), token);
+    if (roleName.contains("STUDENT")) {
+        emailService.sendStudentResetPasswordEmail(user.getEmail(), user.getUsername(), token);
+    } else {
+        emailService.sendFacultyResetPasswordEmail(user.getEmail(), token);
+    }
 }
 
 public void resetPassword(ResetPasswordRequest req) {

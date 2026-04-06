@@ -22,6 +22,7 @@ const printMemos = (memoNodes) => {
   style.id = "print-style";
   style.textContent = `
     @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       body > *:not(#print-root) { display: none !important; }
       #print-root {
         display: block !important;
@@ -99,6 +100,12 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
   return (
     <div className="bg-white text-black w-full max-w-[210mm] mx-auto p-4 sm:p-6 shadow-2xl print:shadow-none min-h-[297mm] flex flex-col font-sans relative overflow-hidden">
       <div className="absolute inset-1 sm:inset-3 border-[12px] border-double border-[#879d9e] pointer-events-none rounded-sm"></div>
+      
+      {/* Centered Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+        <img src="/src/assets/jntuh-logo.png" alt=""
+          className="w-80 h-80 sm:w-[450px] sm:h-[450px] object-contain opacity-[0.08]" />
+      </div>
 
       <div className="relative z-10 flex flex-col h-full pt-6 sm:pt-8 px-4 sm:px-6">
 
@@ -158,12 +165,8 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table container */}
         <div className="flex-grow z-10 relative px-1 sm:px-0 mt-2">
-          <div className="absolute inset-x-0 bottom-0 top-1/2 flex items-center justify-center pointer-events-none z-0">
-            <img src="/src/assets/jntuh-logo.png" alt=""
-              className="w-64 h-64 object-contain opacity-10" />
-          </div>
           <div className="border-[1.5px] border-black shadow-[0_0_5px_rgba(0,0,0,0.1)] bg-white/40 mix-blend-multiply">
             <table className="w-full text-xs sm:text-sm border-collapse border-black text-black">
               <thead>
@@ -278,6 +281,11 @@ const buildMemoHTML = (resultsData, sem, showCgpa) => {
     <!-- decorative border -->
     <div style="position:absolute;inset:12px;border:12px double #879d9e;pointer-events:none;border-radius:2px"></div>
 
+    <!-- Watermark -->
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0">
+      <img src="/src/assets/jntuh-logo.png" alt="" style="width:380px;height:380px;object-fit:contain;opacity:0.08"/>
+    </div>
+
     <div style="position:relative;z-index:10;display:flex;flex-direction:column;height:100%;padding-top:32px;padding-left:24px;padding-right:24px">
 
       <!-- Header -->
@@ -336,7 +344,7 @@ const buildMemoHTML = (resultsData, sem, showCgpa) => {
       </div>
 
       <!-- Table -->
-      <div style="flex:1;position:relative">
+      <div style="flex:1;position:relative;z-index:10;margin-top:8px">
         <div style="border:1.5px solid black">
           <table style="width:100%;border-collapse:collapse;color:black;font-size:12px">
             <thead>

@@ -13,12 +13,12 @@ export const AuthProvider = ({ children }) => {
   });
 
   // ✅ LOGIN FUNCTION
-  const login = async (username, password) => {
+  const login = async (username, password, rollNumber) => {
     try {
       const res = await fetch("http://localhost:8081/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, rollNumber }),
       });
 
       if (!res.ok) return false;

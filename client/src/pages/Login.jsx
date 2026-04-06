@@ -14,9 +14,22 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // 1. Sanitization (Trim spaces)
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+    const trimmedRollNo = rollNo.trim();
+
+    // 2. Validation (Check if empty after trimming)
+    if (!trimmedUsername || !trimmedPassword || (role === "student" && !trimmedRollNo)) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
     setLoading(true);
-    const ok = await login(username, password);
-    if (!ok) alert("Invalid username or password");
+    // 3. Login with sanitized data
+    const ok = await login(trimmedUsername, trimmedPassword, trimmedRollNo);
+    if (!ok) alert("Invalid credentials");
     setLoading(false);
   };
 

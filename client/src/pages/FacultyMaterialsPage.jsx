@@ -27,6 +27,8 @@ export default function FacultyMaterialsPage() {
   const [toast, setToast]         = useState({ show: false, msg: "", ok: true });
   const [form, setForm] = useState({ chapter: "", title: "", type: "VIDEO", fileUrl: "", description: "" });
   const [adding, setAdding] = useState(false);
+  const [uploadMode, setUploadMode] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     axiosInstance.get("/faculty/courses")
@@ -49,17 +51,49 @@ export default function FacultyMaterialsPage() {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!courseId) return showToast("Please select a course first.", false);
-    if (!form.title || !form.fileUrl || !form.chapter) return showToast("Chapter, title and URL are required.", false);
+    if (!form.title || !form.chapter) return showToast("Chapter and title are required.", false);
+    
+    let finalUrl = form.fileUrl;
+
     setAdding(true);
     try {
-      await axiosInstance.post(`/faculty/courses/${courseId}/materials`, { ...form, courseId: Number(courseId) });
+      // Handle file upload if in upload mode
+      if (uploadMode) {
+        if (!selectedFile) {
+          setAdding(false);
+          return showToast("Please select a file to upload.", false);
+        }
+        
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        
+        const uploadRes = await axiosInstance.post("/faculty/materials/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        finalUrl = uploadRes.data.url;
+      } else {
+        if (!finalUrl) {
+          setAdding(false);
+          return showToast("URL is required.", false);
+        }
+      }
+
+      await axiosInstance.post(`/faculty/courses/${courseId}/materials`, { 
+        ...form, 
+        fileUrl: finalUrl, 
+        courseId: Number(courseId) 
+      });
+
       showToast("Resource added successfully!");
       setForm({ chapter: "", title: "", type: "VIDEO", fileUrl: "", description: "" });
+      setUploadMode(false);
+      setSelectedFile(null);
       // Refresh
       const updated = await axiosInstance.get(`/faculty/courses/${courseId}/materials`);
       setMaterials(updated.data);
-    } catch {
-      showToast("Failed to add resource.", false);
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data || "Failed to add resource.", false);
     } finally {
       setAdding(false);
     }
@@ -139,9 +173,53 @@ export default function FacultyMaterialsPage() {
                         <option value="ARTICLE">📄 Article / Link</option>
                       </select>
                     </div>
-                    <div>
-                      <label className={lbl}>URL / Link</label>
-                      <input placeholder="https://..." value={form.fileUrl} onChange={e => setForm(p => ({...p, fileUrl: e.target.value}))} className={inp} />
+
+                    <div className="pt-2">
+                       <label className={lbl}>Resource Source</label>
+                       <div className="flex bg-slate-100 p-1 rounded-xl mb-3">
+                          <button 
+                            type="button"
+                            onClick={() => setUploadMode(false)}
+                            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition ${!uploadMode ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                          >
+                            External Link
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => setUploadMode(true)}
+                            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition ${uploadMode ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                          >
+                            Upload File
+                          </button>
+                       </div>
+
+                       {uploadMode ? (
+                          <div className="space-y-2">
+                            <div className="relative group">
+                              <input 
+                                type="file" 
+                                onChange={e => setSelectedFile(e.target.files[0])}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+                              />
+                              <div className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 text-xs font-bold flex items-center justify-center group-hover:border-indigo-300 group-hover:bg-indigo-50/30 transition">
+                                {selectedFile ? selectedFile.name : "Click to select file (Max 5MB)"}
+                              </div>
+                            </div>
+                            {selectedFile && (
+                              <p className="text-[10px] text-slate-400 font-bold text-center">
+                                Size: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            )}
+                          </div>
+                       ) : (
+                          <input 
+                            placeholder="https://..." 
+                            value={form.fileUrl} 
+                            onChange={e => setForm(p => ({...p, fileUrl: e.target.value}))} 
+                            className={inp} 
+                          />
+                       )}
                     </div>
                     <div>
                       <label className={lbl}>Description (optional)</label>

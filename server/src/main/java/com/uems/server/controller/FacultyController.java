@@ -12,6 +12,14 @@ import com.uems.server.dto.MaterialResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import com.uems.server.dto.AnalyticsDto;
 import com.uems.server.model.Faculty;
 import com.uems.server.repository.FacultyRepository;
@@ -46,6 +54,42 @@ public class FacultyController {
     @Autowired private MaterialRepository materialRepository;
     @Autowired private CourseService courseService;
     @Autowired private FacultyRepository facultyRepository;
+
+    private static final String UPLOAD_DIR = "uploads/materials";
+
+    @PostMapping("/materials/upload")
+    public ResponseEntity<?> uploadMaterialFile(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("File is empty");
+        }
+
+        try {
+            // Create directory if it doesn't exist
+            File directory = new File(UPLOAD_DIR);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            // Generate unique filename
+            String originalFileName = file.getOriginalFilename();
+            String extension = "";
+            if (originalFileName != null && originalFileName.contains(".")) {
+                extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+            }
+            String fileName = UUID.randomUUID().toString() + extension;
+            Path path = Paths.get(UPLOAD_DIR, fileName);
+
+            // Save file
+            Files.write(path, file.getBytes());
+
+            // Return accessible URL
+            String fileUrl = "http://localhost:8081/uploads/materials/" + fileName;
+            return ResponseEntity.ok(Map.of("url", fileUrl));
+
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Could not upload file: " + e.getMessage());
+        }
+    }
 
     // ✅ Automatically get logged-in faculty’s courses
     @GetMapping("/courses")
