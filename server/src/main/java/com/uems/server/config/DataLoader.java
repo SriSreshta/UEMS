@@ -21,6 +21,15 @@ public class DataLoader implements CommandLineRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @org.springframework.beans.factory.annotation.Value("${default.admin.password}")
+    private String adminPassword;
+
+    @org.springframework.beans.factory.annotation.Value("${default.faculty.password}")
+    private String facultyPassword;
+
+    @org.springframework.beans.factory.annotation.Value("${default.student.password}")
+    private String studentPassword;
+
     @Override
     public void run(String... args) throws Exception {
         // Ensure base roles exist
@@ -40,21 +49,21 @@ public class DataLoader implements CommandLineRunner {
             userRepository.save(User.builder()
                 .username("admin")
                 .email("admin@uems.com")
-                .password(passwordEncoder.encode("admin123"))
+                .password(passwordEncoder.encode(adminPassword))
                 .role(adminRole)
                 .build());
 
             userRepository.save(User.builder()
                 .username("faculty1")
                 .email("faculty1@uems.com")
-                .password(passwordEncoder.encode("faculty123"))
+                .password(passwordEncoder.encode(facultyPassword))
                 .role(facultyRole)
                 .build());
 
             userRepository.save(User.builder()
                 .username("student1")
                 .email("student1@uems.com")
-                .password(passwordEncoder.encode("student123"))
+                .password(passwordEncoder.encode(studentPassword))
                 .role(studentRole)
                 .build());
 
