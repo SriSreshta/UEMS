@@ -53,8 +53,9 @@ public class StudentController {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer "))
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
-            String username = jwtService.extractUsername(authHeader.substring(7));
-            User user = userRepository.findByUsername(username)
+            // JWT subject is email
+            String email = jwtService.extractUsername(authHeader.substring(7));
+            User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             Student student = studentRepository.findByUser(user)
                     .orElseThrow(() -> new RuntimeException("Student profile not found"));
@@ -69,18 +70,15 @@ public class StudentController {
         }
     }
 
-    /**
-     * GET /api/students/my-materials
-     * Returns all study materials for all courses the logged-in student is enrolled in.
-     */
     @GetMapping("/my-materials")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<?> getMyMaterials(@RequestHeader("Authorization") String authHeader) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer "))
                 return ResponseEntity.status(401).body("Missing Authorization");
-            String username = jwtService.extractUsername(authHeader.substring(7));
-            User user = userRepository.findByUsername(username)
+            // JWT subject is email
+            String email = jwtService.extractUsername(authHeader.substring(7));
+            User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             Student student = studentRepository.findByUser(user)
                     .orElseThrow(() -> new RuntimeException("Student not found"));
@@ -108,8 +106,9 @@ public class StudentController {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer "))
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
-            String username = jwtService.extractUsername(authHeader.substring(7));
-            User user = userRepository.findByUsername(username)
+            // JWT subject is email
+            String email = jwtService.extractUsername(authHeader.substring(7));
+            User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             Student student = studentRepository.findByUser(user)
                     .orElseThrow(() -> new RuntimeException("Student profile not found"));
@@ -188,4 +187,3 @@ public class StudentController {
         }
     }
 }
-

@@ -28,9 +28,10 @@ const FacultyDashboard = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        if (!user?.username) return;
+        if (!user?.token) return;
+        // Use authenticated endpoint instead of by-username (username is no longer unique)
         const res = await authFetch(
-          `http://localhost:8081/api/courses/faculty/by-username/${user.username}`
+          `http://localhost:8081/api/faculty/courses`
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();

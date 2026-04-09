@@ -18,6 +18,9 @@ public class Faculty {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
+    private String facultyCode;
+
     private String department;
     private String designation;
 

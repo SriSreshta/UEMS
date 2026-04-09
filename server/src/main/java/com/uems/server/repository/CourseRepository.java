@@ -13,6 +13,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("SELECT c FROM Course c WHERE c.faculty.user.username = :username")
     List<Course> findByFacultyUsername(@Param("username") String username);
 
+    @Query("SELECT c FROM Course c WHERE c.faculty.user.email = :email")
+    List<Course> findByFacultyUserEmail(@Param("email") String email);
+
     /** Find all courses for a given year and semester — used for batch enrollment. */
     List<Course> findByYearAndSemester(Integer year, String semester);
 }

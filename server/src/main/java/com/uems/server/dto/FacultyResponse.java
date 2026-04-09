@@ -12,8 +12,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FacultyResponse {
     private Long id;
-    private String username;   // faculty.user.username
-    private String email;      // faculty.user.email
+    private String username;     // faculty.user.username
+    private String email;        // faculty.user.email
     private String department;
     private String designation;
+    private String facultyCode;
 }

@@ -16,6 +16,7 @@ const AddUserManual = () => {
     semester: "1",
     department: "",
     designation: "",
+    facultyCode: "",
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -50,6 +51,7 @@ const AddUserManual = () => {
         semester: "1",
         department: "",
         designation: "",
+        facultyCode: "",
       });
     } catch (err) {
       setMessage({ type: "error", text: err.message });
@@ -78,16 +80,17 @@ const AddUserManual = () => {
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Username</label>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Username (Display Name)</label>
                     <input 
                       required 
                       type="text" 
                       name="username" 
-                      placeholder="e.g. jdoe"
+                      placeholder="e.g. John Doe"
                       value={formData.username} 
                       onChange={handleChange} 
                       className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700" 
                     />
+                    <p className="text-xs text-slate-400 mt-1">Can be shared by multiple users</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Email</label>
@@ -100,6 +103,7 @@ const AddUserManual = () => {
                       onChange={handleChange} 
                       className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700" 
                     />
+                    <p className="text-xs text-slate-400 mt-1">Must be globally unique</p>
                   </div>
                 </div>
 
@@ -113,10 +117,12 @@ const AddUserManual = () => {
 
                 {formData.role === "student" && (
                   <div className="space-y-6 pt-6 border-t border-slate-100">
+                    <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Student Details</h3>
                     <div className="grid grid-cols-2 gap-6">
                       <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Roll Number</label>
                         <input required type="text" name="rollNumber" placeholder="Roll #" value={formData.rollNumber} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 outline-none text-sm font-bold text-slate-700" />
+                        <p className="text-xs text-slate-400 mt-1">Unique within dept + year + sem</p>
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>
@@ -146,6 +152,12 @@ const AddUserManual = () => {
 
                 {formData.role === "faculty" && (
                   <div className="space-y-6 pt-6 border-t border-slate-100">
+                    <h3 className="text-xs font-bold text-blue-500 uppercase tracking-widest">Faculty Details</h3>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Faculty Code</label>
+                      <input required type="text" name="facultyCode" placeholder="e.g. FAC001" value={formData.facultyCode} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 outline-none text-sm font-bold text-slate-700" />
+                      <p className="text-xs text-slate-400 mt-1">Must be globally unique — used for login</p>
+                    </div>
                     <div className="grid grid-cols-2 gap-6">
                       <div>
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Department</label>

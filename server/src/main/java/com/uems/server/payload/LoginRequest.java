@@ -7,5 +7,7 @@ import lombok.Setter;
 public class LoginRequest {
     private String username;
     private String password;
-    private String rollNumber;
+    private String rollNumber;   // For Students
+    private String facultyCode;  // For Faculty
+    private String role;         // "student", "faculty", "admin"
 }

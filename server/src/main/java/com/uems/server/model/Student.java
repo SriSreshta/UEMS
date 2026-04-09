@@ -1,5 +1,6 @@
 package com.uems.server.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,7 +10,9 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(exclude = "user")
-@Table(name = "student")
+@Table(name = "student", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"roll_number", "department", "year", "semester"})
+})
 public class Student {
 
     @Id
@@ -18,9 +21,10 @@ public class Student {
 
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JsonBackReference
     private User user;
 
-    @Column(nullable = false)
+    @Column(name = "roll_number", nullable = false)
     private String rollNumber;
 
     @Column(nullable = false)

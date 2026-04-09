@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 import com.uems.server.repository.EnrollmentRepository;
 import com.uems.server.model.Enrollment;
 import com.uems.server.dto.FacultyMarksResponse;
-import com.uems.server.dto.FacultyMarksResponse;
 import com.uems.server.dto.MarksUpdateRequest;
 import com.uems.server.dto.CourseResponse;
 import com.uems.server.service.CourseService;
@@ -91,24 +90,26 @@ public class FacultyController {
         }
     }
 
-    // ✅ Automatically get logged-in faculty’s courses
+    // ✅ Automatically get logged-in faculty's courses (JWT subject = email)
     @GetMapping("/courses")
     public ResponseEntity<?> getFacultyCourses(@RequestHeader("Authorization") String authHeader) {
-        System.out.println("🎯 Faculty endpoint hit!");
-        System.out.println("Header received: " + authHeader);
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
-            // Extract username from token
+            // Extract email from token (JWT subject is now email)
             String token = authHeader.substring(7);
-            String username = jwtService.extractUsername(token);
-            System.out.println("extracted username "+username);
+            String email = jwtService.extractUsername(token);
+
+            // Find user by email
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + email));
+            String username = user.getUsername();
+
+            // Use courseService with email-based lookup
+            List<Course> coursesList = courseService.getCoursesByFacultyEmail(email);
             
-            // Use courseService to bypass the ID mismatch between users and faculty tables
-            List<Course> coursesList = courseService.getCoursesByFacultyUsername(username);
-            
-            // Map to safe DTO to prevent lazy-loading recursion errors
+            // Map to safe DTO
             List<CourseResponse> response = coursesList.stream().map(c -> new CourseResponse(
                     c.getCourseId(), c.getName(), c.getCode(), c.getDepartment(), 
                     c.getYear(), c.getSemester(), 
@@ -118,7 +119,6 @@ public class FacultyController {
                     c.getIsOpenElective()
             )).collect(Collectors.toList());
             
-            System.out.println("✅ Courses found: " + response.size());
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -161,7 +161,6 @@ public class FacultyController {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
             List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
-            // Validating marks mapping logic
             for (MarksUpdateRequest req : marksRequests) {
                 if (req.getMid1Marks() != null && (req.getMid1Marks() < 0 || req.getMid1Marks() > 30)) {
                     return ResponseEntity.status(400).body("Error: Mid1 marks must be between 0 and 30");
@@ -193,11 +192,10 @@ public class FacultyController {
         }
     }
 
-    // ══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════
     //  STUDY MATERIALS
-    // ══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════
 
-    /** POST /faculty/courses/{courseId}/materials — add a resource link */
     @PostMapping("/courses/{courseId}/materials")
     public ResponseEntity<?> addMaterial(
             @RequestHeader("Authorization") String authHeader,
@@ -221,7 +219,6 @@ public class FacultyController {
         }
     }
 
-    /** GET /faculty/courses/{courseId}/materials — list resources for a course */
     @GetMapping("/courses/{courseId}/materials")
     public ResponseEntity<?> getMaterials(@PathVariable Long courseId) {
         List<Material> materials = materialRepository.findByCourseCourseIdOrderByChapterAsc(courseId);
@@ -232,7 +229,6 @@ public class FacultyController {
         return ResponseEntity.ok(response);
     }
 
-    /** DELETE /faculty/materials/{id} — remove a resource */
     @DeleteMapping("/materials/{id}")
     public ResponseEntity<?> deleteMaterial(@PathVariable Long id) {
         if (!materialRepository.existsById(id)) return ResponseEntity.notFound().build();
@@ -246,7 +242,9 @@ public class FacultyController {
             @RequestParam Integer semester,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            Faculty faculty = facultyRepository.findByUserUsername(userDetails.getUsername())
+            // userDetails.getUsername() now returns email (Spring Security principal = email)
+            String email = userDetails.getUsername();
+            Faculty faculty = facultyRepository.findByUserEmail(email)
                     .orElseThrow(() -> new RuntimeException("Faculty not found"));
 
             List<Enrollment> enrollments = enrollmentRepository

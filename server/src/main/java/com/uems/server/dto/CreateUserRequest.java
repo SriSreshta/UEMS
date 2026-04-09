@@ -17,4 +17,5 @@ public class CreateUserRequest {
     // Faculty fields
     private String department;
     private String designation;
+    private String facultyCode;
 }

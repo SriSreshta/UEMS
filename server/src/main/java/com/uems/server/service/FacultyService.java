@@ -5,6 +5,7 @@ import com.uems.server.repository.CourseRepository;
 import com.uems.server.repository.UserRepository;
 import com.uems.server.security.JwtService;
 import org.springframework.stereotype.Service;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -21,13 +22,18 @@ public class FacultyService {
     }
 
     public List<Course> getCoursesForFaculty(String token) {
-        String username = jwtService.extractUsername(token);
+        // JWT subject is now email
+        String email = jwtService.extractUsername(token);
 
-        // Find faculty user by username
-        var faculty = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Faculty not found: " + username));
+        // Find faculty user by email
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Faculty not found: " + email));
+
+        if (user.getFaculty() == null) {
+            return Collections.emptyList();
+        }
 
         // Fetch courses assigned to this faculty
-        return courseRepository.findByFacultyId(faculty.getId());
+        return courseRepository.findByFacultyId(user.getFaculty().getId());
     }
 }

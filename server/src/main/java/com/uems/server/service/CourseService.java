@@ -20,8 +20,13 @@ public class CourseService {
         return courseRepository.findByFacultyId(facultyId);
     }
 
-    // ✅ Fetch courses by faculty username
+    // Fetch courses by faculty username (kept for backward compatibility)
     public List<Course> getCoursesByFacultyUsername(String username) {
         return courseRepository.findByFacultyUsername(username);
+    }
+
+    // Fetch courses by faculty user email (for JWT-based lookups)
+    public List<Course> getCoursesByFacultyEmail(String email) {
+        return courseRepository.findByFacultyUserEmail(email);
     }
 }

@@ -13,17 +13,21 @@ public class EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+    @Value("${spring.mail.username}")
+    private String fromEmail;
+
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
     public void sendStudentResetPasswordEmail(String to, String username, String token) {
         String resetLink = String.format("%s/reset-password?token=%s", frontendUrl, token);
-        
+
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
         message.setTo(to);
         message.setSubject("Password Reset Request");
-        
+
         String content = "Dear Student,\n\n" +
                 "We received a request to reset your password.\n\n" +
                 "Your Username: " + username + "\n\n" +
@@ -33,27 +37,29 @@ public class EmailService {
                 "If you did not request this, please ignore this email.\n\n" +
                 "Regards,\n" +
                 "UEMS Team";
-        
+
         message.setText(content);
         mailSender.send(message);
     }
 
-    public void sendFacultyResetPasswordEmail(String to, String token) {
+    public void sendFacultyResetPasswordEmail(String to, String username, String token) {
         String resetLink = String.format("%s/reset-password?token=%s", frontendUrl, token);
-        
+
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
         message.setTo(to);
         message.setSubject("Password Reset Request");
-        
+
         String content = "Dear Faculty,\n\n" +
                 "We received a request to reset your password.\n\n" +
+                "Your Username: " + username + "\n\n" +
                 "Click the link below to reset your password:\n" +
                 resetLink + "\n\n" +
                 "This link will expire in 15 minutes.\n\n" +
                 "If you did not request this, please ignore this email.\n\n" +
                 "Regards,\n" +
                 "UEMS Team";
-        
+
         message.setText(content);
         mailSender.send(message);
     }

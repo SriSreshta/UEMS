@@ -47,8 +47,8 @@ public class PaymentController {
     }
 
     private Student getAuthenticatedStudent(Authentication auth) {
-        String username = auth.getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
+        String email = auth.getName(); // Spring Security principal is now email
+        User user = userRepository.findByEmail(email).orElseThrow();
         return studentRepository.findByUser(user).orElseThrow();
     }
 

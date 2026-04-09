@@ -21,4 +21,20 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     Optional<Student> findByUser(User user);
     Student findByUserId(Long userId);
+
+    /**
+     * Check for duplicate roll numbers within same class (department + year + semester).
+     */
+    boolean existsByRollNumberAndDepartmentAndYearAndSemester(
+            String rollNumber, String department, String year, String semester);
+
+    Optional<Student> findByRollNumberAndDepartmentAndYearAndSemester(
+            String rollNumber, String department, String year, String semester);
+
+    /**
+     * Find student by roll number (for login - may need additional filtering).
+     */
+    List<Student> findByRollNumber(String rollNumber);
+
+    Optional<Student> findByUserEmail(String email);
 }
