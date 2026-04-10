@@ -27,6 +27,7 @@ public class Course {
     private Long roleId;
     
     @Column(name = "is_open_elective")
+    @Builder.Default
     private Boolean isOpenElective = false;
     
     @Column(nullable = false)

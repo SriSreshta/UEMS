@@ -33,10 +33,13 @@ import AdminPublishResults from "./pages/AdminPublishResults";
 import Footer from "./components/Footer";
 import YearSemAnalytics from "./pages/analytics/YearSemAnalytics";
 import DeptAnalytics from "./pages/analytics/DeptAnalytics";
+import Chatbot from "./components/Chatbot";
 
 export default function App() {
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Global Chatbot Widget — visible on all pages when logged in */}
+      <Chatbot />
       <Routes>
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
