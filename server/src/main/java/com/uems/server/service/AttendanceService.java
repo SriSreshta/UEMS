@@ -9,6 +9,9 @@ import com.uems.server.repository.AttendanceRepository;
 import com.uems.server.repository.CourseRepository;
 import com.uems.server.repository.FacultyRepository;
 import com.uems.server.repository.StudentRepository;
+import com.uems.server.repository.EnrollmentRepository;
+import com.uems.server.model.Enrollment;
+import com.uems.server.dto.StudentAttendanceDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,9 @@ public class AttendanceService {
     
     @Autowired
     private StudentRepository studentRepository;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     // ✅ Mark attendance (update if already exists)
     public Attendance markAttendance(Attendance attendance) {
@@ -105,5 +111,38 @@ public class AttendanceService {
     // ✅ Fetch all attendance records for a course on a given date
     public List<Attendance> getAttendanceByCourseAndDate(Long courseId, LocalDate date) {
         return attendanceRepository.findByCourseCourseIdAndDate(courseId, date);
+    }
+
+    // ✅ List of dates for which attendance exists for a course
+    public List<LocalDate> getRecordedDatesByCourse(Long courseId) {
+        return attendanceRepository.findDistinctDatesByCourseCourseId(courseId);
+    }
+
+    // ✅ Subject-wise Attendance statistics for a student
+    public List<StudentAttendanceDTO> getStudentAttendanceStats(Long studentId) {
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        List<StudentAttendanceDTO> stats = new ArrayList<>();
+
+        for (Enrollment enrollment : enrollments) {
+            Course course = enrollment.getCourse();
+            
+            Long totalClasses = attendanceRepository.countByStudentIdAndCourseCourseId(studentId, course.getCourseId());
+            Long attendedClasses = attendanceRepository.countByStudentIdAndCourseCourseIdAndPresentTrue(studentId, course.getCourseId());
+            
+            Double percentage = (totalClasses > 0) ? (attendedClasses.doubleValue() / totalClasses.doubleValue()) * 100 : 0.0;
+
+            stats.add(StudentAttendanceDTO.builder()
+                    .courseId(course.getCourseId())
+                    .courseCode(course.getCode())
+                    .courseName(course.getName())
+                    .totalClasses(totalClasses)
+                    .attendedClasses(attendedClasses)
+                    .percentage(percentage)
+                    .semester(course.getSemester())
+                    .year(course.getYear())
+                    .build());
+        }
+
+        return stats;
     }
 }

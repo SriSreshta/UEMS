@@ -1,9 +1,11 @@
 package com.uems.server.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(name = "attendance", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"student_id", "course_id", "date"})
 })

@@ -71,6 +71,15 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
         @Param("semester") String semester,
         @Param("facultyId") Long facultyId);
     
+    /**
+     * All enrollments for courses matching a given year, semester, and a specific student department.
+     */
+    @Query("SELECT e FROM Enrollment e JOIN FETCH e.course c JOIN e.student s WHERE c.year = :year AND c.semester = :semester AND s.department = :department")
+    List<Enrollment> findByCourseYearAndCourseSemesterAndStudentDepartment(
+        @Param("year") Integer year, 
+        @Param("semester") String semester, 
+        @Param("department") String department);
+    
         /**
         * Fetch all enrollments with student eagerly loaded — used by dept analytics.
      */

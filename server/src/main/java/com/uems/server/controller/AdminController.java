@@ -258,7 +258,17 @@ public class AdminController {
     // ════════════════════════════════════════════════════════════════════════
 
     /**
-     * GET /api/admin/analytics?year=3&semester=2
+     * GET /api/admin/departments
+     * Returns a list of all distinct student departments.
+     */
+    @GetMapping("/departments")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<String>> getDepartments() {
+        return ResponseEntity.ok(adminService.getAllDepartments());
+    }
+
+    /**
+     * GET /api/admin/analytics?year=3&semester=2&department=CSE
      * Returns per-subject grade analytics for the given year/semester.
      * Ab (absent) is counted separately and NOT as fail.
      */
@@ -266,10 +276,15 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AnalyticsDto>> getAnalytics(
             @RequestParam Integer year,
-            @RequestParam Integer semester) {
+            @RequestParam Integer semester,
+            @RequestParam(required = false) String department) {
 
-        List<Enrollment> enrollments = enrollmentRepository
-                .findByCourseYearAndCourseSemester(year, String.valueOf(semester));
+        List<Enrollment> enrollments;
+        if (department != null && !department.isBlank() && !department.equalsIgnoreCase("ALL")) {
+            enrollments = enrollmentRepository.findByCourseYearAndCourseSemesterAndStudentDepartment(year, String.valueOf(semester), department);
+        } else {
+            enrollments = enrollmentRepository.findByCourseYearAndCourseSemester(year, String.valueOf(semester));
+        }
 
         // Group by subject name (preserve insertion order)
         Map<String, List<Enrollment>> bySubject = new LinkedHashMap<>();

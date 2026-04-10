@@ -168,6 +168,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
     return [
       { type: "profile" },
       { type: "section", title: "student" },
+      { type: "item", label: "Attendance", icon: ClipboardDocumentListIcon, to: "/student/attendance" },
       { type: "item", label: "Student Documents", icon: DocumentTextIcon, to: "/student/documents" },
       { type: "item", label: "Certificates", icon: AcademicCapIcon, to: "/student/certificates" },
       {

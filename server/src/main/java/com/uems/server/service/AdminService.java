@@ -286,6 +286,10 @@ public class AdminService {
         return students.stream().map(this::toStudentResponse).collect(Collectors.toList());
     }
 
+    public List<String> getAllDepartments() {
+        return studentRepository.findDistinctDepartments();
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // ENROLLMENT
     // ════════════════════════════════════════════════════════════════════════

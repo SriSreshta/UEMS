@@ -3,6 +3,7 @@ package com.uems.server.repository;
 import com.uems.server.model.Student;
 import com.uems.server.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,4 +38,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByRollNumber(String rollNumber);
 
     Optional<Student> findByUserEmail(String email);
+
+    @Query("SELECT DISTINCT s.department FROM Student s WHERE s.department IS NOT NULL")
+    List<String> findDistinctDepartments();
 }

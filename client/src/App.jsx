@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import FacultyAttendancePage from "./pages/FacultyAttendancePage";
 import MarkAttendancePage from "./pages/MarkAttendancePage";
+import StudentAttendancePage from "./pages/StudentAttendancePage";
 import UploadMarksPage from "./pages/UploadMarksPage";
 import StudentMarksPage from "./pages/StudentMarksPage";
 import AdminFeeNotifications from "./pages/AdminFeeNotifications";
@@ -221,6 +222,15 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="student">
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/attendance"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentAttendancePage />
             </ProtectedRoute>
           }
         />

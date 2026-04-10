@@ -1,6 +1,7 @@
 package com.uems.server.controller;
 
 import com.uems.server.dto.BulkAttendanceRequest;
+import com.uems.server.dto.StudentAttendanceDTO;
 import com.uems.server.model.Attendance;
 import com.uems.server.service.AttendanceService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,5 +59,17 @@ public class AttendanceController {
     @GetMapping("/student/{studentId}")
     public List<Attendance> getAttendanceByStudent(@PathVariable Long studentId) {
         return attendanceService.getAttendanceByStudent(studentId);
+    }
+
+    // ✅ Student Subject-wise Stats
+    @GetMapping("/student/{studentId}/stats")
+    public List<StudentAttendanceDTO> getStudentAttendanceStats(@PathVariable Long studentId) {
+        return attendanceService.getStudentAttendanceStats(studentId);
+    }
+
+    // ✅ Recorded dates for a course (for faculty visibility)
+    @GetMapping("/course/{courseId}/dates")
+    public List<LocalDate> getRecordedDates(@PathVariable Long courseId) {
+        return attendanceService.getRecordedDatesByCourse(courseId);
     }
 }
