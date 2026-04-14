@@ -176,6 +176,7 @@ public class AdminService {
                 res.setDepartment(u.getStudent().getDepartment());
                 res.setYear(u.getStudent().getYear());
                 res.setSemester(u.getStudent().getSemester());
+                res.setSection(u.getStudent().getSection());
             } else if (u.getFaculty() != null) {
                 res.setDepartment(u.getFaculty().getDepartment());
                 res.setDesignation(u.getFaculty().getDesignation());
@@ -210,6 +211,93 @@ public class AdminService {
         }
 
         userRepository.delete(user);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // EDIT STUDENT
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Transactional
+    public void updateStudent(Long userId, UpdateStudentRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // Fetch student directly to avoid lazy-load issues
+        Student student = studentRepository.findByUserId(userId);
+        if (student == null) {
+            throw new RuntimeException("No student record linked to user: " + userId);
+        }
+
+        // ── 1. Personal Details Update ────────────────────────────────────────
+        if (request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
+            user.setUsername(request.getUsername().trim());
+        }
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            String newEmail = request.getEmail().trim();
+            // Check duplicate email only if it actually changed
+            if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+                if (userRepository.existsByEmail(newEmail)) {
+                    throw new RuntimeException("Error: Email '" + newEmail + "' is already in use by another user!");
+                }
+                user.setEmail(newEmail);
+            }
+        }
+
+        // ── 2. Determine if academic details changed ──────────────────────────
+        boolean yearChanged = request.getYear() != null
+                && !request.getYear().trim().isEmpty()
+                && !request.getYear().trim().equals(student.getYear());
+        boolean semesterChanged = request.getSemester() != null
+                && !request.getSemester().trim().isEmpty()
+                && !request.getSemester().trim().equals(student.getSemester());
+        boolean deptChanged = request.getDepartment() != null
+                && !request.getDepartment().trim().isEmpty()
+                && !request.getDepartment().trim().equals(student.getDepartment());
+
+        // Apply academic field updates (non-null values)
+        if (request.getYear() != null && !request.getYear().trim().isEmpty()) {
+            student.setYear(request.getYear().trim());
+        }
+        if (request.getSemester() != null && !request.getSemester().trim().isEmpty()) {
+            student.setSemester(request.getSemester().trim());
+        }
+        if (request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
+            student.setDepartment(request.getDepartment().trim());
+        }
+        if (request.getSection() != null) {
+            student.setSection(request.getSection().trim());
+        }
+
+        // ── Save both entities ────────────────────────────────────────────────
+        // Link the student to the same user reference so Hibernate doesn't
+        // cascade a stale student when saving the user (User has CascadeType.ALL)
+        student.setUser(user);
+        studentRepository.save(student);
+        userRepository.save(user);
+
+        // ── 3. Correction Scenario: Reset current semester enrollments ────────
+        if (request.isResetCurrentSemesterEnrollments()) {
+            // Remove ONLY the enrollments for the current year+semester
+            // (the ones that may have been incorrectly assigned)
+            int resetYear;
+            try {
+                resetYear = Integer.parseInt(student.getYear());
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Invalid year value: " + student.getYear());
+            }
+            enrollmentRepository.deleteByStudentIdAndCourseYearAndCourseSemester(
+                    student.getId(), resetYear, student.getSemester());
+            log.info("Reset semester enrollments for student {} (year={}, semester={})",
+                    student.getId(), resetYear, student.getSemester());
+        }
+
+        // ── 4. Academic Update: Assign new/missing core enrollments ──────────
+        // Runs when: academic detail changed OR reset was applied
+        // enrollStudentInAllCourses only ADDS missing — never deletes past data
+        if (yearChanged || semesterChanged || deptChanged || request.isResetCurrentSemesterEnrollments()) {
+            int added = enrollStudentInAllCourses(student);
+            log.info("Academic update for student {}: {} new enrollments added.", student.getId(), added);
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════════

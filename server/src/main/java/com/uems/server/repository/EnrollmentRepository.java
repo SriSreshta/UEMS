@@ -102,4 +102,16 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Student> findCurrentStudentsByCourseId(@Param("courseId") Long courseId);
 
     void deleteByStudentId(Long studentId);
+
+    /**
+     * Delete enrollments for a specific student in a given course year+semester.
+     * Used for the "Reset current semester enrollments" correction feature.
+     * Does NOT touch past semesters or marks.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Enrollment e WHERE e.student.id = :studentId AND e.course.year = :courseYear AND e.course.semester = :courseSemester")
+    void deleteByStudentIdAndCourseYearAndCourseSemester(
+            @Param("studentId") Long studentId,
+            @Param("courseYear") Integer courseYear,
+            @Param("courseSemester") String courseSemester);
 }

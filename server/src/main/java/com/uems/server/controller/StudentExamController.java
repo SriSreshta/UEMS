@@ -26,7 +26,7 @@ public class StudentExamController {
     private UserRepository userRepository;
 
     @GetMapping("/schedules")
-    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    @PreAuthorize("hasRole('STUDENT')")
     public List<ExamScheduleDto> getBroadcastedSchedules(@AuthenticationPrincipal UserDetails userDetails) {
         
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();

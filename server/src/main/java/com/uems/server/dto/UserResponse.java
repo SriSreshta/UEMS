@@ -19,5 +19,6 @@ public class UserResponse {
     private String designation; // for faculty
     private String year; // for students
     private String semester; // for students
+    private String section; // for students
     private String facultyCode; // for faculty
 }

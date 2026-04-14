@@ -37,4 +37,7 @@ public class Student {
 
     @Column
     private String department;
+
+    @Column
+    private String section;
 }

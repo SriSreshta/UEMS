@@ -17,6 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
+@CrossOrigin
 @RequiredArgsConstructor
 public class AdminController {
 
@@ -61,6 +62,17 @@ public class AdminController {
         try {
             adminService.deleteUser(id);
             return ResponseEntity.ok("User deleted successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/users/{id}/student")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateStudent(@PathVariable Long id, @RequestBody UpdateStudentRequest request) {
+        try {
+            adminService.updateStudent(id, request);
+            return ResponseEntity.ok("Student updated successfully!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

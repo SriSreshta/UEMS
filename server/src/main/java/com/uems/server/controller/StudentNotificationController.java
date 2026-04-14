@@ -26,7 +26,7 @@ public class StudentNotificationController {
     private UserRepository userRepository;
 
     @GetMapping("/results")
-    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    @PreAuthorize("hasRole('STUDENT')")
     public List<ResultNotificationDto> getResultNotifications(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         Long studentId = user.getStudent().getId();
@@ -57,7 +57,7 @@ public class StudentNotificationController {
     }
 
     @PutMapping("/{id}/seen")
-    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    @PreAuthorize("hasRole('STUDENT')")
     public void markNotificationSeen(@PathVariable Long id) {
         ResultNotification notif = resultNotificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
