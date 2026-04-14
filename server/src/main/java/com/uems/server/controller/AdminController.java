@@ -24,7 +24,7 @@ public class AdminController {
     private final EnrollmentRepository enrollmentRepository;
 
     // ════════════════════════════════════════════════════════════════════════
-    //  EXISTING — User Management
+    // EXISTING — User Management
     // ════════════════════════════════════════════════════════════════════════
 
     @PostMapping("/create-user")
@@ -67,7 +67,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  COURSE MANAGEMENT
+    // COURSE MANAGEMENT
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -142,7 +142,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  FACULTY LIST
+    // FACULTY LIST
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -156,7 +156,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  STUDENT FILTERING
+    // STUDENT FILTERING
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -178,7 +178,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  ENROLLMENT
+    // ENROLLMENT
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -224,12 +224,29 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> enrollBatch(@RequestBody java.util.Map<String, String> body) {
         try {
-            String year     = body.get("year");
+            String year = body.get("year");
             String semester = body.get("semester");
-            String result   = adminService.enrollBatch(year, semester);
+            String result = adminService.enrollBatch(year, semester);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Batch enrollment failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/admin/enroll/backfill
+     * One-time backfill: add missing past + current course enrollments for ALL
+     * existing students.
+     * Only ADDS missing enrollments — never deletes or modifies existing data.
+     */
+    @PostMapping("/enroll/backfill")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> backfillEnrollments() {
+        try {
+            String result = adminService.backfillAllStudentEnrollments();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Backfill failed: " + e.getMessage());
         }
     }
 
@@ -254,7 +271,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  ANALYTICS
+    // ANALYTICS
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -281,7 +298,8 @@ public class AdminController {
 
         List<Enrollment> enrollments;
         if (department != null && !department.isBlank() && !department.equalsIgnoreCase("ALL")) {
-            enrollments = enrollmentRepository.findByCourseYearAndCourseSemesterAndStudentDepartment(year, String.valueOf(semester), department);
+            enrollments = enrollmentRepository.findByCourseYearAndCourseSemesterAndStudentDepartment(year,
+                    String.valueOf(semester), department);
         } else {
             enrollments = enrollmentRepository.findByCourseYearAndCourseSemester(year, String.valueOf(semester));
         }
@@ -301,18 +319,40 @@ public class AdminController {
             for (Enrollment e : entry.getValue()) {
                 String grade = e.getGrade();
 
-                if (grade == null) continue; // marks not yet published
+                if (grade == null)
+                    continue; // marks not yet published
 
                 switch (grade) {
-                    case "O"  -> { dto.setO(dto.getO() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "A+" -> { dto.setAplus(dto.getAplus() + 1);   dto.setPass(dto.getPass() + 1); }
-                    case "A"  -> { dto.setA(dto.getA() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "B+" -> { dto.setBplus(dto.getBplus() + 1);   dto.setPass(dto.getPass() + 1); }
-                    case "B"  -> { dto.setB(dto.getB() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "C"  -> { dto.setC(dto.getC() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "F"  -> { dto.setF(dto.getF() + 1);           dto.setFail(dto.getFail() + 1); }
+                    case "O" -> {
+                        dto.setO(dto.getO() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "A+" -> {
+                        dto.setAplus(dto.getAplus() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "A" -> {
+                        dto.setA(dto.getA() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "B+" -> {
+                        dto.setBplus(dto.getBplus() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "B" -> {
+                        dto.setB(dto.getB() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "C" -> {
+                        dto.setC(dto.getC() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "F" -> {
+                        dto.setF(dto.getF() + 1);
+                        dto.setFail(dto.getFail() + 1);
+                    }
                     case "Ab" -> dto.setAb(dto.getAb() + 1); // absent — separate bucket
-                    default   -> dto.setFail(dto.getFail() + 1);
+                    default -> dto.setFail(dto.getFail() + 1);
                 }
             }
             result.add(dto);
@@ -320,53 +360,57 @@ public class AdminController {
 
         return ResponseEntity.ok(result);
     }
+
     /**
- * GET /api/admin/analytics/department
- * Returns per-department student count, pass, fail, and pass%.
- */
-@GetMapping("/analytics/department")
-@PreAuthorize("hasRole('ADMIN')")
-public ResponseEntity<List<DeptAnalyticsDto>> getDeptAnalytics() {
+     * GET /api/admin/analytics/department
+     * Returns per-department student count, pass, fail, and pass%.
+     */
+    @GetMapping("/analytics/department")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<DeptAnalyticsDto>> getDeptAnalytics() {
 
-    List<Enrollment> allEnrollments = enrollmentRepository.findAllWithStudent();
+        List<Enrollment> allEnrollments = enrollmentRepository.findAllWithStudent();
 
-    // Group enrollments by department (via student)
-    Map<String, DeptAnalyticsDto> byDept = new LinkedHashMap<>();
+        // Group enrollments by department (via student)
+        Map<String, DeptAnalyticsDto> byDept = new LinkedHashMap<>();
 
-    for (Enrollment e : allEnrollments) {
-        // skip if student or department is missing
-        if (e.getStudent() == null) continue;
-        String dept = e.getStudent().getDepartment();
-        if (dept == null || dept.isBlank()) continue;
+        for (Enrollment e : allEnrollments) {
+            // skip if student or department is missing
+            if (e.getStudent() == null)
+                continue;
+            String dept = e.getStudent().getDepartment();
+            if (dept == null || dept.isBlank())
+                continue;
 
-        String grade = e.getGrade();
-        if (grade == null) continue; // marks not published yet
+            String grade = e.getGrade();
+            if (grade == null)
+                continue; // marks not published yet
 
-        DeptAnalyticsDto dto = byDept.computeIfAbsent(dept, k -> {
-            DeptAnalyticsDto d = new DeptAnalyticsDto();
-            d.setDepartment(k);
-            return d;
-        });
+            DeptAnalyticsDto dto = byDept.computeIfAbsent(dept, k -> {
+                DeptAnalyticsDto d = new DeptAnalyticsDto();
+                d.setDepartment(k);
+                return d;
+            });
 
-        switch (grade) {
-            case "O", "A+", "A", "B+", "B", "C" -> {
-                dto.setPass(dto.getPass() + 1);
+            switch (grade) {
+                case "O", "A+", "A", "B+", "B", "C" -> {
+                    dto.setPass(dto.getPass() + 1);
+                }
+                case "F" -> {
+                    dto.setFail(dto.getFail() + 1);
+                }
+                // "Ab" (absent) — skip, same as existing analytics logic
             }
-            case "F" -> {
-                dto.setFail(dto.getFail() + 1);
-            }
-            // "Ab" (absent) — skip, same as existing analytics logic
         }
-    }
 
-    // Calculate studentCount and passPercent for each dept
-    List<DeptAnalyticsDto> result = new ArrayList<>(byDept.values());
-    for (DeptAnalyticsDto dto : result) {
-        int total = dto.getPass() + dto.getFail();
-        dto.setStudentCount(total);
-        dto.setPassPercent(total > 0 ? Math.round((dto.getPass() * 100.0) / total) : 0);
-    }
+        // Calculate studentCount and passPercent for each dept
+        List<DeptAnalyticsDto> result = new ArrayList<>(byDept.values());
+        for (DeptAnalyticsDto dto : result) {
+            int total = dto.getPass() + dto.getFail();
+            dto.setStudentCount(total);
+            dto.setPassPercent(total > 0 ? Math.round((dto.getPass() * 100.0) / total) : 0);
+        }
 
-    return ResponseEntity.ok(result);
-}
+        return ResponseEntity.ok(result);
+    }
 }

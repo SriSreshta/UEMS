@@ -13,19 +13,17 @@ import java.util.List;
 public class AuthService {
 
     private final UserRepository userRepo;
-    private final RoleRepository roleRepo;
     private final FacultyRepository facultyRepo;
     private final StudentRepository studentRepo;
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
     private final EmailService emailService;
 
-    public AuthService(UserRepository userRepo, RoleRepository roleRepo,
+    public AuthService(UserRepository userRepo,
                        FacultyRepository facultyRepo, StudentRepository studentRepo,
                        PasswordEncoder encoder,
                        JwtService jwtService, EmailService emailService) {
         this.userRepo = userRepo;
-        this.roleRepo = roleRepo;
         this.facultyRepo = facultyRepo;
         this.studentRepo = studentRepo;
         this.encoder = encoder;
@@ -67,15 +65,11 @@ public class AuthService {
             if (user == null) {
                 throw new RuntimeException("Invalid credentials");
             }
-            
-            if (user == null) {
-                throw new RuntimeException("Invalid credentials");
-            }
 
             String roleName = user.getRole().getName().toUpperCase();
             String tokenRole = roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
             String token = jwtService.generateToken(user.getEmail(), tokenRole);
-            return new AuthResponse(token, user.getRole().getName(), user.getUsername(), null, null, null);
+            return new AuthResponse(token, user.getRole().getName(), user.getUsername(), null, null, null, null, null);
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -115,7 +109,9 @@ public class AuthService {
             String tokenRole = roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
             String token = jwtService.generateToken(user.getEmail(), tokenRole);
             return new AuthResponse(token, user.getRole().getName(), user.getUsername(),
-                    null, student != null ? student.getId() : null, null);
+                    null, student != null ? student.getId() : null, null,
+                    student != null ? student.getYear() : null,
+                    student != null ? student.getSemester() : null);
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -143,7 +139,7 @@ public class AuthService {
             String tokenRole = roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName;
             String token = jwtService.generateToken(user.getEmail(), tokenRole);
             return new AuthResponse(token, user.getRole().getName(), user.getUsername(),
-                    faculty.getId(), null, faculty.getFacultyCode());
+                    faculty.getId(), null, faculty.getFacultyCode(), null, null);
         }
 
         throw new RuntimeException("Invalid credentials: role not specified");

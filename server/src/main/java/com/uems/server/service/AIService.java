@@ -55,8 +55,11 @@ public class AIService {
 
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                ResponseEntity<Map> response = restTemplate.exchange(
-                        url, HttpMethod.POST, entity, Map.class
+                org.springframework.core.ParameterizedTypeReference<Map<String, Object>> responseType = 
+                        new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {};
+                
+                ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                        url, HttpMethod.POST, entity, responseType
                 );
 
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {

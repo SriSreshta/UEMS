@@ -39,6 +39,8 @@ export const AuthProvider = ({ children }) => {
         facultyId: data.facultyId || null,
         studentId: data.studentId || null,
         facultyCode: data.facultyCode || null,
+        year: data.year || null,
+        semester: data.semester || null,
       };
 
       sessionStorage.setItem("uems_user", JSON.stringify(payload));

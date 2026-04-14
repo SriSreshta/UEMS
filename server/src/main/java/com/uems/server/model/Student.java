@@ -6,14 +6,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(exclude = "user")
 @Table(name = "student", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"roll_number", "department", "year", "semester"})
+        @UniqueConstraint(columnNames = { "roll_number", "department", "year", "semester" })
 })
 public class Student {
 

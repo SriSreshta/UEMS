@@ -77,7 +77,6 @@ public class ChatService {
 
     private static class ConversationContext {
         IntentType lastIntent;
-        String lastEntity;
         LocalDateTime lastActive;
 
         ConversationContext() {
@@ -90,7 +89,6 @@ public class ChatService {
 
         void update(IntentType intent, String entity) {
             this.lastIntent = intent;
-            this.lastEntity = entity;
             this.lastActive = LocalDateTime.now();
         }
     }
@@ -364,14 +362,27 @@ public class ChatService {
             return "📋 No courses enrolled yet.\n\n💡 Try: 'my courses' or 'exam schedule'";
         }
 
+        // Filter to current semester courses only
+        String sYear = student.getYear();
+        String sSem = student.getSemester();
+
         StringBuilder sb = new StringBuilder();
-        sb.append("📋 Your Attendance Summary\n\n");
+        sb.append("📋 Your Attendance Summary (Current Semester)\n\n");
 
         boolean hasLowAttendance = false;
         int courseCount = 0;
 
         for (Enrollment enrollment : enrollments) {
             Course course = enrollment.getCourse();
+
+            // Skip past-semester courses
+            if (sYear != null && sSem != null) {
+                if (!String.valueOf(course.getYear()).equals(sYear)
+                        || !course.getSemester().equals(sSem)) {
+                    continue;
+                }
+            }
+
             Long total = attendanceRepository.countByStudentIdAndCourseCourseId(student.getId(), course.getCourseId());
             Long attended = attendanceRepository.countByStudentIdAndCourseCourseIdAndPresentTrue(student.getId(), course.getCourseId());
 
@@ -528,20 +539,34 @@ public class ChatService {
             return "📚 You are not enrolled in any courses yet.\n\n💡 Contact your admin for enrollment.";
         }
 
+        // Group enrollments by Year-Semester
+        Map<String, List<Enrollment>> bySemester = enrollments.stream()
+                .collect(Collectors.groupingBy(e -> e.getCourse().getYear() + "-" + e.getCourse().getSemester()));
+
+        List<Map.Entry<String, List<Enrollment>>> sorted = new ArrayList<>(bySemester.entrySet());
+        sorted.sort(Comparator.comparing(Map.Entry::getKey));
+
+        String currentKey = student.getYear() + "-" + student.getSemester();
+
         StringBuilder sb = new StringBuilder();
         sb.append("📚 Your Enrolled Courses\n\n");
 
-        for (Enrollment e : enrollments) {
-            Course c = e.getCourse();
-            sb.append(String.format("  📖 %s (%s) — %s, Year %d, Sem %s\n",
-                    c.getName(),
-                    c.getCode() != null ? c.getCode() : "N/A",
-                    c.getDepartment() != null ? c.getDepartment() : "N/A",
-                    c.getYear(),
-                    c.getSemester()));
+        for (Map.Entry<String, List<Enrollment>> entry : sorted) {
+            String[] parts = entry.getKey().split("-");
+            boolean isCurrent = entry.getKey().equals(currentKey);
+            sb.append(String.format("%s Year %s, Sem %s%s\n",
+                    isCurrent ? "📍" : "📖", parts[0], parts[1],
+                    isCurrent ? " (Current)" : ""));
+            for (Enrollment e : entry.getValue()) {
+                Course c = e.getCourse();
+                sb.append(String.format("    • %s (%s)\n",
+                        c.getName(),
+                        c.getCode() != null ? c.getCode() : "N/A"));
+            }
+            sb.append("\n");
         }
 
-        sb.append(String.format("\n📌 Total: %d course(s) enrolled.\n\n", enrollments.size()));
+        sb.append(String.format("📌 Total: %d course(s) enrolled.\n\n", enrollments.size()));
         sb.append("💡 Try: 'check attendance' or 'view marks'");
         return sb.toString();
     }
@@ -684,17 +709,26 @@ public class ChatService {
             List<String> lowStudents = new ArrayList<>();
 
             for (Enrollment enrollment : enrollments) {
+                Student s = enrollment.getStudent();
+
+                // Only check current-batch students (year/sem match the course)
+                if (s.getYear() == null || s.getSemester() == null) continue;
+                if (!String.valueOf(course.getYear()).equals(s.getYear())
+                        || !course.getSemester().equals(s.getSemester())) {
+                    continue;
+                }
+
                 Long total = attendanceRepository.countByStudentIdAndCourseCourseId(
-                        enrollment.getStudent().getId(), course.getCourseId());
+                        s.getId(), course.getCourseId());
                 Long attended = attendanceRepository.countByStudentIdAndCourseCourseIdAndPresentTrue(
-                        enrollment.getStudent().getId(), course.getCourseId());
+                        s.getId(), course.getCourseId());
 
                 if (total > 0) {
                     double pct = (attended.doubleValue() / total.doubleValue()) * 100;
                     if (pct < 75) {
-                        String studentName = enrollment.getStudent().getUser() != null
-                                ? enrollment.getStudent().getUser().getUsername()
-                                : enrollment.getStudent().getRollNumber();
+                        String studentName = s.getUser() != null
+                                ? s.getUser().getUsername()
+                                : s.getRollNumber();
                         lowStudents.add(String.format("%s (%.1f%%)", studentName, pct));
                     }
                 }
@@ -702,8 +736,8 @@ public class ChatService {
 
             if (!lowStudents.isEmpty()) {
                 sb.append(String.format("  📖 %s (%s):\n", course.getName(), course.getCode()));
-                for (String s : lowStudents) {
-                    sb.append("     • ").append(s).append("\n");
+                for (String str : lowStudents) {
+                    sb.append("     • ").append(str).append("\n");
                     totalLow++;
                 }
                 sb.append("\n");

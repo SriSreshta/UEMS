@@ -118,14 +118,27 @@ public class AttendanceService {
         return attendanceRepository.findDistinctDatesByCourseCourseId(courseId);
     }
 
-    // ✅ Subject-wise Attendance statistics for a student
+    // ✅ Subject-wise Attendance statistics for a student (current semester only)
     public List<StudentAttendanceDTO> getStudentAttendanceStats(Long studentId) {
+        Student student = studentRepository.findById(studentId).orElse(null);
         List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
         List<StudentAttendanceDTO> stats = new ArrayList<>();
 
         for (Enrollment enrollment : enrollments) {
             Course course = enrollment.getCourse();
             
+            // Only include courses matching student's current year/semester
+            if (student != null) {
+                String studentYear = student.getYear();
+                String studentSem = student.getSemester();
+                if (studentYear != null && studentSem != null) {
+                    if (!String.valueOf(course.getYear()).equals(studentYear)
+                            || !course.getSemester().equals(studentSem)) {
+                        continue; // skip past-semester courses
+                    }
+                }
+            }
+
             Long totalClasses = attendanceRepository.countByStudentIdAndCourseCourseId(studentId, course.getCourseId());
             Long attendedClasses = attendanceRepository.countByStudentIdAndCourseCourseIdAndPresentTrue(studentId, course.getCourseId());
             

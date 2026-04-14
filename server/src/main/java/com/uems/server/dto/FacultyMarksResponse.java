@@ -16,4 +16,6 @@ public class FacultyMarksResponse {
     private Integer assignmentMarks;
     private Integer endSemMarks;
     private Boolean endSemReleased;
+    private String year;
+    private String semester;
 }

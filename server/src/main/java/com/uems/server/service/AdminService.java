@@ -35,6 +35,10 @@ public class AdminService {
     // ── New dependencies ─────────────────────────────────────────────────────
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final AttendanceRepository attendanceRepository;
+    private final StudentPaymentRepository studentPaymentRepository;
+    private final StudentDocumentRepository studentDocumentRepository;
+    private final ResultNotificationRepository resultNotificationRepository;
 
     // ════════════════════════════════════════════════════════════════════════
     // USER CREATION LOGIC
@@ -97,7 +101,10 @@ public class AdminService {
             student.setYear(request.getYear() != null ? request.getYear() : "1");
             student.setSemester(request.getSemester() != null ? request.getSemester() : "1");
             student.setDepartment(request.getDepartment() != null ? request.getDepartment() : "N/A");
-            studentRepository.save(student);
+            Student savedStudent = studentRepository.save(student);
+
+            // Auto-enroll in all past + current core courses
+            enrollStudentInAllCourses(savedStudent);
         } else if (roleName.equals("ROLE_FACULTY")) {
             Faculty faculty = new Faculty();
             faculty.setUser(savedUser);
@@ -182,6 +189,16 @@ public class AdminService {
     public void deleteUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // Clean up student dependencies properly before deleting
+        if (user.getStudent() != null) {
+            Long studentId = user.getStudent().getId();
+            attendanceRepository.deleteByStudentId(studentId);
+            enrollmentRepository.deleteByStudentId(studentId);
+            studentPaymentRepository.deleteByStudentId(studentId);
+            studentDocumentRepository.deleteByStudentId(studentId);
+            resultNotificationRepository.deleteByStudentId(studentId);
+        }
 
         // Unassign faculty from courses if deleting a faculty member
         if (user.getFaculty() != null) {
@@ -324,45 +341,17 @@ public class AdminService {
     @Transactional
     public String enrollBatch(String year, String semester) {
         List<Student> students = studentRepository.findByYearAndSemester(year, semester);
-        List<Course> courses = courseRepository.findByYearAndSemester(Integer.parseInt(year), semester);
 
         if (students.isEmpty())
             return "No students found for Year " + year + " Sem " + semester;
-        if (courses.isEmpty())
-            return "No courses found for Year " + year + " Sem " + semester;
 
-        // 1. Delete existing CORE enrollments for this batch, preserving OEs.
+        // Enroll every student into ALL past + current core courses (cumulative)
+        int totalNewEnrollments = 0;
         for (Student student : students) {
-            List<Enrollment> existing = enrollmentRepository.findByStudentId(student.getId());
-            for (Enrollment e : existing) {
-                Boolean isOe = e.getCourse().getIsOpenElective();
-                if ((isOe == null || !isOe) &&
-                        e.getCourse().getYear().equals(Integer.parseInt(year)) &&
-                        e.getCourse().getSemester().equals(semester)) {
-                    enrollmentRepository.delete(e);
-                }
-            }
+            totalNewEnrollments += enrollStudentInAllCourses(student);
         }
 
-        // 4. Enroll every student into matching CORE courses
-        int count = 0;
-        for (Student student : students) {
-            for (Course course : courses) {
-                Boolean isOe = course.getIsOpenElective();
-                if ((isOe == null || !isOe)) {
-                    // Only match if student department equals course department
-                    String sDept = student.getDepartment();
-                    String cDept = course.getDepartment();
-                    if (sDept != null && cDept != null && sDept.equalsIgnoreCase(cDept)) {
-                        enrollmentRepository.save(
-                                Enrollment.builder().student(student).course(course).build());
-                        count++;
-                    }
-                }
-            }
-        }
-
-        return "Processed " + students.size() + " students and restored " + count + " core course mappings.";
+        return "Processed " + students.size() + " students. Added " + totalNewEnrollments + " new course enrollments.";
     }
 
     public List<EnrollmentResponse> getEnrollmentsByCourse(Long courseId) {
@@ -377,6 +366,74 @@ public class AdminService {
                 .stream()
                 .map(this::toEnrollmentResponse)
                 .collect(Collectors.toList());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // CUMULATIVE ENROLLMENT
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Enroll a student in ALL core (non-open-elective) courses from semester 1-1
+     * up to their current year/semester, matching their department.
+     * Only ADDS missing enrollments — never deletes or modifies existing ones.
+     * 
+     * @return number of new enrollments created
+     */
+    public int enrollStudentInAllCourses(Student student) {
+        String dept = student.getDepartment();
+        if (dept == null || dept.isBlank() || dept.equals("N/A")) {
+            log.warn("Skipping enrollment for student {} — no valid department", student.getId());
+            return 0;
+        }
+
+        int yearInt;
+        int semInt;
+        try {
+            yearInt = Integer.parseInt(student.getYear());
+            semInt = Integer.parseInt(student.getSemester());
+        } catch (NumberFormatException e) {
+            log.warn("Skipping enrollment for student {} — invalid year/semester: {}/{}",
+                    student.getId(), student.getYear(), student.getSemester());
+            return 0;
+        }
+
+        List<Course> courses = courseRepository.findDepartmentCoursesUpTo(dept, yearInt, semInt);
+
+        int count = 0;
+        for (Course course : courses) {
+            if (!enrollmentRepository.existsByStudentIdAndCourseCourseId(student.getId(), course.getCourseId())) {
+                enrollmentRepository.save(
+                        Enrollment.builder().student(student).course(course).build());
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Backfill missing enrollments for ALL existing students.
+     * Only adds — never deletes or modifies existing enrollment/marks/grades.
+     */
+    @Transactional
+    public String backfillAllStudentEnrollments() {
+        List<Student> allStudents = studentRepository.findAll();
+        int totalNew = 0;
+        int studentsProcessed = 0;
+
+        for (Student student : allStudents) {
+            int added = enrollStudentInAllCourses(student);
+            if (added > 0) {
+                studentsProcessed++;
+                totalNew += added;
+            }
+        }
+
+        String result = String.format("Backfill complete. Processed %d students total, " +
+                "%d students had missing enrollments, %d new enrollments created.",
+                allStudents.size(), studentsProcessed, totalNew);
+        log.info(result);
+        return result;
     }
 
     // ════════════════════════════════════════════════════════════════════════

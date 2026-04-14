@@ -45,7 +45,7 @@ const ManageUsers = () => {
                 method: "DELETE"
             });
             if (!res.ok) throw new Error("Failed to delete user");
-            
+
             setMessage({ type: "success", text: `User ${username} deleted successfully!` });
             fetchUsers();
         } catch (err) {
@@ -56,16 +56,16 @@ const ManageUsers = () => {
     const filteredUsers = users.filter(u => {
         if (u.role === 'ROLE_ADMIN') return false;
 
-        const matchSearch = searchTerm === "" || 
+        const matchSearch = searchTerm === "" ||
             u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
             u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (u.facultyCode && u.facultyCode.toLowerCase().includes(searchTerm.toLowerCase()));
-            
+
         const matchRole = roleFilter === "" || u.role === roleFilter;
         const matchDept = deptFilter === "" || u.department === deptFilter;
         const matchRoll = rollNoFilter === "" || (u.rollNumber && u.rollNumber.toLowerCase().includes(rollNoFilter.toLowerCase()));
         const matchFacultyCode = facultyCodeFilter === "" || (u.facultyCode && u.facultyCode.toLowerCase().includes(facultyCodeFilter.toLowerCase()));
-        
+
         return matchSearch && matchRole && matchDept && matchRoll && matchFacultyCode;
     });
 
@@ -76,7 +76,7 @@ const ManageUsers = () => {
             <Sidebar isOpen={isOpen} role="admin" />
             <div className="flex-1 flex flex-col">
                 <Header title="Manage Users" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
-                
+
                 <main className="p-6 flex-1 overflow-y-auto">
                     {message.text && (
                         <div className={`p-4 mb-6 rounded-xl border flex items-center gap-2 ${message.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
@@ -97,9 +97,9 @@ const ManageUsers = () => {
                                         <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                                             <MagnifyingGlassIcon className="h-5 w-5" />
                                         </span>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Search name, email, code..." 
+                                        <input
+                                            type="text"
+                                            placeholder="Search name, email, code..."
                                             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm"
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -107,7 +107,7 @@ const ManageUsers = () => {
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2">
                                         <FunnelIcon className="h-5 w-5 text-gray-400 hidden xl:block" />
-                                        <select 
+                                        <select
                                             className="block w-full sm:w-auto py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             value={roleFilter}
                                             onChange={(e) => setRoleFilter(e.target.value)}
@@ -116,8 +116,8 @@ const ManageUsers = () => {
                                             <option value="ROLE_FACULTY">Faculty</option>
                                             <option value="ROLE_STUDENT">Student</option>
                                         </select>
-            
-                                        <select 
+
+                                        <select
                                             className="block w-full sm:w-auto py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             value={deptFilter}
                                             onChange={(e) => setDeptFilter(e.target.value)}
@@ -128,17 +128,17 @@ const ManageUsers = () => {
                                             ))}
                                         </select>
 
-                                        <input 
-                                            type="text" 
-                                            placeholder="Filter Roll No" 
+                                        <input
+                                            type="text"
+                                            placeholder="Filter Roll No"
                                             className="block w-full sm:w-auto py-2 px-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             value={rollNoFilter}
                                             onChange={(e) => setRollNoFilter(e.target.value)}
                                         />
 
-                                        <input 
-                                            type="text" 
-                                            placeholder="Filter Faculty Code" 
+                                        <input
+                                            type="text"
+                                            placeholder="Filter Faculty Code"
                                             className="block w-full sm:w-auto py-2 px-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             value={facultyCodeFilter}
                                             onChange={(e) => setFacultyCodeFilter(e.target.value)}
@@ -146,11 +146,11 @@ const ManageUsers = () => {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {hasActiveFilters && (
                                 <div className="flex flex-wrap items-center gap-2 mt-2 pt-4 border-t border-gray-100">
                                     <span className="text-sm font-medium text-gray-500 mr-2">Active Filters:</span>
-                                    
+
                                     {roleFilter && (
                                         <span className="inline-flex items-center py-1 px-3 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-200">
                                             Role: {roleFilter.replace('ROLE_', '')}
@@ -159,7 +159,7 @@ const ManageUsers = () => {
                                             </button>
                                         </span>
                                     )}
-                                    
+
                                     {deptFilter && (
                                         <span className="inline-flex items-center py-1 px-3 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-200">
                                             Dept: {deptFilter}
@@ -168,7 +168,7 @@ const ManageUsers = () => {
                                             </button>
                                         </span>
                                     )}
-                                    
+
                                     {rollNoFilter && (
                                         <span className="inline-flex items-center py-1 px-3 rounded-full text-sm bg-blue-50 text-blue-700 border border-blue-200">
                                             Roll No: {rollNoFilter}
@@ -186,8 +186,8 @@ const ManageUsers = () => {
                                             </button>
                                         </span>
                                     )}
-                                    
-                                    <button 
+
+                                    <button
                                         onClick={() => {
                                             setRoleFilter('');
                                             setDeptFilter('');
@@ -257,7 +257,7 @@ const ManageUsers = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDelete(u.id, u.username)}
                                                         className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition"
                                                         title="Delete User"

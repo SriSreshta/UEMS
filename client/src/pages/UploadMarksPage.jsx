@@ -6,7 +6,7 @@ import Footer from "../components/Footer";
 import { useAuth } from "../auth/AuthContext";
 import api from "../api/axiosInstance";
 import * as XLSX from "xlsx";
-import { CloudArrowUpIcon, DocumentArrowDownIcon, ArrowLeftIcon, CheckBadgeIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, DocumentArrowDownIcon, ArrowLeftIcon, CheckBadgeIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 const UploadMarksPage = () => {
   const { courseId } = useParams();
@@ -16,6 +16,9 @@ const UploadMarksPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [courseDetails, setCourseDetails] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all"); // 'all', 'current', 'past'
 
   useEffect(() => {
     fetchStudents();
@@ -25,6 +28,17 @@ const UploadMarksPage = () => {
     try {
       const res = await api.get(`/faculty/courses/${courseId}/marks`);
       setStudents(res.data);
+      
+      // Fetch course details to know its year/sem for current vs past logic
+      const cRes = await api.get(`/faculty/courses`);
+      let allCourses = cRes.data;
+      if (!Array.isArray(allCourses) && allCourses.content) allCourses = allCourses.content;
+      else if (!Array.isArray(allCourses) && allCourses.data) allCourses = allCourses.data;
+      else if (!Array.isArray(allCourses)) allCourses = [];
+      
+      const cDetails = allCourses.find(c => String(c.courseId || c.course_id || c.id) === String(courseId));
+      if (cDetails) setCourseDetails(cDetails);
+
     } catch (err) {
       setError(err.response?.data || err.message || "Failed to fetch students");
     } finally {
@@ -198,9 +212,46 @@ const UploadMarksPage = () => {
               </div>
             ) : (
               <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-                <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row items-center justify-between bg-slate-50/50 gap-4">
+                  {/* Left stats */}
+                  <div className="flex flex-col gap-1 w-full md:w-auto">
                     <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Performance Ledger</div>
                     <div className="text-xs font-black text-indigo-400 uppercase tracking-widest">{students.length} STUDENT RECORDS</div>
+                  </div>
+
+                  {/* Filters Section */}
+                  <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
+                    {/* Search Bar */}
+                    <div className="relative w-full md:w-64">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        className="w-full pl-10 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-sm"
+                        placeholder="Search student..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Filter Tabs */}
+                    <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto flex-shrink-0">
+                      {['all', 'current', 'past'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setFilterType(type)}
+                          className={`flex-1 md:w-20 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 ${
+                            filterType === type 
+                              ? "bg-white text-indigo-600 shadow-sm" 
+                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/70"
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -218,11 +269,38 @@ const UploadMarksPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {students.map((student) => (
+                      {students.filter(student => {
+                        const matchesSearch = student.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                              student.rollNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+                        if (!matchesSearch) return false;
+
+                        const isCurrent = courseDetails ? (String(student.year) === String(courseDetails.year) && String(student.semester) === String(courseDetails.semester)) : true;
+                        
+                        if (filterType === 'current') return isCurrent;
+                        if (filterType === 'past') return !isCurrent;
+                        return true;
+                      }).map((student) => {
+                        const isCurrent = courseDetails ? (String(student.year) === String(courseDetails.year) && String(student.semester) === String(courseDetails.semester)) : false;
+                        return (
                         <tr key={student.studentId} className="hover:bg-indigo-50/30 transition duration-300 group">
                           <td className="px-8 py-6 border-r border-slate-50">
-                            <div className="font-bold text-slate-800">{student.studentName}</div>
-                            <div className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter mt-1">{student.rollNumber}</div>
+                            <div className="flex justify-between items-start gap-2">
+                              <div>
+                                <div className="font-bold text-slate-800">{student.studentName}</div>
+                                <div className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter mt-1">{student.rollNumber}</div>
+                              </div>
+                              {courseDetails && (
+                                isCurrent ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase text-indigo-600 bg-indigo-100 border border-indigo-200 shrink-0 mt-1 tracking-widest">
+                                    Current
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase text-slate-500 bg-slate-100 border border-slate-200 shrink-0 mt-1 tracking-widest">
+                                    Past
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-6">
                             <input type="number" min="0" max="30" placeholder="-" value={student.mid1Marks ?? ""} onChange={(e) => handleMarkChange(student.studentId, "mid1Marks", e.target.value)} className="w-16 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
@@ -237,7 +315,7 @@ const UploadMarksPage = () => {
                             <input type="number" min="0" max="60" placeholder="-" value={student.endSemMarks ?? ""} onChange={(e) => handleMarkChange(student.studentId, "endSemMarks", e.target.value)} className="w-20 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-indigo-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all" />
                           </td>
                         </tr>
-                      ))}
+                      )})}
                       {students.length === 0 && (
                         <tr>
                           <td colSpan="4" className="px-8 py-20 text-center text-slate-300 font-bold italic">No active enrollments for this session context.</td>

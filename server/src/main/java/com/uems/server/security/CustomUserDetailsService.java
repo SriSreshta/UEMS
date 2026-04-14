@@ -2,7 +2,6 @@ package com.uems.server.security;
 
 import com.uems.server.model.User;
 import com.uems.server.repository.UserRepository;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;

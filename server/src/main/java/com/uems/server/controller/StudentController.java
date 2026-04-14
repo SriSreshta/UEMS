@@ -33,8 +33,17 @@ public class StudentController {
 
     @GetMapping("/course/{courseId}")
     @PreAuthorize("hasRole('FACULTY') or hasRole('ADMIN')")
-    public ResponseEntity<List<StudentResponse>> getStudentsByCourse(@PathVariable Long courseId) {
-        List<Student> students = enrollmentRepository.findStudentsByCourseId(courseId);
+    public ResponseEntity<List<StudentResponse>> getStudentsByCourse(
+            @PathVariable Long courseId,
+            @RequestParam(value = "currentOnly", defaultValue = "true") boolean currentOnly) {
+        List<Student> students;
+        if (currentOnly) {
+            // Only return students whose current year/semester match the course (for attendance)
+            students = enrollmentRepository.findCurrentStudentsByCourseId(courseId);
+        } else {
+            // Return ALL students enrolled in this course (including past batches)
+            students = enrollmentRepository.findStudentsByCourseId(courseId);
+        }
         List<StudentResponse> response = students.stream().map(s -> new StudentResponse(
                 s.getId(),
                 s.getUser() != null ? s.getUser().getUsername() : "N/A",
@@ -62,7 +71,8 @@ public class StudentController {
             List<Enrollment> enrollments = enrollmentRepository.findByStudentId(student.getId());
             List<StudentMarksResponse> response = enrollments.stream().map(e -> new StudentMarksResponse(
                     e.getCourse().getCourseId(), e.getCourse().getName(), e.getCourse().getCode(),
-                    e.getMid1Marks(), e.getMid2Marks(), e.getAssignmentMarks()
+                    e.getMid1Marks(), e.getMid2Marks(), e.getAssignmentMarks(),
+                    e.getCourse().getYear(), e.getCourse().getSemester()
             )).collect(Collectors.toList());
             return ResponseEntity.ok(response);
         } catch (Exception e) {

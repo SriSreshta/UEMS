@@ -19,7 +19,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Value;
 import com.uems.server.dto.AnalyticsDto;
 import com.uems.server.model.Faculty;
 import com.uems.server.repository.FacultyRepository;
@@ -143,7 +142,9 @@ public class FacultyController {
                     e.getMid2Marks(),
                     e.getAssignmentMarks(),
                     e.getEndSemMarks(),
-                    e.getEndSemReleased()
+                    e.getEndSemReleased(),
+                    e.getStudent().getYear(),
+                    e.getStudent().getSemester()
             )).collect(Collectors.toList());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -179,6 +180,10 @@ public class FacultyController {
                         .filter(e -> e.getStudent().getId().equals(req.getStudentId()))
                         .findFirst()
                         .ifPresent(e -> {
+                            // Block marks editing if results have already been published
+                            if (Boolean.TRUE.equals(e.getEndSemReleased())) {
+                                return; // Skip — results already published for this enrollment
+                            }
                             if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
                             if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
                             if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
