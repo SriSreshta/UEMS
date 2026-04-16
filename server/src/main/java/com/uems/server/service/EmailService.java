@@ -63,4 +63,26 @@ public class EmailService {
         message.setText(content);
         mailSender.send(message);
     }
+
+    public void sendAttendanceWarningEmail(String to, String studentName, double percentage) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("⚠️ Low Attendance Warning - Action Required");
+
+        String content = "Dear " + studentName + ",\n\n" +
+                "This is an automated alert from the UEMS portal regarding your attendance status.\n\n" +
+                "📊 Current Overall Attendance: " + String.format("%.1f", percentage) + "%\n" +
+                "✅ Required Minimum Attendance: 75%\n\n" +
+                "Your attendance has dropped below the required threshold of 75%. " +
+                "Continued low attendance may result in academic consequences, including being barred from examinations.\n\n" +
+                "Please make sure to attend your classes regularly to bring your attendance back above 75%.\n\n" +
+                "For more details, please log in to the UEMS Student Portal and check your attendance report.\n\n" +
+                "If you believe this is an error, please contact your faculty or the academic office immediately.\n\n" +
+                "Regards,\n" +
+                "UEMS Academic Team";
+
+        message.setText(content);
+        mailSender.send(message);
+    }
 }

@@ -39,7 +39,7 @@ const StudentAttendancePage = () => {
         ? ((totalAttended / totalConducted) * 100).toFixed(2) 
         : 0;
 
-    const isGlobalWarning = overallPercentage < 75;
+    const isGlobalWarning = totalConducted > 0 && overallPercentage < 75;
 
     return (
         <div className="flex min-h-screen bg-slate-50 bg-pattern">
@@ -81,19 +81,23 @@ const StudentAttendancePage = () => {
                                             </span>
                                         </div>
                                         <h2 className="text-5xl font-black text-slate-800">
-                                            {overallPercentage}% <span className="text-xl font-bold text-slate-400">Overall Presence</span>
+                                            {totalConducted > 0 ? `${overallPercentage}%` : 'N/A'} <span className="text-xl font-bold text-slate-400">Overall Presence</span>
                                         </h2>
                                         <p className="text-slate-600 font-medium max-w-md">
-                                            {isGlobalWarning 
-                                                ? "Your overall attendance is below the mandatory 75% threshold. Please prioritize your classes to avoid academic repercussions."
-                                                : "Great job! You are maintaining a healthy attendance record across all your enrolled subjects."}
+                                            {totalConducted === 0
+                                                ? "No classes have been conducted yet. Your attendance will be tracked here once sessions begin."
+                                                : isGlobalWarning 
+                                                    ? "Your overall attendance is below the mandatory 75% threshold. Please prioritize your classes to avoid academic repercussions."
+                                                    : "Great job! You are maintaining a healthy attendance record across all your enrolled subjects."}
                                         </p>
                                     </div>
                                     <div className="hidden sm:block">
-                                        <div className={`h-24 w-24 rounded-full border-8 flex items-center justify-center text-2xl font-black ${
-                                            isGlobalWarning ? 'border-rose-200 text-rose-600' : 'border-emerald-200 text-emerald-600'
+                                        <div className={`h-24 w-24 rounded-full border-8 flex items-center justify-center font-black ${
+                                            totalConducted === 0 ? 'border-slate-200 text-slate-400 text-lg'
+                                            : isGlobalWarning ? 'border-rose-200 text-rose-600 text-2xl' 
+                                            : 'border-emerald-200 text-emerald-600 text-2xl'
                                         }`}>
-                                            {Math.round(overallPercentage)}%
+                                        {totalConducted === 0 ? 'N/A' : `${Math.round(overallPercentage)}%`}
                                         </div>
                                     </div>
                                 </div>
@@ -161,7 +165,7 @@ const StudentAttendancePage = () => {
                                             ))
                                         ) : stats.length > 0 ? (
                                             stats.map((s) => {
-                                                const isWarning = s.percentage < 75;
+                                                const isWarning = s.totalClasses > 0 && s.percentage < 75;
                                                 return (
                                                     <tr key={s.courseId} className="group hover:bg-slate-50/50 transition-colors">
                                                         <td className="px-10 py-8">
@@ -176,8 +180,8 @@ const StudentAttendancePage = () => {
                                                         </td>
                                                         <td className="px-10 py-8 text-right">
                                                             <div className="flex flex-col items-end gap-2">
-                                                                <span className={`text-2xl font-black ${isWarning ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                                                    {s.percentage.toFixed(1)}%
+                                                                <span className={`text-2xl font-black ${isWarning ? 'text-rose-600' : s.totalClasses === 0 ? 'text-slate-400' : 'text-emerald-600'}`}>
+                                                                    {s.totalClasses === 0 ? 'N/A' : `${s.percentage.toFixed(1)}%`}
                                                                 </span>
                                                                 {isWarning && (
                                                                     <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-600 rounded-lg text-[9px] font-black uppercase tracking-widest animate-bounce">
