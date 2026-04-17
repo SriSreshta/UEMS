@@ -1,6 +1,7 @@
 package com.uems.server.service;
 
 import com.uems.server.dto.*;
+import com.uems.server.dto.UpdateStudentRequest;
 import com.uems.server.model.*;
 import com.uems.server.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -243,7 +244,12 @@ public class AdminService {
             }
         }
 
-        // ── 2. Determine if academic details changed ──────────────────────────
+        // ── 2. Capture OLD academic values BEFORE any updates ─────────────────
+        //    This is critical for the reset scenario: we must delete enrollments
+        //    for the OLD (incorrect) semester, not the new (correct) one.
+        String oldYear = student.getYear();
+        String oldSemester = student.getSemester();
+
         boolean yearChanged = request.getYear() != null
                 && !request.getYear().trim().isEmpty()
                 && !request.getYear().trim().equals(student.getYear());
@@ -254,7 +260,23 @@ public class AdminService {
                 && !request.getDepartment().trim().isEmpty()
                 && !request.getDepartment().trim().equals(student.getDepartment());
 
-        // Apply academic field updates (non-null values)
+        // ── 3. Correction Scenario: Reset OLD semester enrollments FIRST ──────
+        //    Must happen BEFORE updating academic fields so we delete the
+        //    incorrect enrollments, not the correct ones.
+        if (request.isResetCurrentSemesterEnrollments()) {
+            int resetYear;
+            try {
+                resetYear = Integer.parseInt(oldYear);
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Invalid year value: " + oldYear);
+            }
+            enrollmentRepository.deleteByStudentIdAndCourseYearAndCourseSemester(
+                    student.getId(), resetYear, oldSemester);
+            log.info("Reset semester enrollments for student {} — removed OLD incorrect enrollments (year={}, semester={})",
+                    student.getId(), resetYear, oldSemester);
+        }
+
+        // ── 4. NOW apply academic field updates ───────────────────────────────
         if (request.getYear() != null && !request.getYear().trim().isEmpty()) {
             student.setYear(request.getYear().trim());
         }
@@ -269,31 +291,13 @@ public class AdminService {
         }
 
         // ── Save both entities ────────────────────────────────────────────────
-        // Link the student to the same user reference so Hibernate doesn't
-        // cascade a stale student when saving the user (User has CascadeType.ALL)
         student.setUser(user);
         studentRepository.save(student);
         userRepository.save(user);
 
-        // ── 3. Correction Scenario: Reset current semester enrollments ────────
-        if (request.isResetCurrentSemesterEnrollments()) {
-            // Remove ONLY the enrollments for the current year+semester
-            // (the ones that may have been incorrectly assigned)
-            int resetYear;
-            try {
-                resetYear = Integer.parseInt(student.getYear());
-            } catch (NumberFormatException e) {
-                throw new RuntimeException("Invalid year value: " + student.getYear());
-            }
-            enrollmentRepository.deleteByStudentIdAndCourseYearAndCourseSemester(
-                    student.getId(), resetYear, student.getSemester());
-            log.info("Reset semester enrollments for student {} (year={}, semester={})",
-                    student.getId(), resetYear, student.getSemester());
-        }
-
-        // ── 4. Academic Update: Assign new/missing core enrollments ──────────
-        // Runs when: academic detail changed OR reset was applied
-        // enrollStudentInAllCourses only ADDS missing — never deletes past data
+        // ── 5. Academic Update: Assign new/missing core enrollments ──────────
+        //    Runs when: academic detail changed OR reset was applied
+        //    enrollStudentInAllCourses only ADDS missing — never deletes past data
         if (yearChanged || semesterChanged || deptChanged || request.isResetCurrentSemesterEnrollments()) {
             int added = enrollStudentInAllCourses(student);
             log.info("Academic update for student {}: {} new enrollments added.", student.getId(), added);
@@ -306,6 +310,12 @@ public class AdminService {
 
     @Transactional
     public CourseResponse createCourse(CourseRequest request) {
+        // ── Duplicate course code check ───────────────────────────────────────
+        if (request.getCode() != null && courseRepository.existsByCode(request.getCode().trim())) {
+            throw new RuntimeException("Error: Course code '" + request.getCode().trim()
+                    + "' already exists! Each course must have a unique code.");
+        }
+
         Course course = Course.builder()
                 .name(request.getName())
                 .code(request.getCode())
@@ -315,6 +325,32 @@ public class AdminService {
                 .isOpenElective(request.getIsOpenElective() != null && request.getIsOpenElective())
                 .build();
         Course saved = courseRepository.save(course);
+
+        // ── Auto-enroll existing eligible students (for backdated courses) ────
+        if (Boolean.TRUE.equals(request.getEnrollExistingStudents())
+                && saved.getDepartment() != null && !saved.getDepartment().isBlank()
+                && saved.getYear() != null && saved.getSemester() != null
+                && !(Boolean.TRUE.equals(saved.getIsOpenElective()))) {
+            int semInt;
+            try {
+                semInt = Integer.parseInt(saved.getSemester());
+            } catch (NumberFormatException e) {
+                log.warn("Could not parse semester for auto-enrollment: {}", saved.getSemester());
+                return toCourseResponse(saved);
+            }
+            List<Student> eligibleStudents = studentRepository.findByDepartmentAtOrPastSemester(
+                    saved.getDepartment(), saved.getYear(), semInt);
+            int enrolled = 0;
+            for (Student student : eligibleStudents) {
+                if (!enrollmentRepository.existsByStudentIdAndCourseCourseId(student.getId(), saved.getCourseId())) {
+                    enrollmentRepository.save(Enrollment.builder().student(student).course(saved).build());
+                    enrolled++;
+                }
+            }
+            log.info("Auto-enrolled {} existing students into new course {} ({})",
+                    enrolled, saved.getName(), saved.getCode());
+        }
+
         return toCourseResponse(saved);
     }
 
@@ -322,6 +358,15 @@ public class AdminService {
     public CourseResponse updateCourse(Long courseId, CourseRequest request) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+
+        // ── Duplicate course code check (only if code is changing) ────────────
+        if (request.getCode() != null && !request.getCode().trim().equals(course.getCode())) {
+            if (courseRepository.existsByCode(request.getCode().trim())) {
+                throw new RuntimeException("Error: Course code '" + request.getCode().trim()
+                        + "' already exists on another course!");
+            }
+        }
+
         course.setName(request.getName());
         course.setCode(request.getCode());
         course.setDepartment(request.getDepartment());

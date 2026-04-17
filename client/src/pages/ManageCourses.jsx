@@ -37,7 +37,7 @@ export default function ManageCourses() {
   const [faculties, setFaculties] = useState([]);
   const [toast, setToast]         = useState({ msg: "", type: "success" });
 
-  const [form, setForm] = useState({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false });
+  const [form, setForm] = useState({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false });
   const [creating, setCreating] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState(null);
 
@@ -63,17 +63,23 @@ export default function ManageCourses() {
     try {
       const payload = { ...form, year: parseInt(form.year) };
       if (editingCourseId) {
-        await api.put(`/admin/courses/${editingCourseId}`, payload);
+        // Don't send enrollExistingStudents on update
+        const { enrollExistingStudents, ...updatePayload } = payload;
+        await api.put(`/admin/courses/${editingCourseId}`, updatePayload);
         showToast("Course updated successfully!");
       } else {
         await api.post("/admin/courses", payload);
-        showToast("Course created successfully!");
+        const msg = payload.enrollExistingStudents 
+          ? "Course created & existing students enrolled!" 
+          : "Course created successfully!";
+        showToast(msg);
       }
-      setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false });
+      setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false });
       setEditingCourseId(null);
       await loadCourses();
-    } catch {
-      showToast(`Failed to ${editingCourseId ? 'update' : 'create'} course.`, "error");
+    } catch (err) {
+      const serverMsg = err?.response?.data;
+      showToast(typeof serverMsg === 'string' ? serverMsg : `Failed to ${editingCourseId ? 'update' : 'create'} course.`, "error");
     } finally { setCreating(false); }
   };
 
@@ -85,7 +91,8 @@ export default function ManageCourses() {
       department: course.department || "",
       year: course.year,
       semester: course.semester,
-      isOpenElective: course.isOpenElective || false
+      isOpenElective: course.isOpenElective || false,
+      enrollExistingStudents: false
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -96,7 +103,7 @@ export default function ManageCourses() {
       await api.delete(`/admin/courses/${courseId}`);
       showToast("Course deleted successfully!");
       if (editingCourseId === courseId) {
-        setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false });
+        setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false });
         setEditingCourseId(null);
       }
       await loadCourses();
@@ -145,7 +152,7 @@ export default function ManageCourses() {
                   </h2>
                   {editingCourseId && (
                     <button 
-                      onClick={() => { setEditingCourseId(null); setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false }); }}
+                      onClick={() => { setEditingCourseId(null); setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false }); }}
                       className="text-xs font-bold text-slate-400 hover:text-slate-600 transition"
                     >
                       Cancel Edit
@@ -193,6 +200,21 @@ export default function ManageCourses() {
                     />
                     <label htmlFor="isOpenElective" className="text-sm font-bold text-slate-700">This is an Open Elective Course</label>
                   </div>
+                  {!editingCourseId && !form.isOpenElective && (
+                    <div className="flex items-start gap-2 mt-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                      <input 
+                        type="checkbox" 
+                        id="enrollExistingStudents" 
+                        checked={form.enrollExistingStudents} 
+                        onChange={e => setForm(p => ({ ...p, enrollExistingStudents: e.target.checked }))}
+                        className="w-4 h-4 mt-0.5 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500"
+                      />
+                      <label htmlFor="enrollExistingStudents" className="text-xs font-bold text-indigo-800 leading-relaxed">
+                        Enroll all existing eligible students
+                        <span className="block font-medium text-indigo-600 mt-0.5">Use this when the course was missed or is backdated. All students at or past this year/semester in the same department will be auto-enrolled.</span>
+                      </label>
+                    </div>
+                  )}
                   <button type="submit" disabled={creating} className={btnCls("bg-indigo-600 hover:bg-indigo-700 w-full disabled:opacity-50 mt-2")}>
                     {creating && <Spinner />} {creating ? "Processing..." : (editingCourseId ? "Update Course" : "Register Course")}
                   </button>

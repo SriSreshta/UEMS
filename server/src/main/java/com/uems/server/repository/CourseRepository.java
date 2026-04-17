@@ -10,6 +10,12 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
      List<Course> findByFacultyId(Long facultyId);
 
+    /** Check if a course with the given code already exists. */
+    boolean existsByCode(String code);
+
+    /** Find a course by its code. */
+    java.util.Optional<Course> findByCode(String code);
+
     @Query("SELECT c FROM Course c WHERE c.faculty.user.username = :username")
     List<Course> findByFacultyUsername(@Param("username") String username);
 

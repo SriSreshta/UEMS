@@ -115,7 +115,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
           label: "External Marks",
           icon: AcademicCapIcon,
           children: [
-            { label: "End Sem (Theory)", icon: AcademicCapIcon, to: "/faculty/external/endsem-theory" },
+            { label: "End Sem", icon: AcademicCapIcon, to: "/faculty/external/endsem-theory" },
           ],
         },
       ];

@@ -4,6 +4,7 @@ import com.uems.server.model.Student;
 import com.uems.server.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,4 +42,16 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     @Query("SELECT DISTINCT s.department FROM Student s WHERE s.department IS NOT NULL")
     List<String> findDistinctDepartments();
+
+    /**
+     * Find all students in a department whose current year/semester is at or past the given threshold.
+     * Used when creating a backdated course to auto-enroll existing eligible students.
+     */
+    @Query("SELECT s FROM Student s WHERE s.department = :dept " +
+           "AND (CAST(s.year AS integer) > :year " +
+           "OR (CAST(s.year AS integer) = :year AND CAST(s.semester AS integer) >= :semester))")
+    List<Student> findByDepartmentAtOrPastSemester(
+            @Param("dept") String dept,
+            @Param("year") int year,
+            @Param("semester") int semester);
 }

@@ -18,6 +18,7 @@ import StudentPaymentsPage from "./pages/StudentPaymentsPage";
 import StudentExamSchedule from "./pages/StudentExamSchedule";
 import StudentResults from "./pages/StudentResults";
 import StudentDocumentStore from "./pages/StudentDocumentStore";
+import VerifyMemoPage from "./pages/VerifyMemoPage";
 
 import AddUserManual from "./pages/AddUserManual";
 import BulkUserUpload from "./pages/BulkUserUpload";
@@ -124,7 +125,7 @@ export default function App() {
           path="/faculty/external/endsem-theory"
           element={
             <ProtectedRoute requiredRole="faculty">
-              <FacultyMarksViewPage markType="endSem" title="End Sem (Theory)" />
+              <FacultyMarksViewPage markType="endSem" title="End Sem" />
             </ProtectedRoute>
           }
         />
@@ -312,6 +313,9 @@ export default function App() {
         element={<DeptAnalytics />
         } 
         />
+
+        {/* Public Validation Route */}
+        <Route path="/verify-memo" element={<VerifyMemoPage />} />
 
         {/* 404 fallback */}
         <Route path="*" element={<div className="p-8">404 — Not Found</div>} />

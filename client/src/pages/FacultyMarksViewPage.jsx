@@ -17,6 +17,7 @@ const FacultyMarksViewPage = ({ markType, title }) => {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all"); // 'all', 'current', 'past'
+  const [selectedCourseKey, setSelectedCourseKey] = useState("all"); // 'all' or a courseKey
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,7 +127,7 @@ const FacultyMarksViewPage = ({ markType, title }) => {
             {!loading && !error && groupedMarks.length > 0 && (
               <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8">
                 {/* Search Bar */}
-                <div className="relative w-full md:w-96">
+                <div className="relative w-full md:w-80">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <MagnifyingGlassIcon className="h-5 w-5 text-slate-400" />
                   </div>
@@ -139,8 +140,20 @@ const FacultyMarksViewPage = ({ markType, title }) => {
                   />
                 </div>
 
+                {/* Course Filter Dropdown */}
+                <select
+                  value={selectedCourseKey}
+                  onChange={(e) => setSelectedCourseKey(e.target.value)}
+                  className="w-full md:w-64 px-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 font-medium text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all shadow-sm cursor-pointer"
+                >
+                  <option value="all">All Courses</option>
+                  {groupedMarks.map(({ courseKey }) => (
+                    <option key={courseKey} value={courseKey}>{courseKey}</option>
+                  ))}
+                </select>
+
                 {/* Filter Tabs */}
-                <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto">
+                <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-auto shrink-0">
                   {['all', 'current', 'past'].map((type) => (
                     <button
                       key={type}
@@ -172,7 +185,9 @@ const FacultyMarksViewPage = ({ markType, title }) => {
               </div>
             ) : (
               <div className="space-y-10">
-                {groupedMarks.map(({ courseKey, course, students }) => {
+                {groupedMarks
+                .filter(({ courseKey }) => selectedCourseKey === "all" || courseKey === selectedCourseKey)
+                .map(({ courseKey, course, students }) => {
                   // Filter out students based on criteria
                   const filteredStudents = students.filter(student => {
                     const matchesSearch = student.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) || 

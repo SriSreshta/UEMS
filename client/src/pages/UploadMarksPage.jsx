@@ -265,7 +265,7 @@ const UploadMarksPage = () => {
                         <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Mid1 (30)</th>
                         <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Mid2 (30)</th>
                         <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center border-r border-slate-100">Assignment (10)</th>
-                        <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">End Sem Theory (60)</th>
+                        <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">End Sem (60)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">

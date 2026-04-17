@@ -11,7 +11,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "course")
+@Table(name = "course", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_course_code", columnNames = {"code"})
+})
 public class Course {
 
     @Id
