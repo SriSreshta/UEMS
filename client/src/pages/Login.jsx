@@ -78,7 +78,7 @@ const Login = () => {
               Jawaharlal Nehru Technological University Hyderabad
             </h2>
             <p className="text-lg md:text-xl text-slate-200 font-semibold tracking-wide">
-              University Management System
+              University Examination Management System
             </p>
             <p className="text-xs md:text-sm text-slate-400 font-medium">
               Kukatpally, Hyderabad - 500 085, Telangana, India
