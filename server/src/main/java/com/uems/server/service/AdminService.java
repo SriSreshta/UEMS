@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +41,7 @@ public class AdminService {
     private final StudentPaymentRepository studentPaymentRepository;
     private final StudentDocumentRepository studentDocumentRepository;
     private final ResultNotificationRepository resultNotificationRepository;
+    private final FeeNotificationRepository feeNotificationRepository;
 
     // ════════════════════════════════════════════════════════════════════════
     // USER CREATION LOGIC
@@ -325,6 +327,9 @@ public class AdminService {
                 .isOpenElective(request.getIsOpenElective() != null && request.getIsOpenElective())
                 .build();
         Course saved = courseRepository.save(course);
+        
+        // Auto-recalibrate credits for this semester/department
+        recalibrateSemesterCredits(saved.getYear(), saved.getSemester(), saved.getDepartment());
 
         // ── Auto-enroll existing eligible students (for backdated courses) ────
         if (Boolean.TRUE.equals(request.getEnrollExistingStudents())
@@ -359,6 +364,10 @@ public class AdminService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
 
+        Integer oldYear = course.getYear();
+        String oldSem = course.getSemester();
+        String oldDept = course.getDepartment();
+
         // ── Duplicate course code check (only if code is changing) ────────────
         if (request.getCode() != null && !request.getCode().trim().equals(course.getCode())) {
             if (courseRepository.existsByCode(request.getCode().trim())) {
@@ -373,7 +382,13 @@ public class AdminService {
         course.setYear(request.getYear());
         course.setSemester(request.getSemester());
         course.setIsOpenElective(request.getIsOpenElective() != null && request.getIsOpenElective());
-        return toCourseResponse(courseRepository.save(course));
+        Course updated = courseRepository.save(course);
+        
+        // If year, semester, or department changed, recalibrate both old and new
+        recalibrateSemesterCredits(oldYear, oldSem, oldDept);
+        recalibrateSemesterCredits(updated.getYear(), updated.getSemester(), updated.getDepartment());
+        
+        return toCourseResponse(updated);
     }
 
     @Transactional
@@ -381,11 +396,18 @@ public class AdminService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
 
+        Integer oldYear = course.getYear();
+        String oldSem = course.getSemester();
+        String oldDept = course.getDepartment();
+        
         // Remove enrollments associated with this course first
         List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
         enrollmentRepository.deleteAll(enrollments);
 
         courseRepository.delete(course);
+        
+        // Recalibrate remaining courses in that semester/department
+        recalibrateSemesterCredits(oldYear, oldSem, oldDept);
     }
 
     public List<CourseResponse> getAllCourses() {
@@ -434,6 +456,115 @@ public class AdminService {
             students = studentRepository.findByYearAndSemester(year, semester);
         }
         return students.stream().map(this::toStudentResponse).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void recalibrateSemesterCredits(Integer year, String semester, String department) {
+        if (year == null || semester == null) return;
+        List<Course> courses;
+        if (department != null && !department.isBlank()) {
+            courses = courseRepository.findByYearAndSemesterAndDepartment(year, semester, department);
+        } else {
+            courses = courseRepository.findByYearAndSemester(year, semester);
+        }
+        
+        if (courses.isEmpty()) return;
+
+        int totalToDistribute = 20;
+        int count = courses.size();
+        int base = totalToDistribute / count;
+        int remainder = totalToDistribute % count;
+
+        for (int i = 0; i < courses.size(); i++) {
+            int extra = (i < remainder) ? 1 : 0;
+            courses.get(i).setCredits(base + extra);
+            courseRepository.save(courses.get(i));
+        }
+    }
+
+    /**
+     * Syncs all existing courses in the database to follow the 20-credit rule (per Department).
+     * Does NOT touch marks or enrollments.
+     */
+    @Transactional
+    public void syncAllSystemCredits() {
+        List<Course> allCourses = courseRepository.findAll();
+        java.util.Set<String> processedKeys = new java.util.HashSet<>();
+
+        for (Course c : allCourses) {
+            if (c.getYear() == null || c.getSemester() == null) continue;
+            String dept = c.getDepartment() != null ? c.getDepartment() : "General";
+            String key = c.getYear() + "-" + c.getSemester() + "-" + dept;
+            if (!processedKeys.contains(key)) {
+                recalibrateSemesterCredits(c.getYear(), c.getSemester(), c.getDepartment());
+                processedKeys.add(key);
+            }
+        }
+    }
+
+    /**
+     * Performs a full academic reset
+    @Transactional(readOnly = true)
+    public List<GoldMedalistDto> getGoldMedalists() {
+        List<Student> allStudents = studentRepository.findAll();
+        List<GoldMedalistDto> goldMedalists = new ArrayList<>();
+
+        for (Student student : allStudents) {
+            List<Enrollment> enrollments = enrollmentRepository.findByStudentId(student.getId());
+            
+            if (enrollments.isEmpty()) continue;
+
+            boolean hasBacklog = false;
+            double totalGradePoints = 0;
+            int totalCredits = 0;
+
+            for (Enrollment e : enrollments) {
+                if (e.getGrade() == null) continue;
+
+                if (e.getGrade().equals("F") || e.getGrade().equals("Ab")) {
+                    hasBacklog = true;
+                    break;
+                }
+
+                int credits = e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 0;
+                int points = e.getGradePoints() != null ? e.getGradePoints() : 0;
+
+                totalGradePoints += (points * credits);
+                totalCredits += credits;
+            }
+
+            if (!hasBacklog && totalCredits > 0) {
+                double cgpa = totalGradePoints / totalCredits;
+                if (cgpa > 8.0) {
+                    goldMedalists.add(GoldMedalistDto.builder()
+                            .studentId(student.getId())
+                            .rollNumber(student.getRollNumber())
+                            .username(student.getUser() != null ? student.getUser().getUsername() : "Unknown")
+                            .department(student.getDepartment())
+                            .cgpa(Math.round(cgpa * 100.0) / 100.0)
+                            .totalCredits(totalCredits)
+                            .build());
+                }
+            }
+        }
+
+        // Sort by CGPA descending
+        goldMedalists.sort((a, b) -> b.getCgpa().compareTo(a.getCgpa()));
+        return goldMedalists;
+    }
+     * 1. Wipes all marks, grades, and release statuses.
+     * 2. Recalibrates all course credits to sum to 20.
+     */
+    @Transactional
+    public void performSystemAcademicReset() {
+        // 1. Wipe all academic results
+        enrollmentRepository.hardResetAllResults();
+        
+        // 2. Sync all credits to 20-sum rule
+        syncAllSystemCredits();
+
+        // 3. Clear result notifications
+        resultNotificationRepository.deleteAll();
     }
 
     public List<String> getAllDepartments() {
@@ -569,6 +700,73 @@ public class AdminService {
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public List<GoldMedalistDto> getGoldMedalists() {
+        // 1. Batch fetch ALL graded enrollments with student and course loaded
+        List<Enrollment> allGraded = enrollmentRepository.findAllReleasedWithStudentAndCourse();
+        
+        // 2. Group by student ID for processing
+        Map<Long, List<Enrollment>> studentData = allGraded.stream()
+                .collect(Collectors.groupingBy(e -> e.getStudent().getId()));
+
+        List<GoldMedalistDto> goldMedalists = new ArrayList<>();
+
+        for (Map.Entry<Long, List<Enrollment>> entry : studentData.entrySet()) {
+            List<Enrollment> enrollments = entry.getValue();
+            if (enrollments.isEmpty()) continue;
+
+            Student student = enrollments.get(0).getStudent();
+            boolean hasBacklog = false;
+            double totalGradePoints = 0;
+            int totalCredits = 0;
+
+            for (Enrollment e : enrollments) {
+                // Grade is already guaranteed NOT NULL by the query filter
+                if (e.getGrade().equals("F") || e.getGrade().equals("Ab")) {
+                    hasBacklog = true;
+                    break;
+                }
+
+                int credits = (e.getCourse().getCredits() != null) ? e.getCourse().getCredits() : 0;
+                int points = (e.getGradePoints() != null) ? e.getGradePoints() : 0;
+
+                totalGradePoints += (points * credits);
+                totalCredits += credits;
+            }
+
+            if (!hasBacklog && totalCredits > 0) {
+                double cgpa = totalGradePoints / totalCredits;
+                if (cgpa > 8.0) {
+                    goldMedalists.add(GoldMedalistDto.builder()
+                            .studentId(student.getId())
+                            .rollNumber(student.getRollNumber())
+                            .username(student.getUser() != null ? student.getUser().getUsername() : "Unknown")
+                            .department(student.getDepartment())
+                            .cgpa(Math.round(cgpa * 100.0) / 100.0)
+                            .totalCredits(totalCredits)
+                            .build());
+                }
+            }
+        }
+
+        // Sort by CGPA descending
+        goldMedalists.sort((a, b) -> b.getCgpa().compareTo(a.getCgpa()));
+        return goldMedalists;
+    }
+
+    @Transactional(readOnly = true)
+    public DashboardStatsDto getDashboardStats() {
+        long studentCount = studentRepository.count();
+        long courseCount = courseRepository.count();
+        long feeCount = feeNotificationRepository.count();
+
+        return DashboardStatsDto.builder()
+                .studentCount(studentCount)
+                .courseCount(courseCount)
+                .feeNotificationCount(feeCount)
+                .build();
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // PRIVATE HELPERS
     // ════════════════════════════════════════════════════════════════════════
@@ -585,7 +783,7 @@ public class AdminService {
         }
         return new CourseResponse(c.getCourseId(), c.getName(), c.getCode(),
                 c.getDepartment(), c.getYear(), c.getSemester(),
-                facultyId, facultyName, facultyDept, c.getIsOpenElective());
+                facultyId, facultyName, facultyDept, c.getIsOpenElective(), c.getCredits());
     }
 
     private StudentResponse toStudentResponse(Student s) {

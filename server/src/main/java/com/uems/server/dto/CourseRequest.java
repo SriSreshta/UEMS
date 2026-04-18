@@ -11,4 +11,5 @@ public class CourseRequest {
     private String semester;
     private Boolean isOpenElective;
     private Boolean enrollExistingStudents;
+    private Integer credits;
 }

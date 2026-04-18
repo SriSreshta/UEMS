@@ -114,4 +114,21 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             @Param("studentId") Long studentId,
             @Param("courseYear") Integer courseYear,
             @Param("courseSemester") String courseSemester);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE Enrollment e SET e.mid1Marks = NULL, e.mid2Marks = NULL, e.assignmentMarks = NULL, " +
+           "e.endSemMarks = NULL, e.totalMarks = NULL, e.grade = NULL, e.gradePoints = NULL, " +
+           "e.endSemReleased = false, e.isAbsent = false")
+    void hardResetAllResults();
+
+    /**
+     * Batch fetch all enrollments that have been graded, 
+     * eagerly loading Student and Course entities to avoid N+1 issues.
+     */
+    @Query("SELECT e FROM Enrollment e " +
+           "JOIN FETCH e.student s " +
+           "JOIN FETCH e.course c " +
+           "WHERE e.grade IS NOT NULL")
+    List<Enrollment> findAllReleasedWithStudentAndCourse();
 }

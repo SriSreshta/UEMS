@@ -31,6 +31,7 @@ import FacultyMarksViewPage from "./pages/FacultyMarksViewPage";
 import AdminCreateExam from "./pages/AdminCreateExam";
 import AdminExamSchedules from "./pages/AdminExamSchedules";
 import AdminPublishResults from "./pages/AdminPublishResults";
+import GoldMedalList from "./pages/GoldMedalList";
 import Footer from "./components/Footer";
 import YearSemAnalytics from "./pages/analytics/YearSemAnalytics";
 import DeptAnalytics from "./pages/analytics/DeptAnalytics";
@@ -216,6 +217,15 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="admin">
               <AdminPublishResults />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/gold-medalists"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <GoldMedalList />
             </ProtectedRoute>
           }
         />

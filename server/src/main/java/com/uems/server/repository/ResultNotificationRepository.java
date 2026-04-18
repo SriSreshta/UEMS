@@ -17,4 +17,6 @@ public interface ResultNotificationRepository extends JpaRepository<ResultNotifi
     boolean existsByExamExamIdAndStudentId(Long examId, Long studentId);
 
     void deleteByStudentId(Long studentId);
+    
+    void deleteByExamExamId(Long examId);
 }

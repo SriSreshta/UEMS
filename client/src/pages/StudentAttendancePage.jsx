@@ -64,20 +64,26 @@ const StudentAttendancePage = () => {
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className={`col-span-1 lg:col-span-2 p-8 rounded-[2rem] border-2 transition-all duration-500 shadow-2xl ${
-                                isGlobalWarning 
+                                totalConducted === 0
+                                ? 'bg-slate-50 border-slate-100 shadow-slate-200/50'
+                                : isGlobalWarning 
                                 ? 'bg-rose-50 border-rose-100 shadow-rose-200/50' 
                                 : 'bg-emerald-50 border-emerald-100 shadow-emerald-200/50'
                             }`}>
                                 <div className="flex items-start justify-between">
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-3">
-                                            {isGlobalWarning ? (
+                                            {totalConducted === 0 ? (
+                                                <AcademicCapIcon className="h-8 w-8 text-slate-400" />
+                                            ) : isGlobalWarning ? (
                                                 <ExclamationTriangleIcon className="h-8 w-8 text-rose-600 animate-pulse" />
                                             ) : (
                                                 <CheckBadgeIcon className="h-8 w-8 text-emerald-600" />
                                             )}
-                                            <span className={`text-sm font-black uppercase tracking-[0.2em] ${isGlobalWarning ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                                {isGlobalWarning ? 'Critical Alert: Low Attendance' : 'Excellent Maintenance'}
+                                            <span className={`text-sm font-black uppercase tracking-[0.2em] ${
+                                                totalConducted === 0 ? 'text-slate-400' : isGlobalWarning ? 'text-rose-600' : 'text-emerald-600'
+                                            }`}>
+                                                {totalConducted === 0 ? 'No Classes Taken Yet' : isGlobalWarning ? 'Critical Alert: Low Attendance' : 'Excellent Maintenance'}
                                             </span>
                                         </div>
                                         <h2 className="text-5xl font-black text-slate-800">

@@ -34,7 +34,7 @@ public class Course {
     
     @Column(nullable = false)
     @Builder.Default
-    private Integer credits = 3;
+    private Integer credits = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id")

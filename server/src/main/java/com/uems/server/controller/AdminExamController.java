@@ -39,6 +39,9 @@ public class AdminExamController {
     @Autowired
     private com.uems.server.repository.ResultNotificationRepository resultNotificationRepository;
 
+    @Autowired
+    private com.uems.server.service.AdminService adminService;
+
     // --- 1. EXAM CREATION ---
 
     @PostMapping
@@ -179,7 +182,7 @@ public class AdminExamController {
                 cDto.setCourseCode(e.getCourse().getCode());
                 cDto.setCourseName(e.getCourse().getName());
                 
-                int credits = e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 3;
+                int credits = e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 0;
                 cDto.setCredits(credits);
 
                 cDto.setMid1(e.getMid1Marks());
@@ -264,6 +267,41 @@ public class AdminExamController {
         
         // Trigger notifications automatically after publishing
         notifyResultsPublished(examId);
+    }
+
+    @PostMapping("/{examId}/results/unpublish")
+    @Transactional
+    public void unpublishResults(@PathVariable Long examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+        List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
+
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
+        for (Enrollment e : enrollments) {
+            e.setEndSemReleased(false);
+            enrollmentRepository.save(e);
+        }
+
+        // Delete associated notifications so they can be re-triggered later
+        resultNotificationRepository.deleteByExamExamId(examId);
+        System.out.println("DEBUG: Results unpublished and notifications removed for Exam: " + exam.getTitle());
+    }
+
+    @PostMapping("/system-final-reset")
+    @Transactional
+    public void systemFinalReset() {
+        adminService.performSystemAcademicReset();
+        System.out.println("DEBUG: SYSTEM GLOBAL ACADEMIC RESET PERFORMED.");
+    }
+
+
+    @PostMapping("/sync-credits-only")
+    @Transactional
+    public void syncCreditsOnly() {
+        adminService.syncAllSystemCredits();
+        System.out.println("DEBUG: SYSTEM GLOBAL CREDIT SYNC PERFORMED (Marks Preserved).");
     }
 
     @PostMapping("/{examId}/notify")

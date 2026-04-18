@@ -145,6 +145,9 @@ const UploadMarksPage = () => {
     }
   };
 
+  const allLocked = students.length > 0 && students.every(s => s.endSemReleased);
+  const someLocked = students.some(s => s.endSemReleased);
+
   return (
     <div className="flex min-h-screen bg-slate-50 bg-pattern">
       <Sidebar isOpen={isOpen} role="faculty" />
@@ -164,12 +167,34 @@ const UploadMarksPage = () => {
                 </div>
                 <button 
                   onClick={handleSave} 
-                  disabled={loading || students.length === 0} 
-                  className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-lg shadow-2xl shadow-indigo-100 hover:bg-indigo-700 transition active:scale-95 disabled:opacity-50"
+                  disabled={loading || students.length === 0 || allLocked} 
+                  className={`px-10 py-4 rounded-2xl font-black text-lg shadow-2xl transition active:scale-95 disabled:opacity-50 ${allLocked ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'}`}
                 >
-                  Sync & Commit All
+                  {allLocked ? "Ledger Locked" : "Sync & Commit All"}
                 </button>
             </div>
+
+            {allLocked && (
+              <div className="p-6 mb-8 bg-amber-50 border-2 border-amber-200 rounded-3xl flex items-start gap-4 animate-in fade-in zoom-in duration-300">
+                <div className="p-3 bg-amber-100 rounded-2xl">
+                  <DocumentArrowDownIcon className="h-8 w-8 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-amber-900">Academic Ledger Locked</h3>
+                  <p className="text-amber-700 font-medium text-sm mt-1">
+                    Results for this course have already been published by the Admin. Marks editing is disabled. 
+                    <br/><span className="font-bold underline">To correct marks, please ask the Administrator to "Unlock" results for this exam.</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!allLocked && someLocked && (
+               <div className="p-4 mb-8 bg-blue-50 border border-blue-100 rounded-2xl text-blue-700 text-sm font-bold flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  Note: Some student records are locked because their results were published individually.
+               </div>
+            )}
 
             {error && <div className="p-6 mb-8 text-rose-700 bg-rose-50 rounded-2xl border border-rose-100 font-bold animate-in slide-in-from-top-4">{error}</div>}
             {message && <div className="p-6 mb-8 text-emerald-700 bg-emerald-50 rounded-2xl border border-emerald-100 font-bold animate-in slide-in-from-top-4">{message}</div>}

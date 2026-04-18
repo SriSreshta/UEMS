@@ -425,4 +425,24 @@ public class AdminController {
 
         return ResponseEntity.ok(result);
     }
+
+    /**
+     * GET /api/admin/gold-medalists
+     * Returns a list of students with no backlogs and CGPA > 8.0.
+     */
+    @GetMapping("/gold-medalists")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<GoldMedalistDto>> getGoldMedalists() {
+        return ResponseEntity.ok(adminService.getGoldMedalists());
+    }
+
+    /**
+     * GET /api/admin/dashboard-stats
+     * Returns optimized counts for dashboard (students, courses, fees).
+     */
+    @GetMapping("/dashboard-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DashboardStatsDto> getDashboardStats() {
+        return ResponseEntity.ok(adminService.getDashboardStats());
+    }
 }

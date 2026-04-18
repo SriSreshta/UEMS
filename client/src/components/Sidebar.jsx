@@ -161,6 +161,12 @@ export default function Sidebar({ isOpen, role = "student" }) {
           icon: BanknotesIcon,
           to: "/admin/fees",
         },
+        {
+          type: "item",
+          label: "Gold Medal List",
+          icon: AcademicCapIcon,
+          to: "/admin/gold-medalists",
+        },
       ];
     }
 

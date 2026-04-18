@@ -9,28 +9,22 @@ import adminHero from "../assets/dashboard/admin_hero.png";
 const AdminDashboard = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { authFetch } = useAuth();
-  const [stats, setStats] = useState({ users: null, courses: null, fees: null });
+  const [stats, setStats] = useState({ students: null, courses: null, fees: null });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [usersRes, coursesRes, feesRes] = await Promise.all([
-          authFetch("http://localhost:8081/api/admin/users"),
-          authFetch("http://localhost:8081/api/admin/courses"),
-          authFetch("http://localhost:8081/api/admin/fees"),
-        ]);
-
-        const users   = usersRes.ok   ? await usersRes.json()   : [];
-        const courses = coursesRes.ok ? await coursesRes.json() : [];
-        const fees    = feesRes.ok    ? await feesRes.json()    : [];
-
-        setStats({
-          users: users.length,
-          courses: courses.length,
-          fees: fees.length,
-        });
+        const res = await authFetch("http://localhost:8081/api/admin/dashboard-stats");
+        if (res.ok) {
+          const data = await res.json();
+          setStats({
+            students: data.studentCount,
+            courses: data.courseCount,
+            fees: data.feeNotificationCount,
+          });
+        }
       } catch (err) {
         console.error("Failed to fetch dashboard stats:", err);
       } finally {
@@ -41,7 +35,7 @@ const AdminDashboard = () => {
   }, [authFetch]);
 
   const statCards = [
-    { label: "Total Users",       value: stats.users,   color: "text-indigo-600",  bg: "bg-indigo-50" },
+    { label: "Total Students",    value: stats.students, color: "text-indigo-600",  bg: "bg-indigo-50" },
     { label: "Active Courses",    value: stats.courses, color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "Fee Notifications", value: stats.fees,    color: "text-amber-600",   bg: "bg-amber-50" },
   ];

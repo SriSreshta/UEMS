@@ -25,6 +25,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     /** Find all courses for a given year and semester — used for batch enrollment. */
     List<Course> findByYearAndSemester(Integer year, String semester);
 
+     /** Find all courses for a given year, semester, and department. */
+    List<Course> findByYearAndSemesterAndDepartment(Integer year, String semester, String department);
+
     /**
      * Find all core (non-open-elective) courses for a department up to (and including)
      * a given year/semester. Used for cumulative enrollment of past + current courses.

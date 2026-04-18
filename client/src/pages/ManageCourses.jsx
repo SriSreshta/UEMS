@@ -264,6 +264,7 @@ export default function ManageCourses() {
                             <tr>
                                 <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Course Info</th>
                                 <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Code</th>
+                                <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Credits</th>
                                 <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Schedule</th>
                                 <th className="px-8 py-4 text-left text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Assigned Personnel</th>
                                 <th className="px-8 py-4 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Actions</th>
@@ -281,6 +282,9 @@ export default function ManageCourses() {
                                     </td>
                                     <td className="px-8 py-5">
                                         <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-xs font-black ring-1 ring-indigo-100">{c.code}</span>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-black ring-1 ring-blue-100">{c.credits || 0}</span>
                                     </td>
                                     <td className="px-8 py-5">
                                         <div className="text-sm font-medium text-slate-600">Year {c.year} · Sem {c.semester}</div>

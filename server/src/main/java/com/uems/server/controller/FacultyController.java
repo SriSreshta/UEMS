@@ -115,7 +115,8 @@ public class FacultyController {
                     c.getFaculty() != null ? c.getFaculty().getId() : null, 
                     username, 
                     c.getFaculty() != null ? c.getFaculty().getDepartment() : null,
-                    c.getIsOpenElective()
+                    c.getIsOpenElective(),
+                    c.getCredits()
             )).collect(Collectors.toList());
             
             return ResponseEntity.ok(response);
@@ -151,7 +152,6 @@ public class FacultyController {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
         }
     }
-
     @PostMapping("/courses/{courseId}/marks/bulk")
     public ResponseEntity<?> uploadMarksBulk(
             @RequestHeader("Authorization") String authHeader,
@@ -162,7 +162,11 @@ public class FacultyController {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
             List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
+            int updatedCount = 0;
+            int skippedCount = 0;
+
             for (MarksUpdateRequest req : marksRequests) {
+                // Validation logic remains same
                 if (req.getMid1Marks() != null && (req.getMid1Marks() < 0 || req.getMid1Marks() > 30)) {
                     return ResponseEntity.status(400).body("Error: Mid1 marks must be between 0 and 30");
                 }
@@ -176,22 +180,34 @@ public class FacultyController {
                     return ResponseEntity.status(400).body("Error: End Sem marks must be between 0 and 60");
                 }
 
-                enrollments.stream()
+                java.util.Optional<Enrollment> enrollmentOpt = enrollments.stream()
                         .filter(e -> e.getStudent().getId().equals(req.getStudentId()))
-                        .findFirst()
-                        .ifPresent(e -> {
-                            // Block marks editing if results have already been published
-                            if (Boolean.TRUE.equals(e.getEndSemReleased())) {
-                                return; // Skip — results already published for this enrollment
-                            }
-                            if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
-                            if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
-                            if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
-                            if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
-                            enrollmentRepository.save(e);
-                        });
+                        .findFirst();
+
+                if (enrollmentOpt.isPresent()) {
+                    Enrollment e = enrollmentOpt.get();
+                    // Block marks editing if results have already been published
+                    if (Boolean.TRUE.equals(e.getEndSemReleased())) {
+                        skippedCount++;
+                        continue; 
+                    }
+                    if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
+                    if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
+                    if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
+                    if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
+                    enrollmentRepository.save(e);
+                    updatedCount++;
+                }
             }
-            return ResponseEntity.ok("Marks uploaded successfully");
+
+            if (updatedCount == 0 && skippedCount > 0) {
+                return ResponseEntity.status(409).body("Unable to save. All records are locked because results have been published for this course.");
+            }
+            
+            String msg = "Marks saved successfully. Updated: " + updatedCount;
+            if (skippedCount > 0) msg += ", Skipped: " + skippedCount + " (locked due to published results).";
+            
+            return ResponseEntity.ok(msg);
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
         }

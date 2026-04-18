@@ -116,6 +116,8 @@ const AdminPublishResults = () => {
     }
   };
 
+
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar isOpen={isOpen} role="admin" />
@@ -128,6 +130,7 @@ const AdminPublishResults = () => {
               {message.text}
             </div>
           )}
+
 
           <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-8 flex justify-between items-center">
             <div className="w-1/2">
@@ -147,13 +150,15 @@ const AdminPublishResults = () => {
               )}
             </div>
             {selectedExamId && students.length > 0 && (
-              <button 
-                onClick={handlePublish} 
-                disabled={publishing} 
-                className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${publishing ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-              >
-                {publishing ? 'Publishing...' : 'Publish Final Results'}
-              </button>
+              <div className="flex gap-4">
+                <button 
+                  onClick={handlePublish} 
+                  disabled={publishing} 
+                  className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${publishing ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                >
+                  {publishing ? 'Publishing...' : 'Publish Final Results'}
+                </button>
+              </div>
             )}
           </div>
 
