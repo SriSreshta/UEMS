@@ -17,10 +17,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping("/api/admin/exams")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminExamController {
 
@@ -360,6 +359,7 @@ public class AdminExamController {
         
         List<ExamSchedule> schedules = examScheduleRepository.findByExamExamId(examId);
         examScheduleRepository.deleteAll(schedules);
+        resultNotificationRepository.deleteByExamExamId(examId);
         examRepository.delete(exam);
     }
 
