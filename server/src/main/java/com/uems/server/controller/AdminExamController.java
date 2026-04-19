@@ -252,8 +252,21 @@ public class AdminExamController {
     @PostMapping("/{examId}/results/publish")
     @Transactional
     public void publishResults(@PathVariable Long examId, @RequestBody PublishResultsRequest req) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+        boolean isSupplementary = "SUPPLEMENTARY".equalsIgnoreCase(exam.getExamType());
+
         for (StudentResultPreviewDto sDto : req.getStudents()) {
+            if (isSupplementary) {
+                boolean hasFailOrAbsent = sDto.getCourses().stream()
+                    .anyMatch(c -> "F".equals(c.getGrade()) || "Ab".equals(c.getGrade()));
+                if (!hasFailOrAbsent) continue;
+            }
             for (StudentResultPreviewDto.CourseResultDto cDto : sDto.getCourses()) {
+                if (isSupplementary) {
+                    // Do not mutate Enrollment for SUPPLEMENTARY exams
+                    continue; 
+                }
                 Enrollment e = enrollmentRepository.findById(cDto.getEnrollmentId()).orElseThrow();
                 e.setIsAbsent(cDto.getIsAbsent());
                 e.setGrade(cDto.getGrade());

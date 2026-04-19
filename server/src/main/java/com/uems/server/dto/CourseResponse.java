@@ -24,4 +24,5 @@ public class CourseResponse {
     private String facultyDept;   // faculty.department
     private Boolean isOpenElective;
     private Integer credits;
+    private Boolean hasPublishedResults;
 }

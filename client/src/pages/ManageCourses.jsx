@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, TrashIcon, LockOpenIcon } from "@heroicons/react/24/outline";
 import api from "../api/axiosInstance";
 
 /* ─── tiny toast ─────────────────────────────────────────────────────────── */
@@ -128,6 +128,19 @@ export default function ManageCourses() {
     } catch {
       showToast("Failed to assign faculty.", "error");
     } finally { setAssigning(false); }
+  };
+
+  const handleUnlockLedger = async (courseId) => {
+    if (!window.confirm("Are you sure you want to unlock the ledger for this course? This will allow faculty to re-edit grades.")) {
+      return;
+    }
+    try {
+      await api.put(`/admin/courses/${courseId}/unlock-ledger`);
+      showToast("Ledger unlocked successfully!", "success");
+      await loadCourses(); // Reload to update button state
+    } catch (err) {
+      showToast("Failed to unlock ledger.", "error");
+    }
   };
 
   return (
@@ -303,6 +316,23 @@ export default function ManageCourses() {
                                     </td>
                                     <td className="px-8 py-5 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            {c.hasPublishedResults ? (
+                                              <button 
+                                                  onClick={() => handleUnlockLedger(c.courseId)}
+                                                  className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
+                                                  title="Unlock Marks Ledger"
+                                              >
+                                                  <LockOpenIcon className="w-4 h-4" />
+                                              </button>
+                                            ) : (
+                                              <div 
+                                                className="p-1.5 text-slate-300 cursor-not-allowed"
+                                                title="No published results to unlock"
+                                              >
+                                                  <LockOpenIcon className="w-4 h-4" />
+                                              </div>
+                                            )}
+
                                             <button 
                                                 onClick={() => handleEdit(c)}
                                                 className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"

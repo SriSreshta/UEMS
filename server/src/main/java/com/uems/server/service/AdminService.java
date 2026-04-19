@@ -341,7 +341,7 @@ public class AdminService {
                 semInt = Integer.parseInt(saved.getSemester());
             } catch (NumberFormatException e) {
                 log.warn("Could not parse semester for auto-enrollment: {}", saved.getSemester());
-                return toCourseResponse(saved);
+                return toCourseResponse(saved, false);
             }
             List<Student> eligibleStudents = studentRepository.findByDepartmentAtOrPastSemester(
                     saved.getDepartment(), saved.getYear(), semInt);
@@ -356,7 +356,7 @@ public class AdminService {
                     enrolled, saved.getName(), saved.getCode());
         }
 
-        return toCourseResponse(saved);
+        return toCourseResponse(saved, false);
     }
 
     @Transactional
@@ -388,7 +388,7 @@ public class AdminService {
         recalibrateSemesterCredits(oldYear, oldSem, oldDept);
         recalibrateSemesterCredits(updated.getYear(), updated.getSemester(), updated.getDepartment());
         
-        return toCourseResponse(updated);
+        return toCourseResponse(updated, checkPublishedResults(updated.getCourseId()));
     }
 
     @Transactional
@@ -411,9 +411,10 @@ public class AdminService {
     }
 
     public List<CourseResponse> getAllCourses() {
+        java.util.Set<Long> publishedCourseIds = new java.util.HashSet<>(enrollmentRepository.findCoursesWithPublishedResults());
         return courseRepository.findAll()
                 .stream()
-                .map(this::toCourseResponse)
+                .map(c -> toCourseResponse(c, publishedCourseIds.contains(c.getCourseId())))
                 .collect(Collectors.toList());
     }
 
@@ -424,7 +425,11 @@ public class AdminService {
         Faculty faculty = facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new RuntimeException("Faculty not found: " + facultyId));
         course.setFaculty(faculty);
-        return toCourseResponse(courseRepository.save(course));
+        return toCourseResponse(courseRepository.save(course), checkPublishedResults(course.getCourseId()));
+    }
+
+    private boolean checkPublishedResults(Long courseId) {
+        return enrollmentRepository.findCoursesWithPublishedResults().contains(courseId);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -771,7 +776,7 @@ public class AdminService {
     // PRIVATE HELPERS
     // ════════════════════════════════════════════════════════════════════════
 
-    private CourseResponse toCourseResponse(Course c) {
+    private CourseResponse toCourseResponse(Course c, boolean hasPublishedResults) {
         Long facultyId = null;
         String facultyName = null;
         String facultyDept = null;
@@ -783,7 +788,7 @@ public class AdminService {
         }
         return new CourseResponse(c.getCourseId(), c.getName(), c.getCode(),
                 c.getDepartment(), c.getYear(), c.getSemester(),
-                facultyId, facultyName, facultyDept, c.getIsOpenElective(), c.getCredits());
+                facultyId, facultyName, facultyDept, c.getIsOpenElective(), c.getCredits(), hasPublishedResults);
     }
 
     private StudentResponse toStudentResponse(Student s) {

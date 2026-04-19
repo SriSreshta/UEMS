@@ -116,7 +116,8 @@ public class FacultyController {
                     username, 
                     c.getFaculty() != null ? c.getFaculty().getDepartment() : null,
                     c.getIsOpenElective(),
-                    c.getCredits()
+                    c.getCredits(),
+                    false
             )).collect(Collectors.toList());
             
             return ResponseEntity.ok(response);

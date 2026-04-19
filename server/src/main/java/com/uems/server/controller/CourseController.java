@@ -3,6 +3,7 @@ package com.uems.server.controller;
 import com.uems.server.dto.CourseResponse;
 import com.uems.server.model.Course;
 import com.uems.server.model.Faculty;
+import com.uems.server.repository.EnrollmentRepository;
 import com.uems.server.service.CourseService;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -14,9 +15,11 @@ import java.util.stream.Collectors;
 public class CourseController {
 
     private final CourseService courseService;
+    private final EnrollmentRepository enrollmentRepository;
 
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService, EnrollmentRepository enrollmentRepository) {
         this.courseService = courseService;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
     // // Get all courses by faculty ID
@@ -41,7 +44,8 @@ public class CourseController {
             }
             return new CourseResponse(c.getCourseId(), c.getName(), c.getCode(),
                     c.getDepartment(), c.getYear(), c.getSemester(),
-                    facultyId, facultyName, facultyDept, c.getIsOpenElective(), c.getCredits());
+                    facultyId, facultyName, facultyDept, c.getIsOpenElective(), c.getCredits(),
+                    enrollmentRepository.existsByCourse_CourseIdAndEndSemReleasedTrue(c.getCourseId()));
         }).collect(Collectors.toList());
     }
 }

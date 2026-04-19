@@ -55,6 +55,10 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Enrollment> findByStudentYearAndStudentSemester(@Param("year") String year,
             @Param("semester") String semester);
 
+    @Query("SELECT e FROM Enrollment e WHERE e.student.id = :studentId " +
+           "AND (e.grade IS NULL OR e.grade NOT IN ('O','A+','A','B+','B','C'))")
+    List<Enrollment> findAllBacklogsByStudentId(@Param("studentId") Long studentId);
+
     List<Enrollment> findByCourseCourseIdIn(List<Long> courseIds);
 
     /**
@@ -131,4 +135,12 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
            "JOIN FETCH e.course c " +
            "WHERE e.grade IS NOT NULL")
     List<Enrollment> findAllReleasedWithStudentAndCourse();
+
+    /**
+     * Find all distinct course IDs that have at least one published result (endSemReleased = true).
+     */
+    @Query("SELECT DISTINCT e.course.courseId FROM Enrollment e WHERE e.endSemReleased = true")
+    List<Long> findCoursesWithPublishedResults();
+
+    boolean existsByCourse_CourseIdAndEndSemReleasedTrue(Long courseId);
 }
