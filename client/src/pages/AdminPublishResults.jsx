@@ -116,6 +116,23 @@ const AdminPublishResults = () => {
     }
   };
 
+  // TODO: REMOVE AFTER DATA FIX
+  const handleUnpublish = async () => {
+    if (!window.confirm("Are you sure you want to unpublish these results? This will hide them from students so corrections can be made.")) return;
+    setPublishing(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/results/unpublish`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to unpublish results");
+      setMessage({ type: "success", text: "Results unpublished successfully! You can now fix the DB and republish." });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setPublishing(false);
+    }
+  };
 
 
   return (
@@ -151,6 +168,16 @@ const AdminPublishResults = () => {
             </div>
             {selectedExamId && students.length > 0 && (
               <div className="flex gap-4">
+                {/* TODO: REMOVE AFTER DATA FIX - Start */}
+                <button 
+                  onClick={handleUnpublish} 
+                  disabled={publishing} 
+                  className={`px-6 py-3 rounded text-red-600 font-bold border-2 border-red-600 shadow-sm transition ${publishing ? 'opacity-50' : 'hover:bg-red-50'}`}
+                >
+                  Unpublish Results
+                </button>
+                {/* TODO: REMOVE AFTER DATA FIX - End */}
+                
                 <button 
                   onClick={handlePublish} 
                   disabled={publishing} 

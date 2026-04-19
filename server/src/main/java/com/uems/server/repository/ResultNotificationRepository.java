@@ -11,7 +11,7 @@ import java.util.List;
 @Repository
 public interface ResultNotificationRepository extends JpaRepository<ResultNotification, Long> {
     
-    @Query("SELECT rn FROM ResultNotification rn WHERE rn.student.id = :studentId AND rn.isSeen = false")
+    @Query("SELECT rn FROM ResultNotification rn WHERE rn.student.id = :studentId AND rn.isSeen = false ORDER BY rn.createdAt DESC")
     List<ResultNotification> findByStudentIdAndIsSeenFalse(@Param("studentId") Long studentId);
     
     boolean existsByExamExamIdAndStudentId(Long examId, Long studentId);
