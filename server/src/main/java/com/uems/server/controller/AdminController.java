@@ -487,7 +487,8 @@ public class AdminController {
                             .semester(enrollment.getCourse().getSemester())
                             .build());
 
-            attempt.setMarksObtained(endSemMarks);
+            attempt.setEndSemMarks(endSemMarks);
+            attempt.setTotalMarks(endSemMarks != null ? (internal + endSemMarks) : internal);
             attempt.setGrade(computedGrade);
             supplementaryAttemptRepository.save(attempt);
 
@@ -527,15 +528,23 @@ public class AdminController {
         List<SupplementaryAttemptDto> result = attempts.stream().map(a -> {
             return SupplementaryAttemptDto.builder()
                     .id(a.getId())
+                    .examId(a.getExam() != null ? a.getExam().getExamId() : null)
                     .studentId(a.getEnrollment().getStudent().getId())
                     .enrollmentId(a.getEnrollment().getId())
                     .rollNumber(a.getEnrollment().getStudent().getRollNumber())
                     .studentName(a.getEnrollment().getStudent().getUser() != null ? a.getEnrollment().getStudent().getUser().getUsername() : "Unknown")
                     .year(a.getYear())
                     .semester(a.getSemester())
-                    .marksObtained(a.getMarksObtained())
+                    .mid1Marks(a.getMid1Marks())
+                    .mid2Marks(a.getMid2Marks())
+                    .assignmentMarks(a.getAssignmentMarks())
+                    .endSemMarks(a.getEndSemMarks())
+                    .totalMarks(a.getTotalMarks())
                     .grade(a.getGrade())
+                    .gradePoints(a.getGradePoints())
                     .status(a.getStatus())
+                    .isAbsent(a.getIsAbsent())
+                    .isReleased(a.getIsReleased())
                     .build();
         }).toList();
 

@@ -29,10 +29,8 @@ const StudentDashboard = () => {
         const fetchNotifications = async () => {
             try {
                 const res = await authFetch("http://localhost:8081/api/student/notifications/results");
-                console.log("Notifications API status:", res.status);
                 if (res.ok) {
                     const data = await res.json();
-                    console.log("Notifications API body:", data);
                     if (data && data.length > 0) {
                         setResultNotification(data[0]);
                     }
@@ -41,7 +39,9 @@ const StudentDashboard = () => {
                 console.error("Failed to fetch result notifications:", err);
             }
         };
+
         fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
 
         const checkAttendance = async () => {
             if (!user?.studentId) return;
@@ -63,6 +63,8 @@ const StudentDashboard = () => {
             }
         };
         checkAttendance();
+
+        return () => clearInterval(interval);
     }, [authFetch, user?.studentId]);
 
     console.log("Modal trigger state:", resultNotification);

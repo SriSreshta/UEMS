@@ -156,54 +156,6 @@ const AdminPublishResults = () => {
 
   const showToast = (txt, type="error") => setMessage({ type, text: txt });
 
-  const handleAbsentToggle = (studentIdx, courseIdx) => {
-    const updated = [...students];
-    const course = updated[studentIdx].courses[courseIdx];
-    course.isAbsent = !course.isAbsent;
-
-    if (course.isAbsent) {
-      course.grade = "Ab";
-      course.gradePoints = 0;
-      course.internalMarks = 0;
-      course.totalMarks = 0;
-    } else {
-      const m1 = course.mid1 || 0;
-      const m2 = course.mid2 || 0;
-      const assign = course.assignment || 0;
-      const endSem = course.endSem || 0;
-
-      const internal = Math.ceil((m1 + m2) / 2.0) + assign;
-      course.internalMarks = internal;
-
-      if (internal < 14 || endSem < 21) {
-        course.totalMarks = internal + endSem;
-        course.grade = "F";
-        course.gradePoints = 0;
-      } else {
-        const total = internal + endSem;
-        course.totalMarks = total;
-        if (total >= 90) { course.grade = "O"; course.gradePoints = 10; }
-        else if (total >= 80) { course.grade = "A+"; course.gradePoints = 9; }
-        else if (total >= 70) { course.grade = "A"; course.gradePoints = 8; }
-        else if (total >= 60) { course.grade = "B+"; course.gradePoints = 7; }
-        else if (total >= 50) { course.grade = "B"; course.gradePoints = 6; }
-        else if (total >= 40) { course.grade = "C"; course.gradePoints = 5; }
-        else { course.grade = "F"; course.gradePoints = 0; }
-      }
-    }
-
-    let totalPoints = 0;
-    let totalCredits = 0;
-    updated[studentIdx].courses.forEach((c) => {
-      totalPoints += (c.gradePoints || 0) * (c.credits || 0);
-      totalCredits += c.credits || 0;
-    });
-    updated[studentIdx].sgpa =
-      totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
-
-    setStudents(updated);
-  };
-
   const handlePublish = async () => {
     if (
       !window.confirm(
@@ -228,7 +180,6 @@ const AdminPublishResults = () => {
     }
   };
 
-  // TODO: REMOVE AFTER DATA FIX
   const handleUnpublish = async () => {
     if (
       !window.confirm(
@@ -246,8 +197,12 @@ const AdminPublishResults = () => {
       if (!res.ok) throw new Error("Failed to unpublish results");
       setMessage({
         type: "success",
-        text: "Results unpublished successfully! You can now fix the DB and republish.",
+        text: "Results unpublished successfully! You can now fix marks and republish.",
       });
+      // Re-fetch the preview so the admin sees current state for republishing
+      const currentExamId = selectedExamId;
+      setSelectedExamId("");
+      setTimeout(() => setSelectedExamId(currentExamId), 100);
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     } finally {
@@ -313,43 +268,26 @@ const AdminPublishResults = () => {
 
             {selectedExamId && students.length > 0 && (
               <div className="flex gap-4 items-center">
-                {isSupplementary && (
-                  <button
-                    onClick={() => {
-                        setSuppForm({ id: null, studentSearch: "", selectedCourseId: "", marksObtained: "", enrollmentId: "" });
-                        setShowSuppModal(true);
-                    }}
-                    className="px-6 py-3 rounded bg-teal-600 text-white font-bold hover:bg-teal-700 shadow-sm transition"
-                  >
-                    + Add/Edit Result
-                  </button>
-                )}
-
-                {/* TODO: REMOVE AFTER DATA FIX - Start */}
                 <button
                   onClick={handleUnpublish}
                   disabled={publishing}
-                  className={`px-6 py-3 rounded text-red-600 font-bold border-2 border-red-600 shadow-sm transition ${
-                    publishing ? "opacity-50" : "hover:bg-red-50"
+                  className={`px-4 py-3 rounded text-red-600 font-bold border border-red-200 hover:bg-red-50 transition ${
+                    publishing ? "opacity-50" : ""
                   }`}
                 >
-                  Unpublish Results
+                  Unpublish
                 </button>
-                {/* TODO: REMOVE AFTER DATA FIX - End */}
-
-                {!isSupplementary && (
-                  <button
-                    onClick={handlePublish}
-                    disabled={publishing}
-                    className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${
-                      publishing
-                        ? "bg-indigo-400"
-                        : "bg-indigo-600 hover:bg-indigo-700"
-                    }`}
-                  >
-                    {publishing ? "Publishing..." : "Publish Final Results"}
-                  </button>
-                )}
+                <button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${
+                    publishing
+                      ? "bg-indigo-400"
+                      : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
+                >
+                  {publishing ? "Publishing..." : "Publish Final Results"}
+                </button>
               </div>
             )}
           </div>
@@ -416,216 +354,163 @@ const AdminPublishResults = () => {
           )}
 
           {/* Student results — paginated */}
-          {!previewLoading && selectedExamId && (!isSupplementary ? students.length > 0 : true) && (
+          {!previewLoading && selectedExamId && students.length > 0 && (
             <>
-              {isSupplementary ? (
-              <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mt-6">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-600 uppercase border-b">
-                    <tr>
-                      <th className="px-6 py-3">Roll Number</th>
-                      <th className="px-6 py-3">Name</th>
-                      <th className="px-6 py-3">Marks Obtained</th>
-                      <th className="px-6 py-3">Grade</th>
-                      <th className="px-6 py-3 text-center">Status</th>
-                      <th className="px-6 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {suppAttempts.length === 0 ? (
-                      <tr><td colSpan="6" className="p-8 text-center text-gray-400">No supplementary attempts recorded for this session.</td></tr>
-                    ) : (suppAttempts.map(sa => (
-                      <tr key={sa.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-bold text-gray-800">{sa.rollNumber}</td>
-                        <td className="px-6 py-4 text-gray-600">{sa.studentName}</td>
-                        <td className="px-6 py-4 font-mono font-semibold">{sa.marksObtained}</td>
-                        <td className="px-6 py-4 font-bold text-gray-800">{sa.grade}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`inline-flex px-2.5 py-1 rounded text-xs font-black uppercase tracking-wider ${sa.status === 'PASS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {sa.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button onClick={() => handleDeleteSupp(sa.id)} className="text-red-500 hover:text-red-700 text-xs font-bold uppercase underline">Delete</button>
-                        </td>
-                      </tr>
-                    )))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-                <div className="space-y-6">
-                  {/* ... same student render logic ... */}
-                  {paginatedStudents.map((student, sIdxOnPage) => {
-                    const globalIdx = (currentPage - 1) * PAGE_SIZE + sIdxOnPage;
-                    return (
-                      <div
-                        key={student.studentId}
-                        className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden"
-                      >
-                        <div className="bg-slate-100 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-800">
-                              {student.studentName}
-                            </h3>
-                            <p className="text-sm font-medium text-slate-600">
-                              {student.hallTicketNo}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <span className="block text-sm text-slate-500 font-semibold mb-1">
-                              SGPA
-                            </span>
-                            <span className="text-2xl font-bold text-indigo-700 px-3 py-1 bg-indigo-100 rounded-md">
-                              {student.sgpa}
-                            </span>
-                          </div>
+              <div className="space-y-6">
+                {paginatedStudents.map((student, sIdxOnPage) => {
+                  return (
+                    <div
+                      key={student.studentId}
+                      className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden animate-in fade-in duration-500"
+                    >
+                      <div className="bg-slate-100 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-800">
+                            {student.studentName}
+                          </h3>
+                          <p className="text-sm font-medium text-slate-600">
+                            {student.hallTicketNo}
+                          </p>
                         </div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-600 uppercase border-b border-gray-200">
-                              <tr>
-                                <th className="px-4 py-2">Course</th>
-                                <th className="px-4 py-2">Cr</th>
-                                <th className="px-4 py-2">Int Setup (M1|M2|A)</th>
-                                <th className="px-4 py-2">Int Marks</th>
-                                <th className="px-4 py-2">Ext Marks</th>
-                                <th className="px-4 py-2">Total</th>
-                                <th className="px-4 py-2">Grade / Pts</th>
-                                <th className="px-4 py-2 text-center">Absent?</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                              {student.courses.map((c, cIdx) => (
-                                <tr
-                                  key={c.courseId}
-                                  className={`hover:bg-slate-50 transition ${
-                                    c.isAbsent ? "bg-red-50/50" : ""
-                                  }`}
-                                >
-                                  <td
-                                    className="px-4 py-3 font-medium text-gray-800"
-                                    title={c.courseName}
-                                  >
-                                    {c.courseCode}
-                                  </td>
-                                  <td className="px-4 py-3 text-gray-600">
-                                    {c.credits}
-                                  </td>
-                                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">
-                                    {c.mid1 || "-"}|{c.mid2 || "-"}|
-                                    {c.assignment || "-"}
-                                  </td>
-                                  <td className="px-4 py-3 font-semibold">
-                                    {c.internalMarks}
-                                  </td>
-                                  <td className="px-4 py-3 font-semibold">
-                                    {c.endSem || "-"}
-                                  </td>
-                                  <td className="px-4 py-3 font-bold">
-                                    {c.totalMarks}
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <span
-                                      className={`inline-block w-8 text-center font-bold ${
-                                        c.grade === "F" || c.grade === "Ab"
-                                          ? "text-red-600"
-                                          : "text-green-600"
-                                      }`}
-                                    >
-                                      {c.grade}
-                                    </span>
-                                    <span className="text-xs text-gray-400 ml-1">
-                                      ({c.gradePoints}p)
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                      <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={c.isAbsent}
-                                        onChange={() =>
-                                          handleAbsentToggle(globalIdx, cIdx)
-                                        }
-                                      />
-                                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
-                                    </label>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                        <div className="text-right">
+                          <span className="block text-sm text-slate-500 font-semibold mb-1">
+                            SGPA (Session)
+                          </span>
+                          <span className="text-2xl font-bold text-indigo-700 px-3 py-1 bg-indigo-100 rounded-md">
+                            {student.sgpa || "0.00"}
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-            )}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-left text-sm">
+                          <thead className="bg-gray-50 text-gray-600 uppercase border-b border-gray-200">
+                            <tr>
+                              <th className="px-4 py-2">Course</th>
+                              <th className="px-4 py-2">Cr</th>
+                              <th className="px-4 py-2">Internal (M1|M2|A)</th>
+                              <th className="px-4 py-2">Internal</th>
+                              <th className="px-4 py-2">End Sem</th>
+                              <th className="px-4 py-2">Total</th>
+                              <th className="px-4 py-2">Grade / Pts</th>
+                              <th className="px-4 py-2 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {student.courses.map((c, cIdx) => (
+                              <tr
+                                key={c.courseId}
+                                className={`hover:bg-slate-50 transition ${
+                                  c.isAbsent ? "bg-red-50/50" : ""
+                                }`}
+                              >
+                                <td className="px-4 py-3 font-medium text-gray-800">
+                                  {c.courseCode} - {c.courseName}
+                                </td>
+                                <td className="px-4 py-3 text-gray-600">
+                                  {c.credits}
+                                </td>
+                                <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                                  {c.mid1 ?? "-"}|{c.mid2 ?? "-"}|{c.assignment ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 font-semibold">
+                                  {c.internalMarks}
+                                </td>
+                                <td className="px-4 py-3 font-semibold">
+                                  {c.endSem ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 font-bold">
+                                  {c.totalMarks}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={`inline-block w-8 text-center font-bold ${c.grade === "F" || c.grade === "Ab" ? "text-red-600" : "text-green-600"}`}>
+                                    {c.grade}
+                                  </span>
+                                  <span className="text-xs text-gray-400 ml-1">
+                                    ({c.gradePoints}p)
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {c.isAbsent ? (
+                                    <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">ABSENT</span>
+                                  ) : (
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${c.grade === "F" ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"}`}>
+                                      {c.grade === "F" ? "FAIL" : "PASSED"}
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-            {!isSupplementary && (() => {
-              let pages = [];
-              if (totalPages <= 7) {
-                pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-              } else {
-                if (currentPage <= 4) {
-                  pages = [1, 2, 3, 4, 5, '...', totalPages];
-                } else if (currentPage >= totalPages - 3) {
-                  pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+              {(() => {
+                let pages = [];
+                if (totalPages <= 7) {
+                  pages = Array.from({ length: totalPages }, (_, i) => i + 1);
                 } else {
-                  pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+                  if (currentPage <= 4) {
+                    pages = [1, 2, 3, 4, 5, '...', totalPages];
+                  } else if (currentPage >= totalPages - 3) {
+                    pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                  } else {
+                    pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+                  }
                 }
-              }
 
-              return (
-                <div className="flex items-center justify-center gap-2 mt-6">
-                  <button
-                    onClick={() => {
-                      setCurrentPage((p) => Math.max(1, p - 1));
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    ← Prev
-                  </button>
-                  
-                  {pages.map((page, idx) => (
-                    page === '...' ? (
-                      <span key={`ellipsis-${idx}`} className="px-3 py-1.5 text-sm text-gray-500">
-                        ...
-                      </span>
-                    ) : (
-                      <button
-                        key={page}
-                        onClick={() => {
-                          setCurrentPage(page);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        className={`px-3 py-1.5 text-sm rounded border transition ${
-                          page === currentPage
-                            ? "bg-indigo-600 text-white border-indigo-600 font-bold"
-                            : "bg-white border-gray-300 hover:bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    )
-                  ))}
+                return (
+                  <div className="flex items-center justify-center gap-2 mt-6">
+                    <button
+                      onClick={() => {
+                        setCurrentPage((p) => Math.max(1, p - 1));
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      ← Prev
+                    </button>
+                    
+                    {pages.map((page, idx) => (
+                      page === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-3 py-1.5 text-sm text-gray-500">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => {
+                            setCurrentPage(page);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className={`px-3 py-1.5 text-sm rounded border transition ${
+                            page === currentPage
+                              ? "bg-indigo-600 text-white border-indigo-600 font-bold"
+                              : "bg-white border-gray-300 hover:bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    ))}
 
-                  <button
-                    onClick={() => {
-                      setCurrentPage((p) => Math.min(totalPages, p + 1));
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    Next →
-                  </button>
-                </div>
-              );
-            })()}
+                    <button
+                      onClick={() => {
+                        setCurrentPage((p) => Math.min(totalPages, p + 1));
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                );
+              })()}
             </>
           )}
           </div>

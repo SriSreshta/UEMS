@@ -18,4 +18,5 @@ public class FacultyMarksResponse {
     private Boolean endSemReleased;
     private String year;
     private String semester;
+    private Boolean isAbsent;
 }

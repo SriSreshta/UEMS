@@ -13,4 +13,5 @@ public class MarksUpdateRequest {
     private Integer mid2Marks;
     private Integer assignmentMarks;
     private Integer endSemMarks;
+    private Boolean isAbsent;
 }

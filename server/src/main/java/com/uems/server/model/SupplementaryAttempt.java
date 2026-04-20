@@ -18,6 +18,10 @@ public class SupplementaryAttempt {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_id")
+    private Exam exam;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enrollment_id", nullable = false)
     private Enrollment enrollment;
 
@@ -27,10 +31,33 @@ public class SupplementaryAttempt {
     @Column(nullable = false)
     private String semester;
 
-    @Column(name = "marks_obtained")
-    private Integer marksObtained;
+    @Column(name = "mid1_marks")
+    private Integer mid1Marks;
+
+    @Column(name = "mid2_marks")
+    private Integer mid2Marks;
+
+    @Column(name = "assignment_marks")
+    private Integer assignmentMarks;
+
+    @Column(name = "end_sem_marks")
+    private Integer endSemMarks;
+
+    @Column(name = "total_marks")
+    private Integer totalMarks;
 
     private String grade;
+
+    @Column(name = "grade_points")
+    private Integer gradePoints;
+
+    @Column(name = "is_absent", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isAbsent = false;
+
+    @Column(name = "is_released", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isReleased = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

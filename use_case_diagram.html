@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UEMS – Interactive Use Case Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080c14;
+      --surface: #0d1526;
+      --card: #111a2e;
+      --border: rgba(99,179,237,0.12);
+      --glow-admin: #7c3aed;
+      --glow-faculty: #059669;
+      --glow-student: #0284c7;
+      --glow-system: #d97706;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #63b3ed;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ──────────── HEADER ──────────── */
+    .header {
+      text-align: center;
+      padding: 48px 24px 24px;
+      position: relative;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(99,179,237,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(99,179,237,0.3);
+      border-radius: 20px;
+      padding: 4px 16px;
+      margin-bottom: 16px;
+      background: rgba(99,179,237,0.05);
+    }
+    h1 {
+      font-size: clamp(1.6rem, 4vw, 2.8rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #e2e8f0 0%, #63b3ed 50%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+    .subtitle {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    /* ──────────── LEGEND ──────────── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      padding: 16px 24px 8px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      transition: all 0.25s;
+    }
+    .legend-item:hover, .legend-item.active { color: var(--text); border-color: var(--border); background: var(--card); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-admin   { background: var(--glow-admin); box-shadow: 0 0 6px var(--glow-admin); }
+    .dot-faculty { background: var(--glow-faculty); box-shadow: 0 0 6px var(--glow-faculty); }
+    .dot-student { background: var(--glow-student); box-shadow: 0 0 6px var(--glow-student); }
+    .dot-system  { background: var(--glow-system); box-shadow: 0 0 6px var(--glow-system); }
+
+    /* ──────────── CANVAS CONTAINER ──────────── */
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      overflow: auto;
+      padding: 24px;
+    }
+    #diagram-svg {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+
+    /* ──────────── SVG STYLES ──────────── */
+    .system-boundary {
+      fill: none;
+      stroke: rgba(99,179,237,0.18);
+      stroke-width: 1.5;
+      stroke-dasharray: 8 4;
+      rx: 24;
+    }
+    .system-label {
+      fill: rgba(99,179,237,0.5);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ACTOR */
+    .actor-group { cursor: pointer; }
+    .actor-head {
+      stroke-width: 2;
+      fill: var(--surface);
+    }
+    .actor-body { stroke-width: 2; fill: none; }
+    .actor-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      text-anchor: middle;
+    }
+
+    /* USE CASE ELLIPSE */
+    .uc-group { cursor: pointer; }
+    .uc-ellipse {
+      stroke-width: 1.5;
+      transition: all 0.25s;
+      filter: drop-shadow(0 0 0px transparent);
+    }
+    .uc-ellipse:hover, .uc-ellipse.highlight {
+      filter: drop-shadow(0 0 12px currentColor);
+    }
+    .uc-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10.5px;
+      font-weight: 500;
+      text-anchor: middle;
+      pointer-events: none;
+      dominant-baseline: middle;
+    }
+
+    /* RELATIONSHIP LINES */
+    .rel-line {
+      stroke-width: 1.5;
+      fill: none;
+      stroke-dasharray: none;
+      transition: opacity 0.3s;
+    }
+    .rel-line.dashed { stroke-dasharray: 5 3; }
+    .rel-line.faded { opacity: 0.08; }
+
+    /* TOOLTIP */
+    #tooltip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 999;
+      background: rgba(13, 21, 38, 0.97);
+      border: 1px solid rgba(99,179,237,0.25);
+      border-radius: 12px;
+      padding: 14px 18px;
+      max-width: 280px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,179,237,0.08);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    #tooltip.visible { opacity: 1; transform: translateY(0); }
+    #tooltip h3 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--accent);
+    }
+    #tooltip p {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    #tooltip .tt-actor {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ──────────── DETAIL PANEL ──────────── */
+    #detail-panel {
+      position: fixed;
+      right: 0; top: 0; bottom: 0;
+      width: 320px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      padding: 32px 24px;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+      z-index: 100;
+      overflow-y: auto;
+    }
+    #detail-panel.open { transform: translateX(0); }
+    #detail-panel h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    #detail-panel .dp-actor {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: inline-block;
+      border-radius: 4px;
+      padding: 3px 10px;
+    }
+    #detail-panel .dp-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    #detail-panel .dp-section { margin-bottom: 18px; }
+    #detail-panel .dp-section h4 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    #detail-panel .dp-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    #detail-panel .dp-item::before {
+      content: '→';
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    #close-panel {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    #close-panel:hover { color: var(--text); border-color: rgba(99,179,237,0.4); }
+
+    /* ──────────── FOOTER ──────────── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 24px;
+    }
+
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+    .pulse { animation: pulse 2s infinite; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="badge">Use Case Diagram · v1.0</div>
+  <h1>UEMS — University Examination<br/>Management System</h1>
+  <p class="subtitle">Click any use case or actor to explore details &nbsp;·&nbsp; Hover for quick info</p>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item" data-filter="admin" onclick="filterActor('admin',this)">
+    <span class="legend-dot dot-admin"></span> Admin
+  </div>
+  <div class="legend-item" data-filter="faculty" onclick="filterActor('faculty',this)">
+    <span class="legend-dot dot-faculty"></span> Faculty
+  </div>
+  <div class="legend-item" data-filter="student" onclick="filterActor('student',this)">
+    <span class="legend-dot dot-student"></span> Student
+  </div>
+  <div class="legend-item" data-filter="system" onclick="filterActor('system',this)">
+    <span class="legend-dot dot-system"></span> System
+  </div>
+  <div class="legend-item" onclick="resetFilter(this)">
+    ✦ Show All
+  </div>
+</div>
+
+<!-- CANVAS -->
+<div class="canvas-wrap">
+  <svg id="diagram-svg" viewBox="0 0 1300 1000" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Glow filters -->
+      <filter id="glow-admin" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-faculty" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-student" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-system" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <!-- Arrowhead -->
+      <marker id="arrow-admin" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#7c3aed" opacity="0.7"/>
+      </marker>
+      <marker id="arrow-faculty" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#059669" opacity="0.7"/>
+      </marker>
+      <marker id="arrow-student" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#0284c7" opacity="0.7"/>
+      </marker>
+      <marker id="arrow-system" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#d97706" opacity="0.7"/>
+      </marker>
+      <!-- Linear gradients for ellipses -->
+      <linearGradient id="grad-admin" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#2e1065;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#4c1d95;stop-opacity:1" />
+      </linearGradient>
+      <linearGradient id="grad-faculty" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#022c22;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#064e3b;stop-opacity:1" />
+      </linearGradient>
+      <linearGradient id="grad-student" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#012954;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#023d73;stop-opacity:1" />
+      </linearGradient>
+      <linearGradient id="grad-system" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#431407;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#7c2d12;stop-opacity:1" />
+      </linearGradient>
+      <linearGradient id="grad-mixed" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#182441;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#1e3461;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+
+    <!-- SYSTEM BOUNDARY -->
+    <rect class="system-boundary" x="220" y="60" width="860" height="880" rx="24"/>
+    <text class="system-label" x="650" y="50" text-anchor="middle">University Examination Management System</text>
+
+    <!-- ─────────────────── RELATIONSHIP LINES ─────────────────── -->
+    <!-- Admin connections -->
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="330" y2="130" data-actors="admin"/>
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="330" y2="200" data-actors="admin"/>
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="330" y2="275" data-actors="admin"/>
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="440" y2="350" data-actors="admin"/>
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="440" y2="420" data-actors="admin"/>
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="440" y2="490" data-actors="admin"/>
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="440" y2="560" data-actors="admin"/>
+    <line class="rel-line" stroke="#7c3aed" opacity="0.35" x1="120" y1="110" x2="440" y2="630" data-actors="admin"/>
+
+    <!-- Faculty connections -->
+    <line class="rel-line" stroke="#059669" opacity="0.35" x1="120" y1="420" x2="620" y2="200" data-actors="faculty"/>
+    <line class="rel-line" stroke="#059669" opacity="0.35" x1="120" y1="420" x2="620" y2="275" data-actors="faculty"/>
+    <line class="rel-line" stroke="#059669" opacity="0.35" x1="120" y1="420" x2="620" y2="350" data-actors="faculty"/>
+    <line class="rel-line" stroke="#059669" opacity="0.35" x1="120" y1="420" x2="620" y2="420" data-actors="faculty"/>
+    <line class="rel-line" stroke="#059669" opacity="0.35" x1="120" y1="420" x2="620" y2="490" data-actors="faculty"/>
+    <line class="rel-line" stroke="#059669" opacity="0.35" x1="120" y1="420" x2="620" y2="560" data-actors="faculty"/>
+
+    <!-- Student connections -->
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="200" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="275" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="350" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="420" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="490" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="560" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="630" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="700" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="770" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="840" data-actors="student"/>
+    <line class="rel-line" stroke="#0284c7" opacity="0.35" x1="1180" y1="300" x2="900" y2="890" data-actors="student"/>
+
+    <!-- System/auto lines -->
+    <line class="rel-line dashed" stroke="#d97706" opacity="0.3" x1="440" y1="560" x2="620" y2="490" data-actors="system"/>
+    <line class="rel-line dashed" stroke="#d97706" opacity="0.3" x1="440" y1="630" x2="620" y2="560" data-actors="system"/>
+
+    <!-- ─────────────────── COLUMN 1: ADMIN USE CASES ─────────────────── -->
+    <!-- UC-1: User Management -->
+    <g class="uc-group" data-uc="uc-user-mgmt" data-actor="admin" onclick="openPanel('uc-user-mgmt')" onmouseenter="showTip(event,'uc-user-mgmt')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="330" cy="130" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="330" y="130" fill="#c4b5fd">User Management</text>
+    </g>
+    <!-- UC-2: Course Management -->
+    <g class="uc-group" data-uc="uc-course-mgmt" data-actor="admin" onclick="openPanel('uc-course-mgmt')" onmouseenter="showTip(event,'uc-course-mgmt')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="330" cy="200" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="330" y="200" fill="#c4b5fd">Course Management</text>
+    </g>
+    <!-- UC-3: Student Enrollment -->
+    <g class="uc-group" data-uc="uc-enrollment" data-actor="admin" onclick="openPanel('uc-enrollment')" onmouseenter="showTip(event,'uc-enrollment')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="330" cy="275" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="330" y="275" fill="#c4b5fd">Student Enrollment</text>
+    </g>
+    <!-- UC-4: Exam Management -->
+    <g class="uc-group" data-uc="uc-exam-mgmt" data-actor="admin" onclick="openPanel('uc-exam-mgmt')" onmouseenter="showTip(event,'uc-exam-mgmt')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="440" cy="350" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="440" y="350" fill="#c4b5fd">Exam Management</text>
+    </g>
+    <!-- UC-5: Schedule Exam -->
+    <g class="uc-group" data-uc="uc-schedule" data-actor="admin" onclick="openPanel('uc-schedule')" onmouseenter="showTip(event,'uc-schedule')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="440" cy="420" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="440" y="420" fill="#c4b5fd">Schedule Exam</text>
+    </g>
+    <!-- UC-6: Publish Results -->
+    <g class="uc-group" data-uc="uc-publish-results" data-actor="admin" onclick="openPanel('uc-publish-results')" onmouseenter="showTip(event,'uc-publish-results')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="440" cy="490" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="440" y="490" fill="#c4b5fd">Publish Results</text>
+    </g>
+    <!-- UC-7: Manage Fees -->
+    <g class="uc-group" data-uc="uc-manage-fees" data-actor="admin" onclick="openPanel('uc-manage-fees')" onmouseenter="showTip(event,'uc-manage-fees')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="440" cy="560" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="440" y="560" fill="#c4b5fd">Manage Fees</text>
+    </g>
+    <!-- UC-8: View Analytics -->
+    <g class="uc-group" data-uc="uc-analytics" data-actor="admin" onclick="openPanel('uc-analytics')" onmouseenter="showTip(event,'uc-analytics')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="440" cy="630" rx="105" ry="30" fill="url(#grad-admin)" stroke="#7c3aed" stroke-opacity="0.7" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="440" y="630" fill="#c4b5fd">View Analytics</text>
+    </g>
+
+    <!-- ─────────────────── COLUMN 2: FACULTY USE CASES ─────────────────── -->
+    <!-- UC-9: View Assigned Courses -->
+    <g class="uc-group" data-uc="uc-view-courses" data-actor="faculty" onclick="openPanel('uc-view-courses')" onmouseenter="showTip(event,'uc-view-courses')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="620" cy="200" rx="110" ry="30" fill="url(#grad-faculty)" stroke="#059669" stroke-opacity="0.7" filter="url(#glow-faculty)"/>
+      <text class="uc-label" x="620" y="200" fill="#6ee7b7">View Assigned Courses</text>
+    </g>
+    <!-- UC-10: Enter Marks -->
+    <g class="uc-group" data-uc="uc-enter-marks" data-actor="faculty" onclick="openPanel('uc-enter-marks')" onmouseenter="showTip(event,'uc-enter-marks')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="620" cy="275" rx="110" ry="30" fill="url(#grad-faculty)" stroke="#059669" stroke-opacity="0.7" filter="url(#glow-faculty)"/>
+      <text class="uc-label" x="620" y="275" fill="#6ee7b7">Enter/Upload Marks</text>
+    </g>
+    <!-- UC-11: Mark Attendance -->
+    <g class="uc-group" data-uc="uc-mark-attendance" data-actor="faculty" onclick="openPanel('uc-mark-attendance')" onmouseenter="showTip(event,'uc-mark-attendance')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="620" cy="350" rx="110" ry="30" fill="url(#grad-faculty)" stroke="#059669" stroke-opacity="0.7" filter="url(#glow-faculty)"/>
+      <text class="uc-label" x="620" y="350" fill="#6ee7b7">Mark Attendance</text>
+    </g>
+    <!-- UC-12: Upload Materials -->
+    <g class="uc-group" data-uc="uc-upload-materials" data-actor="faculty" onclick="openPanel('uc-upload-materials')" onmouseenter="showTip(event,'uc-upload-materials')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="620" cy="420" rx="110" ry="30" fill="url(#grad-faculty)" stroke="#059669" stroke-opacity="0.7" filter="url(#glow-faculty)"/>
+      <text class="uc-label" x="620" y="420" fill="#6ee7b7">Upload Study Materials</text>
+    </g>
+    <!-- UC-13: Faculty Analytics -->
+    <g class="uc-group" data-uc="uc-faculty-analytics" data-actor="faculty" onclick="openPanel('uc-faculty-analytics')" onmouseenter="showTip(event,'uc-faculty-analytics')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="620" cy="490" rx="110" ry="30" fill="url(#grad-mixed)" stroke="#7c3aed" stroke-opacity="0.5" filter="url(#glow-admin)"/>
+      <text class="uc-label" x="620" y="490" fill="#c4b5fd">View Course Analytics</text>
+    </g>
+    <!-- UC-14: Notify Auto (system) -->
+    <g class="uc-group" data-uc="uc-notify" data-actor="system" onclick="openPanel('uc-notify')" onmouseenter="showTip(event,'uc-notify')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="620" cy="560" rx="110" ry="30" fill="url(#grad-system)" stroke="#d97706" stroke-opacity="0.7" filter="url(#glow-system)"/>
+      <text class="uc-label" x="620" y="556" fill="#fcd34d">Auto-Send Result</text>
+      <text class="uc-label" x="620" y="570" fill="#fcd34d">Notifications</text>
+    </g>
+
+    <!-- ─────────────────── COLUMN 3: STUDENT USE CASES ─────────────────── -->
+    <!-- UC-15: Login -->
+    <g class="uc-group" data-uc="uc-login" data-actor="student" onclick="openPanel('uc-login')" onmouseenter="showTip(event,'uc-login')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="130" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="130" fill="#7dd3fc">Login / Authenticate</text>
+    </g>
+    <!-- UC-16: View Exam Schedule -->
+    <g class="uc-group" data-uc="uc-view-schedule" data-actor="student" onclick="openPanel('uc-view-schedule')" onmouseenter="showTip(event,'uc-view-schedule')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="200" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="200" fill="#7dd3fc">View Exam Schedule</text>
+    </g>
+    <!-- UC-17: View Marks -->
+    <g class="uc-group" data-uc="uc-view-marks" data-actor="student" onclick="openPanel('uc-view-marks')" onmouseenter="showTip(event,'uc-view-marks')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="275" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="275" fill="#7dd3fc">View Marks &amp; Results</text>
+    </g>
+    <!-- UC-18: View Attendance -->
+    <g class="uc-group" data-uc="uc-view-attendance" data-actor="student" onclick="openPanel('uc-view-attendance')" onmouseenter="showTip(event,'uc-view-attendance')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="350" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="350" fill="#7dd3fc">View Attendance Stats</text>
+    </g>
+    <!-- UC-19: View Materials -->
+    <g class="uc-group" data-uc="uc-view-materials" data-actor="student" onclick="openPanel('uc-view-materials')" onmouseenter="showTip(event,'uc-view-materials')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="420" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="420" fill="#7dd3fc">Access Study Materials</text>
+    </g>
+    <!-- UC-20: Pay Fees -->
+    <g class="uc-group" data-uc="uc-pay-fees" data-actor="student" onclick="openPanel('uc-pay-fees')" onmouseenter="showTip(event,'uc-pay-fees')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="490" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="490" fill="#7dd3fc">Pay Exam Fees</text>
+    </g>
+    <!-- UC-21: Pay Supply Fees -->
+    <g class="uc-group" data-uc="uc-supply-fees" data-actor="student" onclick="openPanel('uc-supply-fees')" onmouseenter="showTip(event,'uc-supply-fees')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="560" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="560" fill="#7dd3fc">Pay Supply Exam Fees</text>
+    </g>
+    <!-- UC-22: View Notifications -->
+    <g class="uc-group" data-uc="uc-notifications" data-actor="student" onclick="openPanel('uc-notifications')" onmouseenter="showTip(event,'uc-notifications')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="630" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="630" fill="#7dd3fc">View Notifications</text>
+    </g>
+    <!-- UC-23: View SGPA/CGPA -->
+    <g class="uc-group" data-uc="uc-sgpa" data-actor="student" onclick="openPanel('uc-sgpa')" onmouseenter="showTip(event,'uc-sgpa')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="700" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="700" fill="#7dd3fc">View SGPA / CGPA</text>
+    </g>
+    <!-- UC-24: Payment History -->
+    <g class="uc-group" data-uc="uc-payment-history" data-actor="student" onclick="openPanel('uc-payment-history')" onmouseenter="showTip(event,'uc-payment-history')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="770" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="770" fill="#7dd3fc">View Payment History</text>
+    </g>
+    <!-- UC-25: Download Hall Ticket -->
+    <g class="uc-group" data-uc="uc-hallticket" data-actor="student" onclick="openPanel('uc-hallticket')" onmouseenter="showTip(event,'uc-hallticket')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="840" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="836" fill="#7dd3fc">View Exam Hall</text>
+      <text class="uc-label" x="900" y="850" fill="#7dd3fc">Ticket Info</text>
+    </g>
+    <!-- UC-26: Chat/Support -->
+    <g class="uc-group" data-uc="uc-chat" data-actor="student" onclick="openPanel('uc-chat')" onmouseenter="showTip(event,'uc-chat')" onmouseleave="hideTip()">
+      <ellipse class="uc-ellipse" cx="900" cy="910" rx="110" ry="30" fill="url(#grad-student)" stroke="#0284c7" stroke-opacity="0.7" filter="url(#glow-student)"/>
+      <text class="uc-label" x="900" y="910" fill="#7dd3fc">Chat / Support</text>
+    </g>
+
+    <!-- ─────────────────── ACTORS ─────────────────── -->
+    <!-- ADMIN Actor -->
+    <g class="actor-group" data-actor-fig="admin" onclick="filterActor('admin',null, true)" onmouseenter="highlightActor('admin')" onmouseleave="unhighlightActor()">
+      <!-- Head -->
+      <circle class="actor-head" cx="120" cy="95" r="18" stroke="#7c3aed" filter="url(#glow-admin)"/>
+      <!-- Body -->
+      <line class="actor-body" x1="120" y1="113" x2="120" y2="155" stroke="#7c3aed"/>
+      <!-- Arms -->
+      <line class="actor-body" x1="90" y1="130" x2="150" y2="130" stroke="#7c3aed"/>
+      <!-- Legs -->
+      <line class="actor-body" x1="120" y1="155" x2="100" y2="188" stroke="#7c3aed"/>
+      <line class="actor-body" x1="120" y1="155" x2="140" y2="188" stroke="#7c3aed"/>
+      <!-- Icon in head -->
+      <text x="120" y="100" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="700">A</text>
+      <text class="actor-label" x="120" y="205" fill="#c4b5fd">Admin</text>
+    </g>
+
+    <!-- FACULTY Actor -->
+    <g class="actor-group" data-actor-fig="faculty" onclick="filterActor('faculty',null, true)" onmouseenter="highlightActor('faculty')" onmouseleave="unhighlightActor()">
+      <circle class="actor-head" cx="120" cy="400" r="18" stroke="#059669" filter="url(#glow-faculty)"/>
+      <line class="actor-body" x1="120" y1="418" x2="120" y2="460" stroke="#059669"/>
+      <line class="actor-body" x1="90" y1="435" x2="150" y2="435" stroke="#059669"/>
+      <line class="actor-body" x1="120" y1="460" x2="100" y2="493" stroke="#059669"/>
+      <line class="actor-body" x1="120" y1="460" x2="140" y2="493" stroke="#059669"/>
+      <text x="120" y="405" text-anchor="middle" fill="#059669" font-size="13" font-weight="700">F</text>
+      <text class="actor-label" x="120" y="510" fill="#6ee7b7">Faculty</text>
+    </g>
+
+    <!-- STUDENT Actor -->
+    <g class="actor-group" data-actor-fig="student" onclick="filterActor('student',null, true)" onmouseenter="highlightActor('student')" onmouseleave="unhighlightActor()">
+      <circle class="actor-head" cx="1180" cy="275" r="18" stroke="#0284c7" filter="url(#glow-student)"/>
+      <line class="actor-body" x1="1180" y1="293" x2="1180" y2="335" stroke="#0284c7"/>
+      <line class="actor-body" x1="1150" y1="310" x2="1210" y2="310" stroke="#0284c7"/>
+      <line class="actor-body" x1="1180" y1="335" x2="1160" y2="368" stroke="#0284c7"/>
+      <line class="actor-body" x1="1180" y1="335" x2="1200" y2="368" stroke="#0284c7"/>
+      <text x="1180" y="280" text-anchor="middle" fill="#0284c7" font-size="13" font-weight="700">S</text>
+      <text class="actor-label" x="1180" y="385" fill="#7dd3fc">Student</text>
+    </g>
+
+    <!-- ─────────────────── INCLUDE/EXTEND LABELS ─────────────────── -->
+    <text x="515" y="527" fill="#d97706" font-size="9" font-family="'JetBrains Mono',monospace" opacity="0.8">«includes»</text>
+    <text x="515" y="597" fill="#d97706" font-size="9" font-family="'JetBrains Mono',monospace" opacity="0.8">«extends»</text>
+
+    <!-- ─────────────────── SECTION LABELS ─────────────────── -->
+    <rect x="228" y="90" width="186" height="18" rx="4" fill="rgba(124,58,237,0.1)"/>
+    <text x="321" y="103" text-anchor="middle" fill="#9f7aea" font-size="9.5" font-family="Inter" font-weight="600" letter-spacing="1">ADMIN</text>
+    <rect x="508" y="90" width="220" height="18" rx="4" fill="rgba(5,150,105,0.1)"/>
+    <text x="618" y="103" text-anchor="middle" fill="#6ee7b7" font-size="9.5" font-family="Inter" font-weight="600" letter-spacing="1">FACULTY</text>
+    <rect x="788" y="90" width="220" height="18" rx="4" fill="rgba(2,132,199,0.1)"/>
+    <text x="898" y="103" text-anchor="middle" fill="#7dd3fc" font-size="9.5" font-family="Inter" font-weight="600" letter-spacing="1">STUDENT</text>
+
+  </svg>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip"></div>
+
+<!-- DETAIL PANEL -->
+<div id="detail-panel">
+  <button id="close-panel" onclick="closePanel()">✕</button>
+  <div id="panel-content"></div>
+</div>
+
+<footer>
+  UEMS — University Examination Management System &nbsp;·&nbsp; Interactive Use Case Diagram &nbsp;·&nbsp; Click any use case for details
+</footer>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const useCaseData = {
+  'uc-user-mgmt': {
+    title: 'User Management',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin can create, view, update, and delete user accounts (Student, Faculty, Admin). Supports single creation as well as bulk import via Excel file upload.',
+    steps: ['Create individual user account', 'Bulk import users from Excel (.xlsx)', 'View all users with roles', 'Delete a user', 'Update student details (name, email, year, semester)'],
+    endpoint: 'POST /api/admin/create-user\nPOST /api/admin/upload-users\nGET /api/admin/users\nDELETE /api/admin/users/{id}\nPUT /api/admin/users/{id}/student'
+  },
+  'uc-course-mgmt': {
+    title: 'Course Management',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin manages the course registry — creating, updating, deleting courses and assigning faculty members to them. Courses carry metadata including year, semester, credits, and department.',
+    steps: ['Create a new course', 'Assign a faculty member to a course', 'Update course details', 'Delete a course', 'List all courses with faculty info'],
+    endpoint: 'POST /api/admin/courses\nPUT /api/admin/courses/{id}\nDELETE /api/admin/courses/{id}\nPOST /api/admin/courses/assign\nGET /api/admin/courses'
+  },
+  'uc-enrollment': {
+    title: 'Student Enrollment',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin enrolls students into courses matching their year/semester. Supports single enrollment, bulk enrollment, batch auto-enrollment, and historical backfill without data loss.',
+    steps: ['Enroll single student in a course', 'Bulk enroll multiple students', 'Auto-enroll entire batch by year/semester', 'Backfill missing past enrollments', 'View enrollments by course or student'],
+    endpoint: 'POST /api/admin/enroll\nPOST /api/admin/enroll/bulk\nPOST /api/admin/enroll/batch\nPOST /api/admin/enroll/backfill\nGET /api/admin/enrollments/course/{id}'
+  },
+  'uc-exam-mgmt': {
+    title: 'Exam Management',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin creates examination events (Mid-Term, End-Sem, Supply) targeting specific year/semester student cohorts and manages their lifecycle.',
+    steps: ['Create a new exam event', 'List all exam events', 'Delete an exam event', 'View exam by type (MID/ENDSEM/SUPPLY)'],
+    endpoint: 'POST /api/admin/exams\nGET /api/admin/exams\nDELETE /api/admin/exams/{examId}'
+  },
+  'uc-schedule': {
+    title: 'Schedule Exam',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin sets date, start-time, and end-time for each course within an exam event. Once finalized, the timetable is broadcast to all enrolled students.',
+    steps: ['View auto-generated schedule slots per course', 'Enter exam date and time for each subject', 'Save schedule', 'Broadcast schedule to students', 'Delete individual schedule entries'],
+    endpoint: 'GET /api/admin/exams/{id}/schedules\nPOST /api/admin/exams/{id}/schedules\nPUT /api/admin/exams/{id}/broadcast\nDELETE /api/admin/exams/{id}/schedules/{sid}'
+  },
+  'uc-publish-results': {
+    title: 'Publish Results',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin previews computed grades for all students in an exam, verifies them, and publishes results. Automatically triggers notifications to all affected students upon publishing.',
+    steps: ['Preview computed grades (grade logic: O/A+/A/B+/B/C/F/Ab)', 'Review SGPA per student', 'Publish results (locks further mark edits)', 'Auto-notify students after publish'],
+    endpoint: 'GET /api/admin/exams/{id}/results/preview\nPOST /api/admin/exams/{id}/results/publish\nPOST /api/admin/exams/{id}/notify'
+  },
+  'uc-manage-fees': {
+    title: 'Manage Fees',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin configures exam fee notifications with base amount, due date, and late fee per week. Supply (supplementary) exam fees are calculated dynamically based on subject failures.',
+    steps: ['Create fee notification', 'Set base amount and due date', 'Set late fee per week', 'Specify applicable year/semester', 'View all active fee notifications'],
+    endpoint: 'POST /api/admin/fees\nGET /api/admin/fees\nDELETE /api/admin/fees/{id}'
+  },
+  'uc-analytics': {
+    title: 'View Analytics',
+    actor: 'Admin',
+    actorColor: '#7c3aed',
+    textColor: '#c4b5fd',
+    desc: 'Admin views rich analytics dashboards: per-subject grade distribution (O, A+, A, B+, B, C, F, Ab) and per-department pass/fail percentages across cohorts.',
+    steps: ['Filter by year, semester, department', 'View subject-wise grade breakdown', 'View department-wise pass%', 'Identify weak subjects/departments', 'Export insights'],
+    endpoint: 'GET /api/admin/analytics?year=&semester=&department=\nGET /api/admin/analytics/department\nGET /api/admin/departments'
+  },
+  'uc-view-courses': {
+    title: 'View Assigned Courses',
+    actor: 'Faculty',
+    actorColor: '#059669',
+    textColor: '#6ee7b7',
+    desc: 'Faculty members see only the courses assigned to them (pulled via JWT email). Courses show year, semester, department, and credit information.',
+    steps: ['Authenticate via JWT', 'Retrieve courses by faculty email', 'View course details (name, code, year, semester)'],
+    endpoint: 'GET /api/faculty/courses'
+  },
+  'uc-enter-marks': {
+    title: 'Enter / Upload Marks',
+    actor: 'Faculty',
+    actorColor: '#059669',
+    textColor: '#6ee7b7',
+    desc: 'Faculty enters mid-1, mid-2, assignment, and end-sem marks per student per course. Bulk upload supported. Marks are locked once results are published by Admin.',
+    steps: ['View student roster for a course', 'Enter Mid-1 (0–30), Mid-2 (0–30), Assignment (0–10)', 'Enter End-Sem marks (0–60)', 'Bulk update all enrolled students', 'Marks locked after publication'],
+    endpoint: 'GET /api/faculty/courses/{id}/marks\nPOST /api/faculty/courses/{id}/marks/bulk'
+  },
+  'uc-mark-attendance': {
+    title: 'Mark Attendance',
+    actor: 'Faculty',
+    actorColor: '#059669',
+    textColor: '#6ee7b7',
+    desc: 'Faculty marks attendance (Present/Absent) for each student in a course for a given date. Bulk marking supported. Faculty can also view recorded dates.',
+    steps: ['Select course and date', 'Mark each student Present/Absent', 'Bulk submit attendance', 'View attendance by date or course'],
+    endpoint: 'POST /api/attendance/mark\nPOST /api/attendance/mark/bulk\nGET /api/attendance/course/{courseId}\nGET /api/attendance/course/{courseId}/dates'
+  },
+  'uc-upload-materials': {
+    title: 'Upload Study Materials',
+    actor: 'Faculty',
+    actorColor: '#059669',
+    textColor: '#6ee7b7',
+    desc: 'Faculty uploads study material files (PDFs, docs, videos) for a course, organized by chapter. Students enrolled in the course can access these materials.',
+    steps: ['Upload material file (UUID-named)', 'Add material metadata (chapter, title, type)', 'Link material to course', 'View/Delete materials per course'],
+    endpoint: 'POST /api/faculty/materials/upload\nPOST /api/faculty/courses/{id}/materials\nGET /api/faculty/courses/{id}/materials\nDELETE /api/faculty/materials/{id}'
+  },
+  'uc-faculty-analytics': {
+    title: 'View Course Analytics',
+    actor: 'Faculty',
+    actorColor: '#059669',
+    textColor: '#6ee7b7',
+    desc: 'Faculty views grade analytics (O, A+, A, B+, B, C, F, Ab counts) for their own courses filtered by year and semester.',
+    steps: ['Select year and semester', 'View grade distribution per subject', 'Identify pass/fail trends for own courses'],
+    endpoint: 'GET /api/faculty/analytics?year=&semester='
+  },
+  'uc-notify': {
+    title: 'Auto-Send Result Notifications',
+    actor: 'System',
+    actorColor: '#d97706',
+    textColor: '#fcd34d',
+    desc: 'Triggered automatically when Admin publishes results. The system identifies all unique students in the affected cohort and creates result notifications for each — only once per student per exam.',
+    steps: ['Admin triggers publish results', 'System determines year/semester batch', 'Identifies all unique enrolled students', 'Creates notification record per student (idempotent)', 'Students see notification badge'],
+    endpoint: 'POST /api/admin/exams/{id}/results/publish\n  → internally calls notifyResultsPublished()'
+  },
+  'uc-login': {
+    title: 'Login / Authenticate',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students authenticate using email and password. On success, the system issues a JWT token used for all subsequent API calls. Role-based access (STUDENT) is enforced via Spring Security.',
+    steps: ['Enter email and password', 'Server validates credentials', 'JWT token issued (email as subject)', 'Token stored in browser', 'All requests include Bearer token'],
+    endpoint: 'POST /api/auth/login'
+  },
+  'uc-view-schedule': {
+    title: 'View Exam Schedule',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students view broadcasted exam timetables — date, time, and venue information for each subject in their current year/semester.',
+    steps: ['View broadcasted exam schedules', 'See subject, date, start and end times', 'Filter by current semester'],
+    endpoint: 'GET /api/student/exams/schedules (Student Exam Controller)'
+  },
+  'uc-view-marks': {
+    title: 'View Marks & Results',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students view their internal marks (Mid-1, Mid-2, Assignment) and end-semester grades for all enrolled courses, organized by year and semester.',
+    steps: ['Authenticate via JWT', 'View mid-term and assignment marks', 'View end-sem grades after publication', 'See results grouped by semester'],
+    endpoint: 'GET /api/students/my-marks\nGET /api/students/results'
+  },
+  'uc-view-attendance': {
+    title: 'View Attendance Stats',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students view their subject-wise attendance statistics including total classes, present count, and attendance percentage to track compliance with minimum thresholds.',
+    steps: ['View attendance per subject', 'See attended vs total classes', 'Calculate attendance %', 'Identify subjects with risk of shortage'],
+    endpoint: 'GET /api/attendance/student/{studentId}\nGET /api/attendance/student/{studentId}/stats'
+  },
+  'uc-view-materials': {
+    title: 'Access Study Materials',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students access study materials uploaded by faculty for all courses they are enrolled in. Materials are organized by chapter and include PDFs, documents, and videos.',
+    steps: ['View materials for all enrolled courses', 'Filter by chapter and type', 'Access file URL for download', 'Browse by course/chapter'],
+    endpoint: 'GET /api/students/my-materials'
+  },
+  'uc-pay-fees': {
+    title: 'Pay Exam Fees',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students view active exam fee notifications applicable to their year/semester, see current late fee accumulation, and simulate payment. Duplicate payments are prevented.',
+    steps: ['View active fee notifications', 'See base amount and late fee calculation', 'Simulate payment (generates transaction ID)', 'Payment marked SUCCESS in system'],
+    endpoint: 'GET /api/payments/active\nPOST /api/payments/pay/{feeId}'
+  },
+  'uc-supply-fees': {
+    title: 'Pay Supply Exam Fees',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students with failed or absent subjects are eligible for supplementary exam fees. The fee is dynamically calculated based on number of failed subjects (₹365 for 1, ₹465 for 2, ₹565 for 3, ₹765 for 4+).',
+    steps: ['System detects supply fee type', 'Fetch failed/absent subjects for student', 'Calculate dynamic fee by fail count', 'Student pays supply exam fee', 'Payment prevents duplicate submission'],
+    endpoint: 'GET /api/payments/active (isSupply=true)\nPOST /api/payments/pay/{feeId}'
+  },
+  'uc-notifications': {
+    title: 'View Notifications',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students see result notifications pushed by the system when Admin publishes exam results. Notifications track seen/unseen status and link to the relevant semester results.',
+    steps: ['View result notification list', 'Mark notifications as seen', 'Navigate to result for that semester', 'Badge count for unread notifications'],
+    endpoint: 'GET /api/student/notifications\nPUT /api/student/notifications/{id}/seen'
+  },
+  'uc-sgpa': {
+    title: 'View SGPA / CGPA',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students view their Semester GPA (SGPA) for each completed semester and cumulative CGPA. The system auto-computes grades based on total marks and credit-weighted GPA formula.',
+    steps: ['View SGPA per semester', 'View overall CGPA', 'See grade points per subject', 'See credit-weighted computation'],
+    endpoint: 'GET /api/students/results (includes SGPA/CGPA)'
+  },
+  'uc-payment-history': {
+    title: 'View Payment History',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students view a full history of all payments made, including fee type, amount paid, transaction ID, and date — sorted most-recent first.',
+    steps: ['View all past payments', 'See transaction ID and amount', 'See payment status (SUCCESS)', 'Sorted by date descending'],
+    endpoint: 'GET /api/payments/history'
+  },
+  'uc-hallticket': {
+    title: 'View Exam Hall Ticket Info',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students can view their hall ticket information showing their roll number, registered subjects, exam date and time slots from the broadcasted timetable.',
+    steps: ['View registered exam subjects', 'See exam date and timings', 'Check roll number / hall ticket no', 'Accessible after schedule broadcast'],
+    endpoint: 'GET /api/student/exams/hall-ticket'
+  },
+  'uc-chat': {
+    title: 'Chat / Support',
+    actor: 'Student',
+    actorColor: '#0284c7',
+    textColor: '#7dd3fc',
+    desc: 'Students can use the chat feature to communicate with the support system. Implemented via WebSocket (SockJS/STOMP) for real-time messaging.',
+    steps: ['Connect via WebSocket', 'Send messages in real-time', 'Receive responses from support', 'Message history maintained'],
+    endpoint: 'WebSocket: /ws\nSTOMP: /app/chat\nTopic: /topic/messages'
+  }
+};
+
+// ─── TOOLTIP ────────────────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+let tipTimer;
+
+function showTip(e, ucId) {
+  const uc = useCaseData[ucId];
+  if (!uc) return;
+  clearTimeout(tipTimer);
+  tooltip.innerHTML = `
+    <h3>${uc.title}</h3>
+    <p>${uc.desc.substring(0, 120)}${uc.desc.length > 120 ? '…' : ''}</p>
+    <span class="tt-actor" style="background:${uc.actorColor}22;color:${uc.textColor};border:1px solid ${uc.actorColor}44">${uc.actor}</span>
+  `;
+  positionTip(e);
+  tooltip.classList.add('visible');
+}
+
+function hideTip() {
+  tipTimer = setTimeout(() => tooltip.classList.remove('visible'), 150);
+}
+
+function positionTip(e) {
+  const x = e.clientX + 14;
+  const y = e.clientY - 10;
+  tooltip.style.left = Math.min(x, window.innerWidth - 300) + 'px';
+  tooltip.style.top = Math.max(y, 10) + 'px';
+}
+
+document.addEventListener('mousemove', e => {
+  if (tooltip.classList.contains('visible')) positionTip(e);
+});
+
+// ─── DETAIL PANEL ────────────────────────────────────────────────────────────
+const panel = document.getElementById('detail-panel');
+const panelContent = document.getElementById('panel-content');
+
+function openPanel(ucId) {
+  const uc = useCaseData[ucId];
+  if (!uc) return;
+  panelContent.innerHTML = `
+    <h2 style="color:${uc.textColor}">${uc.title}</h2>
+    <span class="dp-actor" style="background:${uc.actorColor}22;color:${uc.textColor};border:1px solid ${uc.actorColor}44">${uc.actor}</span>
+    <div class="dp-desc">${uc.desc}</div>
+    <div class="dp-section">
+      <h4>Flow Steps</h4>
+      ${uc.steps.map(s => `<div class="dp-item">${s}</div>`).join('')}
+    </div>
+    <div class="dp-section">
+      <h4>API Endpoints</h4>
+      <pre style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;line-height:1.8;white-space:pre-wrap">${uc.endpoint}</pre>
+    </div>
+  `;
+  panel.classList.add('open');
+}
+
+function closePanel() {
+  panel.classList.remove('open');
+}
+
+// ─── FILTER / HIGHLIGHT ──────────────────────────────────────────────────────
+let activeFilter = null;
+
+function filterActor(actor, legendEl, toggle = false) {
+  if (toggle && activeFilter === actor) {
+    resetFilter(null);
+    return;
+  }
+  activeFilter = actor;
+
+  // Style legend items
+  document.querySelectorAll('.legend-item[data-filter]').forEach(el => el.classList.remove('active'));
+  if (legendEl) legendEl.classList.add('active');
+
+  // Dim/highlight use cases
+  document.querySelectorAll('.uc-group').forEach(g => {
+    const ucActor = g.getAttribute('data-actor');
+    const shouldShow = ucActor === actor || (actor === 'system' && ucActor === 'system');
+    g.style.opacity = shouldShow ? '1' : '0.12';
+    g.style.pointerEvents = shouldShow ? 'all' : 'none';
+  });
+
+  // Dim/highlight lines
+  document.querySelectorAll('.rel-line').forEach(l => {
+    const lineActors = l.getAttribute('data-actors');
+    l.style.opacity = lineActors === actor ? (l.getAttribute('stroke-opacity') || '0.35') : '0.04';
+  });
+}
+
+function resetFilter(el) {
+  activeFilter = null;
+  document.querySelectorAll('.legend-item').forEach(e => e.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.uc-group').forEach(g => {
+    g.style.opacity = '1';
+    g.style.pointerEvents = 'all';
+  });
+  document.querySelectorAll('.rel-line').forEach(l => {
+    const orig = l.getAttribute('stroke-opacity') || '0.35';
+    l.style.opacity = orig;
+  });
+}
+
+function highlightActor(actor) {
+  if (activeFilter) return;
+  document.querySelectorAll('.uc-group').forEach(g => {
+    const ucActor = g.getAttribute('data-actor');
+    g.style.opacity = ucActor === actor ? '1' : '0.2';
+  });
+  document.querySelectorAll('.rel-line').forEach(l => {
+    l.style.opacity = l.getAttribute('data-actors') === actor ? '0.6' : '0.04';
+  });
+}
+
+function unhighlightActor() {
+  if (activeFilter) return;
+  document.querySelectorAll('.uc-group').forEach(g => g.style.opacity = '1');
+  document.querySelectorAll('.rel-line').forEach(l => {
+    l.style.opacity = l.getAttribute('stroke-opacity') || '0.35';
+  });
+}
+</script>
+</body>
+</html>

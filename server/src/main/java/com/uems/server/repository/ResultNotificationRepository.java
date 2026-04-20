@@ -2,6 +2,7 @@ package com.uems.server.repository;
 
 import com.uems.server.model.ResultNotification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,7 +17,11 @@ public interface ResultNotificationRepository extends JpaRepository<ResultNotifi
     
     boolean existsByExamExamIdAndStudentId(Long examId, Long studentId);
 
-    void deleteByStudentId(Long studentId);
+    @Modifying
+    @Query("DELETE FROM ResultNotification rn WHERE rn.student.id = :studentId")
+    void deleteByStudentId(@Param("studentId") Long studentId);
     
-    void deleteByExamExamId(Long examId);
+    @Modifying
+    @Query("DELETE FROM ResultNotification rn WHERE rn.exam.examId = :examId")
+    void deleteByExamExamId(@Param("examId") Long examId);
 }

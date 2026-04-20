@@ -52,6 +52,8 @@ public class FacultyController {
     @Autowired private MaterialRepository materialRepository;
     @Autowired private CourseService courseService;
     @Autowired private FacultyRepository facultyRepository;
+    @Autowired private com.uems.server.repository.ExamRepository examRepository;
+    @Autowired private com.uems.server.repository.SupplementaryAttemptRepository supplementaryAttemptRepository;
 
     private static final String UPLOAD_DIR = "uploads/materials";
 
@@ -130,25 +132,76 @@ public class FacultyController {
     @GetMapping("/courses/{courseId}/marks")
     public ResponseEntity<?> getCourseMarks(
             @RequestHeader("Authorization") String authHeader,
-            @PathVariable Long courseId) {
+            @PathVariable Long courseId,
+            @RequestParam(required = false) Long examId) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
-            List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
-            List<FacultyMarksResponse> response = enrollments.stream().map(e -> new FacultyMarksResponse(
-                    e.getStudent().getId(),
-                    e.getStudent().getRollNumber(),
-                    e.getStudent().getUser() != null ? e.getStudent().getUser().getUsername() : "N/A",
-                    e.getMid1Marks(),
-                    e.getMid2Marks(),
-                    e.getAssignmentMarks(),
-                    e.getEndSemMarks(),
-                    e.getEndSemReleased(),
-                    e.getStudent().getYear(),
-                    e.getStudent().getSemester()
-            )).collect(Collectors.toList());
-            return ResponseEntity.ok(response);
+
+            boolean isSupplementary = false;
+            if (examId != null) {
+                com.uems.server.model.Exam exam = examRepository.findById(examId)
+                        .orElseThrow(() -> new RuntimeException("Exam not found"));
+                isSupplementary = "SUPPLEMENTARY".equalsIgnoreCase(exam.getExamType());
+            }
+
+            if (isSupplementary) {
+                // For supplementary, we only show students who have failed or were absent in previous attempts
+                // AND are not already passed in some other attempt (simplified: we check current Enrollment)
+                List<Enrollment> eligible = enrollmentRepository.findByCourseCourseId(courseId).stream()
+                        .filter(e -> "F".equals(e.getGrade()) || "Ab".equals(e.getGrade()))
+                        .collect(Collectors.toList());
+
+                List<FacultyMarksResponse> response = eligible.stream().map(e -> {
+                    // Check if there's already an attempt for THIS exam session
+                    var attemptOpt = supplementaryAttemptRepository.findByExamExamIdAndEnrollmentId(examId, e.getId());
+                    
+                    FacultyMarksResponse r = new FacultyMarksResponse();
+                    r.setStudentId(e.getStudent().getId());
+                    r.setRollNumber(e.getStudent().getRollNumber());
+                    r.setStudentName(e.getStudent().getUser() != null ? e.getStudent().getUser().getUsername() : "N/A");
+                    r.setYear(String.valueOf(e.getStudent().getYear()));
+                    r.setSemester(String.valueOf(e.getStudent().getSemester()));
+                    
+                    if (attemptOpt.isPresent()) {
+                        var a = attemptOpt.get();
+                        r.setMid1Marks(a.getMid1Marks());
+                        r.setMid2Marks(a.getMid2Marks());
+                        r.setAssignmentMarks(a.getAssignmentMarks());
+                        r.setEndSemMarks(a.getEndSemMarks());
+                        r.setEndSemReleased(a.getIsReleased());
+                        r.setIsAbsent(a.getIsAbsent());
+                    } else {
+                        // User specifically said NO carry forward
+                        r.setMid1Marks(null);
+                        r.setMid2Marks(null);
+                        r.setAssignmentMarks(null);
+                        r.setEndSemMarks(null);
+                        r.setEndSemReleased(false);
+                        r.setIsAbsent(false);
+                    }
+                    return r;
+                }).collect(Collectors.toList());
+                return ResponseEntity.ok(response);
+            } else {
+                // Regular logic
+                List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
+                List<FacultyMarksResponse> response = enrollments.stream().map(e -> new FacultyMarksResponse(
+                        e.getStudent().getId(),
+                        e.getStudent().getRollNumber(),
+                        e.getStudent().getUser() != null ? e.getStudent().getUser().getUsername() : "N/A",
+                        e.getMid1Marks(),
+                        e.getMid2Marks(),
+                        e.getAssignmentMarks(),
+                        e.getEndSemMarks(),
+                        e.getEndSemReleased(),
+                        String.valueOf(e.getStudent().getYear()),
+                        String.valueOf(e.getStudent().getSemester()),
+                        e.getIsAbsent()
+                )).collect(Collectors.toList());
+                return ResponseEntity.ok(response);
+            }
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
         }
@@ -157,17 +210,27 @@ public class FacultyController {
     public ResponseEntity<?> uploadMarksBulk(
             @RequestHeader("Authorization") String authHeader,
             @PathVariable Long courseId,
+            @RequestParam(required = false) Long examId,
             @RequestBody List<MarksUpdateRequest> marksRequests) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
+
+            com.uems.server.model.Exam exam = null;
+            boolean isSupplementary = false;
+            if (examId != null) {
+                exam = examRepository.findById(examId)
+                        .orElseThrow(() -> new RuntimeException("Exam not found"));
+                isSupplementary = "SUPPLEMENTARY".equalsIgnoreCase(exam.getExamType());
+            }
+
             List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
             int updatedCount = 0;
             int skippedCount = 0;
 
             for (MarksUpdateRequest req : marksRequests) {
-                // Validation logic remains same
+                // Validation
                 if (req.getMid1Marks() != null && (req.getMid1Marks() < 0 || req.getMid1Marks() > 30)) {
                     return ResponseEntity.status(400).body("Error: Mid1 marks must be between 0 and 30");
                 }
@@ -187,27 +250,55 @@ public class FacultyController {
 
                 if (enrollmentOpt.isPresent()) {
                     Enrollment e = enrollmentOpt.get();
-                    // Block marks editing if results have already been published
-                    if (Boolean.TRUE.equals(e.getEndSemReleased())) {
-                        skippedCount++;
-                        continue; 
+
+                    if (isSupplementary) {
+                        // Find or create SupplementaryAttempt for this exam session
+                        com.uems.server.model.SupplementaryAttempt attempt = 
+                            supplementaryAttemptRepository.findByExamExamIdAndEnrollmentId(examId, e.getId())
+                            .orElseGet(() -> com.uems.server.model.SupplementaryAttempt.builder()
+                                .exam(examRepository.findById(examId).orElseThrow())
+                                .enrollment(e)
+                                .year(e.getCourse().getYear())
+                                .semester(e.getCourse().getSemester())
+                                .build());
+
+                        if (Boolean.TRUE.equals(attempt.getIsReleased())) {
+                            skippedCount++;
+                            continue;
+                        }
+
+                        if (req.getMid1Marks() != null) attempt.setMid1Marks(req.getMid1Marks());
+                        if (req.getMid2Marks() != null) attempt.setMid2Marks(req.getMid2Marks());
+                        if (req.getAssignmentMarks() != null) attempt.setAssignmentMarks(req.getAssignmentMarks());
+                        if (req.getEndSemMarks() != null) attempt.setEndSemMarks(req.getEndSemMarks());
+                        if (req.getIsAbsent() != null) attempt.setIsAbsent(req.getIsAbsent());
+                        
+                        supplementaryAttemptRepository.save(attempt);
+                        updatedCount++;
+                    } else {
+                        // Regular logic
+                        if (Boolean.TRUE.equals(e.getEndSemReleased())) {
+                            skippedCount++;
+                            continue;
+                        }
+                        if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
+                        if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
+                        if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
+                        if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
+                        if (req.getIsAbsent() != null) e.setIsAbsent(req.getIsAbsent());
+                        enrollmentRepository.save(e);
+                        updatedCount++;
                     }
-                    if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
-                    if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
-                    if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
-                    if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
-                    enrollmentRepository.save(e);
-                    updatedCount++;
                 }
             }
 
             if (updatedCount == 0 && skippedCount > 0) {
-                return ResponseEntity.status(409).body("Unable to save. All records are locked because results have been published for this course.");
+                return ResponseEntity.status(409).body("Unable to save. All records are locked because results have been published for this session.");
             }
-            
+
             String msg = "Marks saved successfully. Updated: " + updatedCount;
             if (skippedCount > 0) msg += ", Skipped: " + skippedCount + " (locked due to published results).";
-            
+
             return ResponseEntity.ok(msg);
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());

@@ -77,7 +77,9 @@ public class PublicController {
                             e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 0,
                             internalMarks,
                             e.getGrade(),
-                            e.getGradePoints() != null ? e.getGradePoints() : 0
+                            e.getGradePoints() != null ? e.getGradePoints() : 0,
+                            "REGULAR",
+                            "Regular Session"
                     );
                     courseDtos.add(dto);
 

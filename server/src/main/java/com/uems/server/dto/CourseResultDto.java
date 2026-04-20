@@ -14,4 +14,6 @@ public class CourseResultDto {
     private Integer internalMarks;
     private String grade;
     private Integer gradePoints;
+    private String attemptType; // "REGULAR" or "SUPPLEMENTARY"
+    private String examTitle;
 }

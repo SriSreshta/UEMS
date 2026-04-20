@@ -19,14 +19,40 @@ const UploadMarksPage = () => {
   const [courseDetails, setCourseDetails] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all"); // 'all', 'current', 'past'
+  const [exams, setExams] = useState([]);
+  const [selectedExamId, setSelectedExamId] = useState("");
+  const [examType, setExamType] = useState("REGULAR"); // 'REGULAR' or 'SUPPLEMENTARY'
+
+  useEffect(() => {
+    fetchExams();
+  }, []);
 
   useEffect(() => {
     fetchStudents();
-  }, [courseId]);
+  }, [courseId, selectedExamId, examType]);
+
+  const fetchExams = async () => {
+    try {
+      const res = await api.get("/admin/exams");
+      const fetchedExams = res.data;
+      setExams(fetchedExams);
+
+      // Auto-select the latest supplementary exam if we are in Supply mode
+      if (examType === "SUPPLEMENTARY") {
+        const suppExam = fetchedExams.filter(ex => ex.examType === "SUPPLEMENTARY")
+                        .sort((a, b) => b.examId - a.examId)[0];
+        if (suppExam) setSelectedExamId(suppExam.examId);
+      }
+    } catch (err) {
+      console.error("Failed to fetch exams", err);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
-      const res = await api.get(`/faculty/courses/${courseId}/marks`);
+      setLoading(true);
+      const url = `/faculty/courses/${courseId}/marks${selectedExamId ? `?examId=${selectedExamId}` : ""}`;
+      const res = await api.get(url);
       setStudents(res.data);
       
       // Fetch course details to know its year/sem for current vs past logic
@@ -134,9 +160,11 @@ const UploadMarksPage = () => {
         mid1Marks: s.mid1Marks,
         mid2Marks: s.mid2Marks,
         assignmentMarks: s.assignmentMarks,
-        endSemMarks: s.endSemMarks
+        endSemMarks: s.endSemMarks,
+        isAbsent: s.isAbsent || false
       }));
-      await api.post(`/faculty/courses/${courseId}/marks/bulk`, payload);
+      const url = `/faculty/courses/${courseId}/marks/bulk${selectedExamId ? `?examId=${selectedExamId}` : ""}`;
+      await api.post(url, payload);
       setMessage("All marks committed successfully to the ledger!");
       setError("");
       setTimeout(() => navigate("/faculty"), 2500);
@@ -155,7 +183,7 @@ const UploadMarksPage = () => {
         <Header title="Internal Assessment" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
         <main className="p-8 flex-1">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-10">
+            <div className="flex flex-col lg:flex-row items-center justify-between mb-10 gap-6">
                 <div>
                   <button onClick={() => navigate("/faculty")} className="flex items-center gap-2 text-indigo-600 font-bold text-xs mb-4 hover:translate-x-[-4px] transition-transform">
                     <ArrowLeftIcon className="h-4 w-4" /> Faculty Dashboard
@@ -165,13 +193,37 @@ const UploadMarksPage = () => {
                     <CheckBadgeIcon className="h-5 w-5 text-emerald-500" /> Secure ledger entry for Course ID {courseId}
                   </p>
                 </div>
-                <button 
-                  onClick={handleSave} 
-                  disabled={loading || students.length === 0 || allLocked} 
-                  className={`px-10 py-4 rounded-2xl font-black text-lg shadow-2xl transition active:scale-95 disabled:opacity-50 ${allLocked ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'}`}
-                >
-                  {allLocked ? "Ledger Locked" : "Sync & Commit All"}
-                </button>
+
+                <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                  <div className="flex bg-slate-100 p-1 rounded-xl">
+                    <button 
+                      onClick={() => { setExamType("REGULAR"); setSelectedExamId(""); }}
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${examType === "REGULAR" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"}`}
+                    >
+                      Regular
+                    </button>
+                    <button 
+                      onClick={() => setExamType("SUPPLEMENTARY")}
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${examType === "SUPPLEMENTARY" ? "bg-white text-amber-600 shadow-sm" : "text-slate-500"}`}
+                    >
+                      Supply
+                    </button>
+                  </div>
+
+                  {examType === "SUPPLEMENTARY" && !selectedExamId && students.length === 0 && !loading && (
+                    <p className="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-lg animate-pulse">
+                      No Active Supply Exam Found
+                    </p>
+                  )}
+
+                  <button 
+                    onClick={handleSave} 
+                    disabled={loading || students.length === 0 || allLocked || (examType === "SUPPLEMENTARY" && !selectedExamId)} 
+                    className={`px-8 py-3 rounded-xl font-black text-sm shadow-xl transition active:scale-95 disabled:opacity-50 ${allLocked ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'}`}
+                  >
+                    {allLocked ? "Ledger Locked" : "Sync & Commit"}
+                  </button>
+                </div>
             </div>
 
             {allLocked && (
@@ -291,6 +343,7 @@ const UploadMarksPage = () => {
                         <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Mid2 (30)</th>
                         <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center border-r border-slate-100">Assignment (10)</th>
                         <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">End Sem (60)</th>
+                        <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Absent?</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -307,7 +360,7 @@ const UploadMarksPage = () => {
                       }).map((student) => {
                         const isCurrent = courseDetails ? (String(student.year) === String(courseDetails.year) && String(student.semester) === String(courseDetails.semester)) : false;
                         return (
-                        <tr key={student.studentId} className="hover:bg-indigo-50/30 transition duration-300 group">
+                        <tr key={student.studentId} className={`hover:bg-indigo-50/30 transition duration-300 group ${student.isAbsent ? 'bg-red-50/50' : ''}`}>
                           <td className="px-8 py-6 border-r border-slate-50">
                             <div className="flex justify-between items-start gap-2">
                               <div>
@@ -328,16 +381,27 @@ const UploadMarksPage = () => {
                             </div>
                           </td>
                           <td className="px-4 py-6">
-                            <input type="number" min="0" max="30" placeholder="-" value={student.mid1Marks ?? ""} onChange={(e) => handleMarkChange(student.studentId, "mid1Marks", e.target.value)} className="w-16 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+                            <input type="number" min="0" max="30" placeholder="-" disabled={student.isAbsent} value={student.isAbsent ? "" : (student.mid1Marks ?? "")} onChange={(e) => handleMarkChange(student.studentId, "mid1Marks", e.target.value)} className={`w-16 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all ${student.isAbsent ? 'opacity-30' : ''}`} />
                           </td>
                           <td className="px-4 py-6">
-                            <input type="number" min="0" max="30" placeholder="-" value={student.mid2Marks ?? ""} onChange={(e) => handleMarkChange(student.studentId, "mid2Marks", e.target.value)} className="w-16 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+                            <input type="number" min="0" max="30" placeholder="-" disabled={student.isAbsent} value={student.isAbsent ? "" : (student.mid2Marks ?? "")} onChange={(e) => handleMarkChange(student.studentId, "mid2Marks", e.target.value)} className={`w-16 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all ${student.isAbsent ? 'opacity-30' : ''}`} />
                           </td>
                           <td className="px-4 py-6 border-r border-slate-50">
-                            <input type="number" min="0" max="10" placeholder="-" value={student.assignmentMarks ?? ""} onChange={(e) => handleMarkChange(student.studentId, "assignmentMarks", e.target.value)} className="w-16 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all" />
+                            <input type="number" min="0" max="10" placeholder="-" disabled={student.isAbsent} value={student.isAbsent ? "" : (student.assignmentMarks ?? "")} onChange={(e) => handleMarkChange(student.studentId, "assignmentMarks", e.target.value)} className={`w-16 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-slate-700 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all ${student.isAbsent ? 'opacity-30' : ''}`} />
                           </td>
                           <td className="px-4 py-6">
-                            <input type="number" min="0" max="60" placeholder="-" value={student.endSemMarks ?? ""} onChange={(e) => handleMarkChange(student.studentId, "endSemMarks", e.target.value)} className="w-20 mx-auto block bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-black text-indigo-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all" />
+                            <input type="number" min="0" max="60" placeholder="-" disabled={student.isAbsent} value={student.isAbsent ? "" : (student.endSemMarks ?? "")} onChange={(e) => handleMarkChange(student.studentId, "endSemMarks", e.target.value)} className={`w-20 mx-auto block bg-white border-2 border-indigo-100 rounded-lg px-2 py-2 text-center font-black text-indigo-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm ${student.isAbsent ? 'opacity-30' : ''}`} />
+                          </td>
+                          <td className="px-4 py-6 text-center">
+                            <button 
+                              onClick={() => {
+                                const newVal = !student.isAbsent;
+                                setStudents(prev => prev.map(s => s.studentId === student.studentId ? { ...s, isAbsent: newVal } : s));
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${student.isAbsent ? 'bg-red-500 text-white shadow-lg' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                            >
+                              {student.isAbsent ? 'Absent' : 'Present'}
+                            </button>
                           </td>
                         </tr>
                       )})}
