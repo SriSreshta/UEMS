@@ -264,15 +264,16 @@ const AdminPublishResults = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar isOpen={isOpen} role="admin" />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Header
           title="Publish Results (R22)"
           isOpen={isOpen}
           toggleSidebar={() => setIsOpen(!isOpen)}
         />
 
-        <main className="p-6 flex-1 overflow-y-auto">
-          {message.text && (
+        <main className="p-6 flex-1 overflow-y-auto w-full">
+          <div className="max-w-6xl w-full mx-auto">
+            {message.text && (
             <div
               className={`p-4 mb-6 rounded border ${
                 message.type === "error"
@@ -417,53 +418,7 @@ const AdminPublishResults = () => {
           {/* Student results — paginated */}
           {!previewLoading && selectedExamId && (!isSupplementary ? students.length > 0 : true) && (
             <>
-              {/* Pagination info + controls — top */}
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-500">
-                  Showing students{" "}
-                  <span className="font-semibold text-gray-700">
-                    {(currentPage - 1) * PAGE_SIZE + 1}–
-                    {Math.min(currentPage * PAGE_SIZE, students.length)}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-gray-700">
-                    {students.length}
-                  </span>
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    ← Prev
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-1.5 text-sm rounded border transition ${
-                          page === currentPage
-                            ? "bg-indigo-600 text-white border-indigo-600 font-bold"
-                            : "bg-white border-gray-300 hover:bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    )
-                  )}
-                  <button
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    Next →
-                  </button>
-                </div>
-                    {isSupplementary ? (
+              {isSupplementary ? (
               <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mt-6">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 text-gray-600 uppercase border-b">
@@ -608,20 +563,22 @@ const AdminPublishResults = () => {
                 </div>
             )}
 
-            {!isSupplementary && (
-              <div className="flex items-center justify-between mt-6">
-                {/* Pagination... */}
-                <p className="text-sm text-gray-500">
-                  Page{" "}
-                  <span className="font-semibold text-gray-700">
-                    {currentPage}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-gray-700">
-                    {totalPages}
-                  </span>
-                </p>
-                <div className="flex items-center gap-2">
+            {!isSupplementary && (() => {
+              let pages = [];
+              if (totalPages <= 7) {
+                pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+              } else {
+                if (currentPage <= 4) {
+                  pages = [1, 2, 3, 4, 5, '...', totalPages];
+                } else if (currentPage >= totalPages - 3) {
+                  pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                } else {
+                  pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+                }
+              }
+
+              return (
+                <div className="flex items-center justify-center gap-2 mt-6">
                   <button
                     onClick={() => {
                       setCurrentPage((p) => Math.max(1, p - 1));
@@ -632,6 +589,30 @@ const AdminPublishResults = () => {
                   >
                     ← Prev
                   </button>
+                  
+                  {pages.map((page, idx) => (
+                    page === '...' ? (
+                      <span key={`ellipsis-${idx}`} className="px-3 py-1.5 text-sm text-gray-500">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={page}
+                        onClick={() => {
+                          setCurrentPage(page);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className={`px-3 py-1.5 text-sm rounded border transition ${
+                          page === currentPage
+                            ? "bg-indigo-600 text-white border-indigo-600 font-bold"
+                            : "bg-white border-gray-300 hover:bg-gray-50 text-gray-700"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  ))}
+
                   <button
                     onClick={() => {
                       setCurrentPage((p) => Math.min(totalPages, p + 1));
@@ -643,11 +624,11 @@ const AdminPublishResults = () => {
                     Next →
                   </button>
                 </div>
-              </div>
-            )}
-              </div>
+              );
+            })()}
             </>
           )}
+          </div>
         </main>
         {showSuppModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
