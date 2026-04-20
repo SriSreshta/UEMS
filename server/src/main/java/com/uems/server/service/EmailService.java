@@ -80,7 +80,28 @@ public class EmailService {
                 "For more details, please log in to the UEMS Student Portal and check your attendance report.\n\n" +
                 "If you believe this is an error, please contact your faculty or the academic office immediately.\n\n" +
                 "Regards,\n" +
-                "UEMS Academic Team";
+                "UEMS Team";
+
+        message.setText(content);
+        mailSender.send(message);
+    }
+
+    public void sendResultsPublishedEmail(String to, String studentName, String examTitle) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("📢 Exam Results Published - " + examTitle);
+
+        String resultsLink = String.format("%s/login", frontendUrl);
+
+        String content = "Dear " + studentName + ",\n\n" +
+                "Great news! The results for the " + examTitle + " have been officially published.\n\n" +
+                "You can now view your detailed marks, grades, and academic standing on your student dashboard.\n\n" +
+                "Click the link below to access your results directly:\n" +
+                resultsLink + "\n\n" +
+                "If you have any queries or notice any discrepancies, please reach out to the examination branch immediately.\n\n" +
+                "Best regards,\n" +
+                "UEMS Team";
 
         message.setText(content);
         mailSender.send(message);

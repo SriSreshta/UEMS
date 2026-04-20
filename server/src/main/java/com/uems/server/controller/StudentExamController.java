@@ -25,18 +25,54 @@ public class StudentExamController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.uems.server.repository.EnrollmentRepository enrollmentRepository;
+
     @GetMapping("/schedules")
     @PreAuthorize("hasRole('STUDENT')")
     public List<ExamScheduleDto> getBroadcastedSchedules(@AuthenticationPrincipal UserDetails userDetails) {
         
         User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         Integer year = Integer.parseInt(user.getStudent().getYear());
-        
         Integer semester = Integer.parseInt(user.getStudent().getSemester());
 
-        List<ExamSchedule> schedules = examScheduleRepository.findByExamYearAndExamSemesterAndIsBroadcastedTrue(year, semester);
+        // Get student's backlogs (where grade is F or Ab)
+        List<Long> backlogCourseIds = enrollmentRepository.findByStudentId(user.getStudent().getId())
+                .stream()
+                .filter(e -> {
+                    if (e.getGrade() == null) return false;
+                    String g = e.getGrade().trim();
+                    return "F".equalsIgnoreCase(g) || "Ab".equalsIgnoreCase(g);
+                })
+                .map(e -> e.getCourse().getCourseId())
+                .collect(Collectors.toList());
+
+        System.out.println("DEBUG: Student " + user.getUsername() + " has " + backlogCourseIds.size() + " backlog courses.");
+
+        // Retrieve all broadcasted schedules safely avoiding NPE
+        List<ExamSchedule> allBroadcasted = examScheduleRepository.findAll().stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsBroadcasted()))
+                .collect(Collectors.toList());
+
+        System.out.println("DEBUG: Found " + allBroadcasted.size() + " total broadcasted exam schedules system-wide.");
+
+        // Filter for their current regular exams OR their supply backlogs
+        List<ExamSchedule> visibleSchedules = allBroadcasted.stream().filter(s -> {
+            boolean isRegularCurrent = "REGULAR".equalsIgnoreCase(s.getExam().getExamType()) 
+                    && s.getExam().getYear().equals(year) 
+                    && s.getExam().getSemester().equals(semester);
+            
+            boolean isSupplyBacklog = "SUPPLEMENTARY".equalsIgnoreCase(s.getExam().getExamType())
+                    && backlogCourseIds.contains(s.getCourse().getCourseId());
+            
+            if (isSupplyBacklog) {
+                System.out.println("DEBUG: Allowing supply schedule for course ID " + s.getCourse().getCourseId() + " because student has it as a backlog.");
+            }
+                    
+            return isRegularCurrent || isSupplyBacklog;
+        }).collect(Collectors.toList());
         
-        return schedules.stream().map(s -> {
+        return visibleSchedules.stream().map(s -> {
             ExamScheduleDto dto = new ExamScheduleDto();
             dto.setScheduleId(s.getScheduleId());
             dto.setExamId(s.getExam().getExamId());

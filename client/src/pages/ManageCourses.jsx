@@ -43,6 +43,10 @@ export default function ManageCourses() {
 
   const [assign, setAssign] = useState({ courseId: "", facultyId: "" });
   const [assigning, setAssigning] = useState(false);
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterYear, setFilterYear] = useState("");
+  const [filterSem, setFilterSem] = useState("");
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -142,6 +146,27 @@ export default function ManageCourses() {
       showToast("Failed to unlock ledger.", "error");
     }
   };
+
+  const filteredCourses = courses.filter(c => {
+    const q = searchQuery.toLowerCase();
+    const matchYear = String(c.year || "").includes(q);
+    const matchSem = String(c.semester || "").includes(q);
+    const matchCode = (c.code || "").toLowerCase().includes(q);
+    const matchName = (c.name || "").toLowerCase().includes(q);
+    const matchDept = (c.department || "").toLowerCase().includes(q);
+    const matchFaculty = (c.facultyName || "").toLowerCase().includes(q);
+    
+    // First apply explicit dropdown filters if present
+    if (filterYear && String(c.year) !== filterYear) return false;
+    if (filterSem && String(c.semester) !== filterSem) return false;
+
+    // Then apply text search
+    if (q) {
+      return matchYear || matchSem || matchCode || matchName || matchDept || matchFaculty;
+    }
+    
+    return true;
+  });
 
   return (
     <div className="flex min-h-screen bg-slate-50 bg-pattern">
@@ -267,9 +292,41 @@ export default function ManageCourses() {
 
             {/* Course Table */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
-                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
+                <div className="px-8 py-6 border-b border-slate-50 flex flex-col md:flex-row items-center justify-between gap-4">
                     <h2 className="text-xl font-bold text-slate-800">Operational Course Registry</h2>
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{courses.length} ACTIVE COURSES</span>
+                    
+                    <div className="flex flex-wrap items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
+                        <select
+                            value={filterYear}
+                            onChange={(e) => setFilterYear(e.target.value)}
+                            className="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-slate-600 font-bold"
+                        >
+                            <option value="">All Years</option>
+                            <option value="1">Year 1</option>
+                            <option value="2">Year 2</option>
+                            <option value="3">Year 3</option>
+                            <option value="4">Year 4</option>
+                        </select>
+                        <select
+                            value={filterSem}
+                            onChange={(e) => setFilterSem(e.target.value)}
+                            className="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-slate-600 font-bold"
+                        >
+                            <option value="">All Semesters</option>
+                            <option value="1">Sem 1</option>
+                            <option value="2">Sem 2</option>
+                        </select>
+                        <input
+                            type="text"
+                            placeholder="🔍 Search name, code, faculty..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="px-4 py-2 text-sm border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none w-full md:w-56 placeholder:text-slate-400 font-medium"
+                        />
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest shrink-0 ml-2">
+                            {filteredCourses.length} MATCHES
+                        </span>
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full">
@@ -284,7 +341,8 @@ export default function ManageCourses() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 transition-all">
-                            {courses.map((c) => (
+                            {filteredCourses.length > 0 ? (
+                              filteredCourses.map((c) => (
                                 <tr key={c.courseId} className="hover:bg-slate-50/50 transition">
                                     <td className="px-8 py-5">
                                         <div className="font-bold text-slate-800">
@@ -350,7 +408,14 @@ export default function ManageCourses() {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                              ))
+                            ) : (
+                              <tr>
+                                  <td colSpan="6" className="px-8 py-10 text-center text-slate-400 font-medium italic">
+                                      No courses match your search criteria.
+                                  </td>
+                              </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

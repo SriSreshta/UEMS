@@ -50,6 +50,9 @@ public class AdminExamController {
     @Autowired
     private com.uems.server.service.AdminService adminService;
 
+    @Autowired
+    private com.uems.server.service.EmailService emailService;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -438,6 +441,21 @@ public class AdminExamController {
                     .build();
             resultNotificationRepository.save(notif);
             count++;
+
+            // Send notification email asynchronously
+            String studentEmail = s.getUser().getEmail();
+            String studentName = s.getUser().getUsername();
+            String finalExamTitle = exam.getTitle();
+
+            new Thread(() -> {
+                try {
+                    if (studentEmail != null && !studentEmail.trim().isEmpty()) {
+                        emailService.sendResultsPublishedEmail(studentEmail, studentName, finalExamTitle);
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Failed to send results email to " + studentEmail + ": " + ex.getMessage());
+                }
+            }).start();
         }
         System.out.println("DEBUG: Successfully inserted " + count + " new notifications into result_notification table.");
     }
@@ -453,6 +471,11 @@ public class AdminExamController {
         List<ExamSchedule> schedules = examScheduleRepository.findByExamExamId(examId);
         examScheduleRepository.deleteAll(schedules);
         resultNotificationRepository.deleteByExamExamId(examId);
+        
+        // Delete any existing supplementary attempts to prevent foreign key errors
+        List<SupplementaryAttempt> supplyAttempts = supplementaryAttemptRepository.findByExamExamId(examId);
+        supplementaryAttemptRepository.deleteAll(supplyAttempts);
+        
         examRepository.delete(exam);
     }
 

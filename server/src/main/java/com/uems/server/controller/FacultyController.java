@@ -129,6 +129,25 @@ public class FacultyController {
         }
     }
 
+    @GetMapping("/exams")
+    public ResponseEntity<?> getExams() {
+        try {
+            List<com.uems.server.dto.ExamDto> exams = examRepository.findAll().stream().map(e -> {
+                com.uems.server.dto.ExamDto dto = new com.uems.server.dto.ExamDto();
+                dto.setExamId(e.getExamId());
+                dto.setTitle(e.getTitle());
+                dto.setYear(e.getYear());
+                dto.setSemester(e.getSemester());
+                dto.setExamType(e.getExamType());
+                dto.setCreatedAt(e.getCreatedAt());
+                return dto;
+            }).collect(Collectors.toList());
+            return ResponseEntity.ok(exams);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching exams: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/courses/{courseId}/marks")
     public ResponseEntity<?> getCourseMarks(
             @RequestHeader("Authorization") String authHeader,

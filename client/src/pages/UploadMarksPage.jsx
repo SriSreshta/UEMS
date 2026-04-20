@@ -33,23 +33,35 @@ const UploadMarksPage = () => {
 
   const fetchExams = async () => {
     try {
-      const res = await api.get("/admin/exams");
-      const fetchedExams = res.data;
-      setExams(fetchedExams);
-
-      // Auto-select the latest supplementary exam if we are in Supply mode
-      if (examType === "SUPPLEMENTARY") {
-        const suppExam = fetchedExams.filter(ex => ex.examType === "SUPPLEMENTARY")
-                        .sort((a, b) => b.examId - a.examId)[0];
-        if (suppExam) setSelectedExamId(suppExam.examId);
-      }
+      const res = await api.get("/faculty/exams");
+      setExams(res.data);
     } catch (err) {
       console.error("Failed to fetch exams", err);
     }
   };
 
+  useEffect(() => {
+    if (examType === "SUPPLEMENTARY") {
+      const suppExam = exams
+        .filter(ex => ex.examType === "SUPPLEMENTARY")
+        .sort((a, b) => b.examId - a.examId)[0];
+      if (suppExam) {
+        setSelectedExamId(suppExam.examId);
+      } else {
+        setSelectedExamId("");
+      }
+    } else {
+      setSelectedExamId("");
+    }
+  }, [examType, exams]);
+
   const fetchStudents = async () => {
     try {
+      if (examType === "SUPPLEMENTARY" && !selectedExamId) {
+        setStudents([]);
+        return;
+      }
+      
       setLoading(true);
       const url = `/faculty/courses/${courseId}/marks${selectedExamId ? `?examId=${selectedExamId}` : ""}`;
       const res = await api.get(url);
@@ -210,10 +222,19 @@ const UploadMarksPage = () => {
                     </button>
                   </div>
 
-                  {examType === "SUPPLEMENTARY" && !selectedExamId && students.length === 0 && !loading && (
-                    <p className="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-lg animate-pulse">
-                      No Active Supply Exam Found
-                    </p>
+                  {examType === "SUPPLEMENTARY" && (
+                    <select
+                      value={selectedExamId}
+                      onChange={(e) => setSelectedExamId(e.target.value)}
+                      className="ml-2 text-xs p-2 border border-amber-200 rounded-lg text-amber-700 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+                    >
+                      <option value="">Select Supply Exam</option>
+                      {exams.filter(ex => ex.examType === "SUPPLEMENTARY").map(ex => (
+                        <option key={ex.examId} value={ex.examId}>
+                          {ex.title} (ID: {ex.examId})
+                        </option>
+                      ))}
+                    </select>
                   )}
 
                   <button 
@@ -238,6 +259,12 @@ const UploadMarksPage = () => {
                     <br/><span className="font-bold underline">To correct marks, please ask the Administrator to "Unlock" results for this exam.</span>
                   </p>
                 </div>
+              </div>
+            )}
+
+            {examType === "SUPPLEMENTARY" && !selectedExamId && (
+              <div className="p-6 mb-8 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 text-sm font-bold flex items-center justify-center">
+                Please select a Supply Exam from the dropdown above to load eligible students.
               </div>
             )}
 

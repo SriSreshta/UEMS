@@ -45,8 +45,13 @@ const StudentMarksPage = () => {
     return groups;
   }, {});
 
-  // Sort semester keys chronologically
-  const sortedKeys = Object.keys(groupedMarks).sort();
+  // Sort semester keys chronologically (latest first)
+  const sortedKeys = Object.keys(groupedMarks).sort((a, b) => {
+    const [yearA, semA] = a.split("-").map(Number);
+    const [yearB, semB] = b.split("-").map(Number);
+    if (yearA !== yearB) return yearB - yearA;
+    return semB - semA;
+  });
 
   const toggleSemester = (key) => {
     setExpandedSemesters((prev) => ({ ...prev, [key]: !prev[key] }));
