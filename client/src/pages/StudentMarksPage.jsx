@@ -46,7 +46,7 @@ const StudentMarksPage = () => {
   }, {});
 
   // Sort semester keys chronologically
-  const sortedKeys = Object.keys(groupedMarks).sort();
+  const sortedKeys = Object.keys(groupedMarks).sort().reverse();
 
   const toggleSemester = (key) => {
     setExpandedSemesters((prev) => ({ ...prev, [key]: !prev[key] }));
