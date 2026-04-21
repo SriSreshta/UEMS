@@ -31,7 +31,7 @@ const AddUserManual = () => {
     setMessage({ type: "", text: "" });
 
     try {
-      const res = await authFetch("http://localhost:8081/api/admin/create-user", {
+      const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/create-user", {
         method: "POST",
         body: JSON.stringify(formData),
       });
@@ -68,7 +68,7 @@ const AddUserManual = () => {
         <main className="p-10 flex-1">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-3xl font-extrabold mb-10 text-slate-900 tracking-tight text-center">Create New User</h2>
-            
+
             <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-10">
               {message.text && (
                 <div className={`p-5 mb-8 rounded-xl text-sm font-bold flex items-center gap-3 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
@@ -81,27 +81,27 @@ const AddUserManual = () => {
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Username (Display Name)</label>
-                    <input 
-                      required 
-                      type="text" 
-                      name="username" 
+                    <input
+                      required
+                      type="text"
+                      name="username"
                       placeholder="e.g. John Doe"
-                      value={formData.username} 
-                      onChange={handleChange} 
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700" 
+                      value={formData.username}
+                      onChange={handleChange}
+                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700"
                     />
                     <p className="text-xs text-slate-400 mt-1">Can be shared by multiple users</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Email</label>
-                    <input 
-                      required 
-                      type="email" 
-                      name="email" 
+                    <input
+                      required
+                      type="email"
+                      name="email"
                       placeholder="e.g. jdoe@example.com"
-                      value={formData.email} 
-                      onChange={handleChange} 
-                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700" 
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700"
                     />
                     <p className="text-xs text-slate-400 mt-1">Must be globally unique</p>
                   </div>

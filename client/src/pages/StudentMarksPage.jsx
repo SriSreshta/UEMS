@@ -16,7 +16,7 @@ const StudentMarksPage = () => {
   useEffect(() => {
     const fetchMarks = async () => {
       try {
-        const res = await authFetch("http://localhost:8081/api/students/my-marks");
+        const res = await authFetch("https://uems-rz8o.onrender.com/api/students/my-marks");
         if (!res.ok) throw new Error("Failed to fetch marks");
         const data = await res.json();
         setMarks(data);
@@ -74,9 +74,9 @@ const StudentMarksPage = () => {
                 <p className="text-slate-500 font-medium">View your internal marks across all semesters.</p>
               </div>
             </div>
-            
+
             {error && <div className="p-6 mb-8 text-rose-700 bg-rose-50 rounded-2xl border border-rose-100 font-bold">{error}</div>}
-            
+
             {loading ? (
               <div className="h-64 flex items-center justify-center bg-white rounded-3xl border border-slate-50">
                 <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>

@@ -27,7 +27,7 @@ const BulkUserUpload = () => {
     formData.append("file", file);
 
     try {
-      const res = await authFetch("http://localhost:8081/api/admin/upload-users", {
+      const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/upload-users", {
         method: "POST",
         body: formData,
       });
@@ -54,9 +54,9 @@ const BulkUserUpload = () => {
         <main className="p-10 flex-1">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-extrabold mb-10 text-slate-900 tracking-tight text-center">Bulk Excel Upload</h2>
-            
+
             <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-10">
-              
+
               {/* Format Requirements */}
               <div className="mb-10 p-8 bg-indigo-50/40 border border-indigo-100 rounded-2xl text-indigo-900">
                 <h3 className="font-bold text-xs mb-6 uppercase tracking-widest text-indigo-500">📋 Excel Format Requirements</h3>
@@ -169,10 +169,10 @@ const BulkUserUpload = () => {
 
               <div className="space-y-8">
                 <div className="relative border-2 border-dashed border-indigo-100 rounded-2xl p-14 flex flex-col items-center justify-center transition-all hover:bg-indigo-50/30 hover:border-indigo-300 group cursor-pointer bg-slate-50/50">
-                  <input 
-                    type="file" 
-                    accept=".xlsx" 
-                    onChange={handleFileChange} 
+                  <input
+                    type="file"
+                    accept=".xlsx"
+                    onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
@@ -188,8 +188,8 @@ const BulkUserUpload = () => {
                   </div>
                 </div>
 
-                <button 
-                  onClick={handleUpload} 
+                <button
+                  onClick={handleUpload}
                   disabled={loading || !file}
                   className="w-full bg-indigo-600 text-white py-4 rounded-xl hover:bg-indigo-700 active:scale-[0.99] transition-all disabled:opacity-40 disabled:cursor-not-allowed font-extrabold text-lg shadow-lg shadow-indigo-200 tracking-tight"
                 >
@@ -202,8 +202,8 @@ const BulkUserUpload = () => {
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 text-center">System Logs</h3>
                   <div className="bg-slate-900 rounded-2xl p-6 max-h-72 overflow-y-auto text-sm font-mono leading-relaxed border border-slate-800 shadow-2xl">
                     {results.map((msg, idx) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className={`py-1.5 ${idx === 0 && msg.includes("completed") ? "text-cyan-400 font-bold border-b border-slate-800 pb-3 mb-3" : "text-slate-400 font-mono"}`}
                       >
                         <span className="text-slate-600 mr-2">[{idx + 1}]</span>

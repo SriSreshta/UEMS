@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 const AdminExamSchedules = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { authFetch } = useAuth();
-  
+
   const [exams, setExams] = useState([]);
   const [selectedExamId, setSelectedExamId] = useState("");
   const [schedules, setSchedules] = useState([]);
@@ -18,7 +18,7 @@ const AdminExamSchedules = () => {
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const res = await authFetch("http://localhost:8081/api/admin/exams");
+        const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/exams");
         if (!res.ok) throw new Error("Failed to fetch exams");
         const data = await res.json();
         setExams(data);
@@ -36,7 +36,7 @@ const AdminExamSchedules = () => {
     if (!selectedExamId) return;
     const fetchSchedules = async () => {
       try {
-        const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`);
+        const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/schedules`);
         if (!res.ok) throw new Error("Failed to fetch schedules");
         const data = await res.json();
         setSchedules(data);
@@ -58,7 +58,7 @@ const AdminExamSchedules = () => {
     setMessage({ type: "", text: "" });
     try {
       const payload = { schedules };
-      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`, {
+      const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/schedules`, {
         method: "POST",
         body: JSON.stringify(payload)
       });
@@ -75,14 +75,14 @@ const AdminExamSchedules = () => {
     setSaving(true);
     setMessage({ type: "", text: "" });
     try {
-      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/broadcast`, {
+      const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/broadcast`, {
         method: "PUT"
       });
       if (!res.ok) throw new Error("Failed to broadcast schedules");
       setMessage({ type: "success", text: "Schedule broadcasted successfully!" });
-      
+
       // refresh schedules to see isBroadcasted changes
-      const refresh = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`);
+      const refresh = await authFetch(`https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/schedules`);
       const data = await refresh.json();
       setSchedules(data);
     } catch (err) {
@@ -94,17 +94,17 @@ const AdminExamSchedules = () => {
 
   const handleDeleteRow = async (idx, scheduleId, courseName) => {
     if (!window.confirm(`Are you sure you want to remove ${courseName} from the schedule?`)) return;
-    
+
     if (scheduleId) {
       try {
-        const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules/${scheduleId}`, { method: "DELETE" });
+        const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/schedules/${scheduleId}`, { method: "DELETE" });
         if (!res.ok) throw new Error("Failed to delete schedule item from database");
       } catch (err) {
         setMessage({ type: "error", text: err.message });
-        return; 
+        return;
       }
     }
-    
+
     const updated = schedules.filter((_, i) => i !== idx);
     setSchedules(updated);
     setMessage({ type: "success", text: `${courseName} removed from schedule.` });
@@ -112,11 +112,11 @@ const AdminExamSchedules = () => {
 
   const handleDeleteEntireSchedule = async () => {
     if (!window.confirm("Are you sure you want to delete this ENTIRE schedule? This cannot be undone.")) return;
-    
+
     try {
-      const res = await authFetch(`http://localhost:8081/api/admin/exams/${selectedExamId}/schedules`, { method: "DELETE" });
+      const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/schedules`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete the entire schedule");
-      
+
       setMessage({ type: "success", text: "Entire schedule deleted successfully!" });
       setSchedules([]);
     } catch (err) {
@@ -129,7 +129,7 @@ const AdminExamSchedules = () => {
       <Sidebar isOpen={isOpen} role="admin" />
       <div className="flex-1 flex flex-col">
         <Header title="Exam Schedules" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
-        
+
         <main className="p-6 flex-1 overflow-y-auto">
           {message.text && (
             <div className={`p-4 mb-6 rounded border ${message.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
@@ -164,7 +164,7 @@ const AdminExamSchedules = () => {
                   </span>
                 )}
               </div>
-              
+
               {schedules.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">
                   No courses found for this exam's Year and Semester. Please add courses in Manage Courses first.
@@ -219,7 +219,7 @@ const AdminExamSchedules = () => {
                         Broadcast
                       </button>
                     </div>
-                    
+
                     <button onClick={handleDeleteEntireSchedule} disabled={saving} className="px-4 py-2 rounded text-red-600 bg-red-100 font-medium shadow-sm transition hover:bg-red-200 border border-red-200">
                       Delete Entire Schedule
                     </button>

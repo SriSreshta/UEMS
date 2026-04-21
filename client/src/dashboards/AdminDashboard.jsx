@@ -16,7 +16,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await authFetch("http://localhost:8081/api/admin/dashboard-stats");
+        const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/dashboard-stats");
         if (res.ok) {
           const data = await res.json();
           setStats({
@@ -35,9 +35,9 @@ const AdminDashboard = () => {
   }, [authFetch]);
 
   const statCards = [
-    { label: "Total Students",    value: stats.students, color: "text-indigo-600",  bg: "bg-indigo-50" },
-    { label: "Active Courses",    value: stats.courses, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Fee Notifications", value: stats.fees,    color: "text-amber-600",   bg: "bg-amber-50" },
+    { label: "Total Students", value: stats.students, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { label: "Active Courses", value: stats.courses, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Fee Notifications", value: stats.fees, color: "text-amber-600", bg: "bg-amber-50" },
   ];
 
   const analyticsCards = [

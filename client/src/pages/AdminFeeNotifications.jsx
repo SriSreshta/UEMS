@@ -9,7 +9,7 @@ import { TrashIcon } from "@heroicons/react/24/outline";
 const AdminFeeNotifications = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { authFetch } = useAuth();
-  
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +27,7 @@ const AdminFeeNotifications = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const res = await authFetch("http://localhost:8081/api/admin/fees");
+      const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/fees");
       if (!res.ok) throw new Error("Failed to fetch notifications");
       const data = await res.json();
       setNotifications(data);
@@ -56,14 +56,14 @@ const AdminFeeNotifications = () => {
         baseAmount: Number(formData.baseAmount),
         lateFeePerWeek: Number(formData.lateFeePerWeek)
       };
-      
-      const res = await authFetch("http://localhost:8081/api/admin/fees/notify", {
+
+      const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/fees/notify", {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      
+
       if (!res.ok) throw new Error("Failed to create notification");
-      
+
       setMessage({ type: "success", text: "Fee notification broadcasted successfully!" });
       setFormData({ title: "", baseAmount: "", dueDate: "", lateFeePerWeek: "", targetYear: "All", targetSemester: "All" });
       fetchNotifications();
@@ -80,7 +80,7 @@ const AdminFeeNotifications = () => {
     }
 
     try {
-      const res = await authFetch(`http://localhost:8081/api/admin/fees/${id}`, {
+      const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/fees/${id}`, {
         method: "DELETE"
       });
       if (!res.ok) throw new Error("Failed to delete notification");
@@ -96,7 +96,7 @@ const AdminFeeNotifications = () => {
       <Sidebar isOpen={isOpen} role="admin" />
       <div className="flex-1 flex flex-col">
         <Header title="Fee Notifications" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
-        
+
         <main className="p-6 flex-1 overflow-y-auto">
           {message.text && (
             <div className={`p-4 mb-6 rounded border ${message.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
@@ -131,12 +131,12 @@ const AdminFeeNotifications = () => {
                     <option value="2">II Sem (2)</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Base Amount (₹)</label>
                   <input required type="number" name="baseAmount" value={formData.baseAmount} onChange={handleChange} placeholder="765" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" min="0" step="0.01" />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Late Fee Per Week (₹)</label>
                   <input required type="number" name="lateFeePerWeek" value={formData.lateFeePerWeek} onChange={handleChange} placeholder="100" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none" min="0" step="0.01" />
@@ -172,8 +172,8 @@ const AdminFeeNotifications = () => {
                       <th className="px-6 py-3 border-b">Base Fee</th>
                       <th className="px-6 py-3 border-b">Late/Wk</th>
                       <th className="px-6 py-3 border-b">Due Date</th>
-                       <th className="px-6 py-3 border-b text-right">Action</th>
-                     </tr>
+                      <th className="px-6 py-3 border-b text-right">Action</th>
+                    </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {notifications.map(n => (
@@ -184,17 +184,17 @@ const AdminFeeNotifications = () => {
                         </td>
                         <td className="px-6 py-4">₹{n.baseAmount}</td>
                         <td className="px-6 py-4">₹{n.lateFeePerWeek}</td>
-                         <td className="px-6 py-4 text-sm font-semibold text-gray-700">{n.dueDate}</td>
-                         <td className="px-6 py-4 text-right">
-                           <button 
-                             onClick={() => handleDelete(n.id, n.title)}
-                             className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition"
-                             title="Delete Notification"
-                           >
-                             <TrashIcon className="h-5 w-5" />
-                           </button>
-                         </td>
-                       </tr>
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-700">{n.dueDate}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => handleDelete(n.id, n.title)}
+                            className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition"
+                            title="Delete Notification"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>

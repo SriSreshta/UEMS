@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 const StudentExamSchedule = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { authFetch } = useAuth();
-  
+
   const [groupedSchedules, setGroupedSchedules] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,9 +16,9 @@ const StudentExamSchedule = () => {
     const fetchSchedules = async () => {
       try {
         setLoading(true);
-        const res = await authFetch("http://localhost:8081/api/student/exams/schedules");
+        const res = await authFetch("https://uems-rz8o.onrender.com/api/student/exams/schedules");
         if (!res.ok) throw new Error("Failed to fetch exam schedules");
-        
+
         const data = await res.json();
         const groups = {};
         data.forEach(s => {
@@ -26,7 +26,7 @@ const StudentExamSchedule = () => {
           if (!groups[title]) groups[title] = [];
           groups[title].push(s);
         });
-        
+
         setGroupedSchedules(groups);
       } catch (err) {
         setError(err.message);
@@ -42,7 +42,7 @@ const StudentExamSchedule = () => {
       <Sidebar isOpen={isOpen} role="student" />
       <div className="flex-1 flex flex-col">
         <Header title="Exam Schedule" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
-        
+
         <main className="flex-1 p-8">
           <div className="max-w-5xl mx-auto">
             <h1 className="text-3xl font-black text-slate-800 mb-2">My Exam Schedules</h1>
@@ -61,9 +61,9 @@ const StudentExamSchedule = () => {
               </div>
             ) : Object.keys(groupedSchedules).length === 0 ? (
               <div className="bg-white rounded-3xl p-8 border border-white shadow-xl shadow-slate-200/50 text-center py-16">
-                 <div className="text-4xl mb-4">🌴</div>
-                 <h2 className="text-xl font-bold text-slate-700">No upcoming exams</h2>
-                 <p className="text-slate-500 mt-2">There are no broadcasted exam schedules for your year and semester right now.</p>
+                <div className="text-4xl mb-4">🌴</div>
+                <h2 className="text-xl font-bold text-slate-700">No upcoming exams</h2>
+                <p className="text-slate-500 mt-2">There are no broadcasted exam schedules for your year and semester right now.</p>
               </div>
             ) : (
               <div className="space-y-8">
@@ -72,7 +72,7 @@ const StudentExamSchedule = () => {
                     <div className="px-8 py-5 bg-indigo-50/50 border-b border-indigo-100 flex items-center gap-3">
                       <h2 className="text-lg font-bold text-indigo-900">{examTitle}</h2>
                     </div>
-                    
+
                     <div className="overflow-x-auto">
                       <table className="w-full text-left">
                         <thead className="bg-white">
@@ -110,7 +110,7 @@ const StudentExamSchedule = () => {
                 ))}
               </div>
             )}
-            
+
           </div>
         </main>
         <Footer />

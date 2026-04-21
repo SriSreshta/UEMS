@@ -11,13 +11,13 @@ import {
 } from "recharts";
 
 const GRADE_KEYS = [
-  { key: "o",     label: "O",  color: "#6366f1" },
+  { key: "o", label: "O", color: "#6366f1" },
   { key: "aplus", label: "A+", color: "#8b5cf6" },
-  { key: "a",     label: "A",  color: "#06b6d4" },
+  { key: "a", label: "A", color: "#06b6d4" },
   { key: "bplus", label: "B+", color: "#0ea5e9" },
-  { key: "b",     label: "B",  color: "#84cc16" },
-  { key: "c",     label: "C",  color: "#f59e0b" },
-  { key: "f",     label: "F",  color: "#ef4444" },
+  { key: "b", label: "B", color: "#84cc16" },
+  { key: "c", label: "C", color: "#f59e0b" },
+  { key: "f", label: "F", color: "#ef4444" },
 ];
 
 const generateInsights = (data, year, sem) => {
@@ -63,7 +63,7 @@ const YearSemAnalytics = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    authFetch("http://localhost:8081/api/admin/departments")
+    authFetch("https://uems-rz8o.onrender.com/api/admin/departments")
       .then((r) => r.json())
       .then((data) => setDepartments(Array.isArray(data) ? data : []))
       .catch(console.error);
@@ -71,7 +71,7 @@ const YearSemAnalytics = () => {
 
   useEffect(() => {
     setLoading(true);
-    let url = `http://localhost:8081/api/admin/analytics?year=${analyticsYear}&semester=${analyticsSem}`;
+    let url = `https://uems-rz8o.onrender.com/api/admin/analytics?year=${analyticsYear}&semester=${analyticsSem}`;
     if (analyticsDept !== "ALL") {
       url += `&department=${encodeURIComponent(analyticsDept)}`;
     }

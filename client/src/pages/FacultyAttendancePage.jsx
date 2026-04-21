@@ -16,7 +16,7 @@ const FacultyAttendancePage = () => {
         const fetchCourses = async () => {
             try {
                 if (!user?.username) return;
-                const res = await authFetch(`http://localhost:8081/api/courses/faculty/by-username/${user.username}`);
+                const res = await authFetch(`https://uems-rz8o.onrender.com/api/courses/faculty/by-username/${user.username}`);
                 if (!res.ok) throw new Error("Failed to fetch");
                 const data = await res.json();
                 setCourses(data);
@@ -51,8 +51,8 @@ const FacultyAttendancePage = () => {
                         ) : courses.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-slate-800">
                                 {courses.map(course => (
-                                    <Link 
-                                        key={course.courseId} 
+                                    <Link
+                                        key={course.courseId}
                                         to={`/faculty/attendance/mark/${course.courseId}`}
                                         className="group bg-white rounded-3xl p-8 border border-white shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-500 relative overflow-hidden"
                                     >

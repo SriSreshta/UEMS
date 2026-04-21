@@ -45,13 +45,20 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 public class FacultyController {
 
-    @Autowired private CourseRepository courseRepository;
-    @Autowired private UserRepository userRepository;
-    @Autowired private JwtService jwtService;
-    @Autowired private EnrollmentRepository enrollmentRepository;
-    @Autowired private MaterialRepository materialRepository;
-    @Autowired private CourseService courseService;
-    @Autowired private FacultyRepository facultyRepository;
+    @Autowired
+    private CourseRepository courseRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private JwtService jwtService;
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
+    @Autowired
+    private MaterialRepository materialRepository;
+    @Autowired
+    private CourseService courseService;
+    @Autowired
+    private FacultyRepository facultyRepository;
 
     private static final String UPLOAD_DIR = "uploads/materials";
 
@@ -81,7 +88,7 @@ public class FacultyController {
             Files.write(path, file.getBytes());
 
             // Return accessible URL
-            String fileUrl = "http://localhost:8081/uploads/materials/" + fileName;
+            String fileUrl = "https://uems-rz8o.onrender.com/uploads/materials/" + fileName;
             return ResponseEntity.ok(Map.of("url", fileUrl));
 
         } catch (IOException e) {
@@ -107,19 +114,18 @@ public class FacultyController {
 
             // Use courseService with email-based lookup
             List<Course> coursesList = courseService.getCoursesByFacultyEmail(email);
-            
+
             // Map to safe DTO
             List<CourseResponse> response = coursesList.stream().map(c -> new CourseResponse(
-                    c.getCourseId(), c.getName(), c.getCode(), c.getDepartment(), 
-                    c.getYear(), c.getSemester(), 
-                    c.getFaculty() != null ? c.getFaculty().getId() : null, 
-                    username, 
+                    c.getCourseId(), c.getName(), c.getCode(), c.getDepartment(),
+                    c.getYear(), c.getSemester(),
+                    c.getFaculty() != null ? c.getFaculty().getId() : null,
+                    username,
                     c.getFaculty() != null ? c.getFaculty().getDepartment() : null,
                     c.getIsOpenElective(),
                     c.getCredits(),
-                    false
-            )).collect(Collectors.toList());
-            
+                    false)).collect(Collectors.toList());
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -146,13 +152,13 @@ public class FacultyController {
                     e.getEndSemMarks(),
                     e.getEndSemReleased(),
                     e.getStudent().getYear(),
-                    e.getStudent().getSemester()
-            )).collect(Collectors.toList());
+                    e.getStudent().getSemester())).collect(Collectors.toList());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
         }
     }
+
     @PostMapping("/courses/{courseId}/marks/bulk")
     public ResponseEntity<?> uploadMarksBulk(
             @RequestHeader("Authorization") String authHeader,
@@ -174,7 +180,8 @@ public class FacultyController {
                 if (req.getMid2Marks() != null && (req.getMid2Marks() < 0 || req.getMid2Marks() > 30)) {
                     return ResponseEntity.status(400).body("Error: Mid2 marks must be between 0 and 30");
                 }
-                if (req.getAssignmentMarks() != null && (req.getAssignmentMarks() < 0 || req.getAssignmentMarks() > 10)) {
+                if (req.getAssignmentMarks() != null
+                        && (req.getAssignmentMarks() < 0 || req.getAssignmentMarks() > 10)) {
                     return ResponseEntity.status(400).body("Error: Assignment marks must be between 0 and 10");
                 }
                 if (req.getEndSemMarks() != null && (req.getEndSemMarks() < 0 || req.getEndSemMarks() > 60)) {
@@ -190,24 +197,30 @@ public class FacultyController {
                     // Block marks editing if results have already been published
                     if (Boolean.TRUE.equals(e.getEndSemReleased())) {
                         skippedCount++;
-                        continue; 
+                        continue;
                     }
-                    if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
-                    if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
-                    if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
-                    if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
+                    if (req.getMid1Marks() != null)
+                        e.setMid1Marks(req.getMid1Marks());
+                    if (req.getMid2Marks() != null)
+                        e.setMid2Marks(req.getMid2Marks());
+                    if (req.getAssignmentMarks() != null)
+                        e.setAssignmentMarks(req.getAssignmentMarks());
+                    if (req.getEndSemMarks() != null)
+                        e.setEndSemMarks(req.getEndSemMarks());
                     enrollmentRepository.save(e);
                     updatedCount++;
                 }
             }
 
             if (updatedCount == 0 && skippedCount > 0) {
-                return ResponseEntity.status(409).body("Unable to save. All records are locked because results have been published for this course.");
+                return ResponseEntity.status(409).body(
+                        "Unable to save. All records are locked because results have been published for this course.");
             }
-            
+
             String msg = "Marks saved successfully. Updated: " + updatedCount;
-            if (skippedCount > 0) msg += ", Skipped: " + skippedCount + " (locked due to published results).";
-            
+            if (skippedCount > 0)
+                msg += ", Skipped: " + skippedCount + " (locked due to published results).";
+
             return ResponseEntity.ok(msg);
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
@@ -215,7 +228,7 @@ public class FacultyController {
     }
 
     // ══════════════════════════════════════════════════════════════
-    //  STUDY MATERIALS
+    // STUDY MATERIALS
     // ══════════════════════════════════════════════════════════════
 
     @PostMapping("/courses/{courseId}/materials")
@@ -246,14 +259,14 @@ public class FacultyController {
         List<Material> materials = materialRepository.findByCourseCourseIdOrderByChapterAsc(courseId);
         List<MaterialResponse> response = materials.stream().map(m -> new MaterialResponse(
                 m.getId(), m.getChapter(), m.getTitle(), m.getType(), m.getFileUrl(), m.getDescription(),
-                m.getCourse().getCourseId(), m.getCourse().getName()
-        )).collect(Collectors.toList());
+                m.getCourse().getCourseId(), m.getCourse().getName())).collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/materials/{id}")
     public ResponseEntity<?> deleteMaterial(@PathVariable Long id) {
-        if (!materialRepository.existsById(id)) return ResponseEntity.notFound().build();
+        if (!materialRepository.existsById(id))
+            return ResponseEntity.notFound().build();
         materialRepository.deleteById(id);
         return ResponseEntity.ok("Material deleted");
     }
@@ -264,14 +277,15 @@ public class FacultyController {
             @RequestParam Integer semester,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            // userDetails.getUsername() now returns email (Spring Security principal = email)
+            // userDetails.getUsername() now returns email (Spring Security principal =
+            // email)
             String email = userDetails.getUsername();
             Faculty faculty = facultyRepository.findByUserEmail(email)
                     .orElseThrow(() -> new RuntimeException("Faculty not found"));
 
             List<Enrollment> enrollments = enrollmentRepository
                     .findByCourseYearAndCourseSemesterAndCourseFacultyId(
-                        year, String.valueOf(semester), faculty.getId());
+                            year, String.valueOf(semester), faculty.getId());
 
             Map<String, List<Enrollment>> bySubject = new LinkedHashMap<>();
             for (Enrollment e : enrollments) {
@@ -285,17 +299,39 @@ public class FacultyController {
                 dto.setSubjectName(entry.getKey());
                 for (Enrollment e : entry.getValue()) {
                     String grade = e.getGrade();
-                    if (grade == null) continue;
+                    if (grade == null)
+                        continue;
                     switch (grade) {
-                        case "O"  -> { dto.setO(dto.getO() + 1);         dto.setPass(dto.getPass() + 1); }
-                        case "A+" -> { dto.setAplus(dto.getAplus() + 1); dto.setPass(dto.getPass() + 1); }
-                        case "A"  -> { dto.setA(dto.getA() + 1);         dto.setPass(dto.getPass() + 1); }
-                        case "B+" -> { dto.setBplus(dto.getBplus() + 1); dto.setPass(dto.getPass() + 1); }
-                        case "B"  -> { dto.setB(dto.getB() + 1);         dto.setPass(dto.getPass() + 1); }
-                        case "C"  -> { dto.setC(dto.getC() + 1);         dto.setPass(dto.getPass() + 1); }
-                        case "F"  -> { dto.setF(dto.getF() + 1);         dto.setFail(dto.getFail() + 1); }
+                        case "O" -> {
+                            dto.setO(dto.getO() + 1);
+                            dto.setPass(dto.getPass() + 1);
+                        }
+                        case "A+" -> {
+                            dto.setAplus(dto.getAplus() + 1);
+                            dto.setPass(dto.getPass() + 1);
+                        }
+                        case "A" -> {
+                            dto.setA(dto.getA() + 1);
+                            dto.setPass(dto.getPass() + 1);
+                        }
+                        case "B+" -> {
+                            dto.setBplus(dto.getBplus() + 1);
+                            dto.setPass(dto.getPass() + 1);
+                        }
+                        case "B" -> {
+                            dto.setB(dto.getB() + 1);
+                            dto.setPass(dto.getPass() + 1);
+                        }
+                        case "C" -> {
+                            dto.setC(dto.getC() + 1);
+                            dto.setPass(dto.getPass() + 1);
+                        }
+                        case "F" -> {
+                            dto.setF(dto.getF() + 1);
+                            dto.setFail(dto.getFail() + 1);
+                        }
                         case "Ab" -> dto.setAb(dto.getAb() + 1);
-                        default   -> dto.setFail(dto.getFail() + 1);
+                        default -> dto.setFail(dto.getFail() + 1);
                     }
                 }
                 result.add(dto);

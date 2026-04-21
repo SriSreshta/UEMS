@@ -84,7 +84,7 @@ export const generateMemoNumbers = (sem, rollNumber) => {
   const s = sem.semester || "X";
   const roll = rollNumber || "000";
   return {
-    memoNo:   `JNTUH/Y${y}/S${s}/${roll}`,
+    memoNo: `JNTUH/Y${y}/S${s}/${roll}`,
     serialNo: `SL/${y}${s}/${roll}`,
   };
 };
@@ -120,7 +120,7 @@ export const MemoView = ({ resultsData, sem, showCgpa, hideQr = false }) => {
   return (
     <div className="bg-white text-black w-full max-w-[210mm] mx-auto p-4 sm:p-6 shadow-2xl print:shadow-none min-h-[297mm] flex flex-col font-sans relative overflow-hidden">
       <div className="absolute inset-1 sm:inset-3 border-[12px] border-double border-[#879d9e] pointer-events-none rounded-sm"></div>
-      
+
       {/* Centered Watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <img src="/src/assets/jntuh-logo.png" alt=""
@@ -242,25 +242,25 @@ export const MemoView = ({ resultsData, sem, showCgpa, hideQr = false }) => {
           )}
         </div>
 
-          {/* Signatures & QR Code Section */}
-          <div className="mt-auto pt-10 pb-6 flex justify-between items-end text-[10px] sm:text-[11px] font-bold text-black px-2 sm:px-4 w-full z-10 relative">
-            <div className="pb-2">
-              DATE OF ISSUE : &nbsp;&nbsp;
-              <span className="font-bold border-b-[1.5px] border-black border-dashed min-w-[80px] inline-block text-center pb-0.5">
-                {new Date().toLocaleDateString('en-GB')}
-              </span>
-            </div>
-            
-            {/* QR Code Container */}
-            {!hideQr && qrSrc && (
-              <div className="flex flex-col items-center">
-                <a href={qrLink} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-105 active:scale-95 flex flex-col items-center" title="Click to verify">
-                  <img src={qrSrc} alt="Verification QR" className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-1" />
-                  <span className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-wider">Scan to verify</span>
-                </a>
-              </div>
-            )}
+        {/* Signatures & QR Code Section */}
+        <div className="mt-auto pt-10 pb-6 flex justify-between items-end text-[10px] sm:text-[11px] font-bold text-black px-2 sm:px-4 w-full z-10 relative">
+          <div className="pb-2">
+            DATE OF ISSUE : &nbsp;&nbsp;
+            <span className="font-bold border-b-[1.5px] border-black border-dashed min-w-[80px] inline-block text-center pb-0.5">
+              {new Date().toLocaleDateString('en-GB')}
+            </span>
           </div>
+
+          {/* QR Code Container */}
+          {!hideQr && qrSrc && (
+            <div className="flex flex-col items-center">
+              <a href={qrLink} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-105 active:scale-95 flex flex-col items-center" title="Click to verify">
+                <img src={qrSrc} alt="Verification QR" className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-1" />
+                <span className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-wider">Scan to verify</span>
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -275,7 +275,7 @@ const buildMemoHTML = async (resultsData, sem, showCgpa) => {
   const registered = sem.courses?.length || 0;
   const totalCredits = sem.courses?.reduce((acc, c) => acc + (c.credits || 0), 0) || 0;
   const { memoNo, serialNo } = generateMemoNumbers(sem, resultsData.rollNumber);
-  
+
   let qrImageHtml = '';
   const url = `${window.location.protocol}//${window.location.host}/verify-memo?rollNumber=${resultsData.rollNumber}&year=${sem.year}&semester=${sem.semester}`;
   try {
@@ -287,7 +287,7 @@ const buildMemoHTML = async (resultsData, sem, showCgpa) => {
           <span style="font-size:9px; color:#4b5563; font-family:sans-serif; text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Scan to verify</span>
         </a>
       </div>`;
-  } catch(e) {
+  } catch (e) {
     console.error(e);
   }
 
@@ -470,7 +470,7 @@ export default function StudentResults() {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const res = await authFetch("http://localhost:8081/api/students/results");
+        const res = await authFetch("https://uems-rz8o.onrender.com/api/students/results");
         if (res.ok) {
           const data = await res.json();
           setResultsData(data);

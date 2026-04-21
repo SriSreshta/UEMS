@@ -26,7 +26,7 @@ const AdminPublishResults = () => {
   useEffect(() => {
     const fetchExams = async () => {
       try {
-        const res = await authFetch("http://localhost:8081/api/admin/exams");
+        const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/exams");
         if (!res.ok) throw new Error("Failed to fetch exams");
         const data = await res.json();
         setExams(data);
@@ -50,14 +50,14 @@ const AdminPublishResults = () => {
       setCurrentPage(1);
       try {
         const res = await authFetch(
-          `http://localhost:8081/api/admin/exams/${selectedExamId}/results/preview`
+          `https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/results/preview`
         );
         if (!res.ok) throw new Error("Failed to fetch preview");
         const data = await res.json();
         const selectedExam = exams.find(e => String(e.examId) === String(selectedExamId));
         const isSupp = selectedExam?.examType?.toUpperCase() === "SUPPLEMENTARY";
         setIsSupplementary(isSupp);
-        
+
         setStudents(data);
       } catch (err) {
         setMessage({
@@ -71,7 +71,7 @@ const AdminPublishResults = () => {
     fetchResultsPreview();
   }, [selectedExamId, authFetch, exams]);
 
-  const showToast = (txt, type="error") => setMessage({ type, text: txt });
+  const showToast = (txt, type = "error") => setMessage({ type, text: txt });
 
   const handleAbsentToggle = (studentIdx, courseIdx) => {
     const updated = [...students];
@@ -133,7 +133,7 @@ const AdminPublishResults = () => {
     try {
       const payload = { students };
       const res = await authFetch(
-        `http://localhost:8081/api/admin/exams/${selectedExamId}/results/publish`,
+        `https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/results/publish`,
         { method: "POST", body: JSON.stringify(payload) }
       );
       if (!res.ok) throw new Error("Failed to publish results");
@@ -156,7 +156,7 @@ const AdminPublishResults = () => {
     setMessage({ type: "", text: "" });
     try {
       const res = await authFetch(
-        `http://localhost:8081/api/admin/exams/${selectedExamId}/unlock-failed`,
+        `https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/unlock-failed`,
         { method: "PUT" }
       );
       if (!res.ok) throw new Error("Failed to unlock failed enrollments");
@@ -182,7 +182,7 @@ const AdminPublishResults = () => {
     setMessage({ type: "", text: "" });
     try {
       const res = await authFetch(
-        `http://localhost:8081/api/admin/exams/${selectedExamId}/results/unpublish`,
+        `https://uems-rz8o.onrender.com/api/admin/exams/${selectedExamId}/results/unpublish`,
         { method: "POST" }
       );
       if (!res.ok) throw new Error("Failed to unlock exam");
@@ -221,161 +221,157 @@ const AdminPublishResults = () => {
         <main className="p-6 flex-1 overflow-y-auto w-full">
           <div className="max-w-6xl w-full mx-auto">
             {message.text && (
-            <div
-              className={`p-4 mb-6 rounded border ${
-                message.type === "error"
-                  ? "bg-red-50 text-red-700 border-red-200"
-                  : "bg-green-50 text-green-700 border-green-200"
-              }`}
-            >
-              {message.text}
-            </div>
-          )}
+              <div
+                className={`p-4 mb-6 rounded border ${message.type === "error"
+                    ? "bg-red-50 text-red-700 border-red-200"
+                    : "bg-green-50 text-green-700 border-green-200"
+                  }`}
+              >
+                {message.text}
+              </div>
+            )}
 
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-8 flex justify-between items-center">
-            <div className="w-1/2">
-              <h2 className="text-xl font-bold mb-4">
-                Select Exam to Preview Results
-              </h2>
-              {loading ? (
-                <p>Loading exams...</p>
-              ) : (
-                <select
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={selectedExamId}
-                  onChange={(e) => {
-                    setSelectedExamId(e.target.value);
-                    setMessage({ type: "", text: "" });
-                  }}
-                >
-                  <option value="">— Select an Exam —</option>
-                  {exams.map((e) => (
-                    <option key={e.examId} value={e.examId}>
-                      {e.title}
-                    </option>
-                  ))}
-                </select>
+            <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-8 flex justify-between items-center">
+              <div className="w-1/2">
+                <h2 className="text-xl font-bold mb-4">
+                  Select Exam to Preview Results
+                </h2>
+                {loading ? (
+                  <p>Loading exams...</p>
+                ) : (
+                  <select
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={selectedExamId}
+                    onChange={(e) => {
+                      setSelectedExamId(e.target.value);
+                      setMessage({ type: "", text: "" });
+                    }}
+                  >
+                    <option value="">— Select an Exam —</option>
+                    {exams.map((e) => (
+                      <option key={e.examId} value={e.examId}>
+                        {e.title}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {selectedExamId && students.length > 0 && (
+                <div className="flex gap-4 items-center">
+
+                  {/* Search Bar */}
+                  <input
+                    type="text"
+                    placeholder="Search student by name or roll no."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1); // Reset to page 1 on search
+                    }}
+                    className="p-3 border border-gray-300 rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none w-64"
+                  />
+
+                  {isSupplementary && (
+                    <button
+                      onClick={handleUnlockFailed}
+                      disabled={publishing}
+                      className={`px-6 py-3 rounded text-amber-600 font-bold border-2 border-amber-600 shadow-sm transition ${publishing ? "opacity-50" : "hover:bg-amber-50"
+                        }`}
+                    >
+                      Unlock Failed Enrollments
+                    </button>
+                  )}
+
+                  {!isSupplementary && (
+                    <button
+                      onClick={handleUnlockRegular}
+                      disabled={publishing}
+                      className={`px-6 py-3 rounded text-red-600 font-bold border-2 border-red-600 shadow-sm transition ${publishing ? "opacity-50" : "hover:bg-red-50"
+                        }`}
+                    >
+                      Unlock Exam (Fix Typos)
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handlePublish}
+                    disabled={publishing}
+                    className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${publishing
+                        ? "bg-indigo-400"
+                        : "bg-indigo-600 hover:bg-indigo-700"
+                      }`}
+                  >
+                    {publishing ? "Publishing..." : "Publish Final Results"}
+                  </button>
+                </div>
               )}
             </div>
 
-            {selectedExamId && students.length > 0 && (
-              <div className="flex gap-4 items-center">
-                
-                {/* Search Bar */}
-                <input
-                  type="text"
-                  placeholder="Search student by name or roll no."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1); // Reset to page 1 on search
-                  }}
-                  className="p-3 border border-gray-300 rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none w-64"
-                />
-
-                {isSupplementary && (
-                  <button
-                    onClick={handleUnlockFailed}
-                    disabled={publishing}
-                    className={`px-6 py-3 rounded text-amber-600 font-bold border-2 border-amber-600 shadow-sm transition ${
-                      publishing ? "opacity-50" : "hover:bg-amber-50"
-                    }`}
-                  >
-                    Unlock Failed Enrollments
-                  </button>
-                )}
-
-                {!isSupplementary && (
-                  <button
-                    onClick={handleUnlockRegular}
-                    disabled={publishing}
-                    className={`px-6 py-3 rounded text-red-600 font-bold border-2 border-red-600 shadow-sm transition ${
-                      publishing ? "opacity-50" : "hover:bg-red-50"
-                    }`}
-                  >
-                    Unlock Exam (Fix Typos)
-                  </button>
-                )}
-
-                <button
-                  onClick={handlePublish}
-                  disabled={publishing}
-                  className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${
-                    publishing
-                      ? "bg-indigo-400"
-                      : "bg-indigo-600 hover:bg-indigo-700"
-                  }`}
+            {/* Empty state — no exam selected */}
+            {!selectedExamId && !loading && (
+              <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+                <svg
+                  className="w-16 h-16 mb-4 text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  viewBox="0 0 24 24"
                 >
-                  {publishing ? "Publishing..." : "Publish Final Results"}
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12h6M9 16h4"
+                  />
+                </svg>
+                <p className="text-lg font-medium text-gray-500">
+                  No exam selected
+                </p>
+                <p className="text-sm mt-1">
+                  Select an exam above to preview and publish results.
+                </p>
               </div>
             )}
-          </div>
 
-          {/* Empty state — no exam selected */}
-          {!selectedExamId && !loading && (
-            <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-              <svg
-                className="w-16 h-16 mb-4 text-gray-300"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12h6M9 16h4"
-                />
-              </svg>
-              <p className="text-lg font-medium text-gray-500">
-                No exam selected
-              </p>
-              <p className="text-sm mt-1">
-                Select an exam above to preview and publish results.
-              </p>
-            </div>
-          )}
+            {/* Preview loading spinner */}
+            {previewLoading && (
+              <div className="flex items-center justify-center py-24 text-gray-400">
+                <svg
+                  className="animate-spin w-8 h-8 mr-3 text-indigo-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  />
+                </svg>
+                <span className="text-base font-medium">Loading preview...</span>
+              </div>
+            )}
 
-          {/* Preview loading spinner */}
-          {previewLoading && (
-            <div className="flex items-center justify-center py-24 text-gray-400">
-              <svg
-                className="animate-spin w-8 h-8 mr-3 text-indigo-500"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                />
-              </svg>
-              <span className="text-base font-medium">Loading preview...</span>
-            </div>
-          )}
-
-          {/* Student results — paginated */}
-          {!previewLoading && selectedExamId && filteredStudents.length > 0 && (
-            <>
+            {/* Student results — paginated */}
+            {!previewLoading && selectedExamId && filteredStudents.length > 0 && (
+              <>
                 <div className="space-y-6 mt-6">
                   {paginatedStudents.map((student, sIdxOnPage) => {
                     const globalIdx = (currentPage - 1) * PAGE_SIZE + sIdxOnPage;
@@ -420,9 +416,8 @@ const AdminPublishResults = () => {
                               {student.courses.map((c, cIdx) => (
                                 <tr
                                   key={c.courseId}
-                                  className={`hover:bg-slate-50 transition ${
-                                    c.isAbsent ? "bg-red-50/50" : ""
-                                  }`}
+                                  className={`hover:bg-slate-50 transition ${c.isAbsent ? "bg-red-50/50" : ""
+                                    }`}
                                 >
                                   <td
                                     className="px-4 py-3 font-medium text-gray-800"
@@ -448,11 +443,10 @@ const AdminPublishResults = () => {
                                   </td>
                                   <td className="px-4 py-3">
                                     <span
-                                      className={`inline-block w-8 text-center font-bold ${
-                                        c.grade === "F" || c.grade === "Ab"
+                                      className={`inline-block w-8 text-center font-bold ${c.grade === "F" || c.grade === "Ab"
                                           ? "text-red-600"
                                           : "text-green-600"
-                                      }`}
+                                        }`}
                                     >
                                       {c.grade}
                                     </span>
@@ -482,71 +476,70 @@ const AdminPublishResults = () => {
                     );
                   })}
                 </div>
-            {(() => {
-              let pages = [];
-              if (totalPages <= 7) {
-                pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-              } else {
-                if (currentPage <= 4) {
-                  pages = [1, 2, 3, 4, 5, '...', totalPages];
-                } else if (currentPage >= totalPages - 3) {
-                  pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-                } else {
-                  pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
-                }
-              }
+                {(() => {
+                  let pages = [];
+                  if (totalPages <= 7) {
+                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                  } else {
+                    if (currentPage <= 4) {
+                      pages = [1, 2, 3, 4, 5, '...', totalPages];
+                    } else if (currentPage >= totalPages - 3) {
+                      pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                    } else {
+                      pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+                    }
+                  }
 
-              return (
-                <div className="flex items-center justify-center gap-2 mt-6">
-                  <button
-                    onClick={() => {
-                      setCurrentPage((p) => Math.max(1, p - 1));
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    ← Prev
-                  </button>
-                  
-                  {pages.map((page, idx) => (
-                    page === '...' ? (
-                      <span key={`ellipsis-${idx}`} className="px-3 py-1.5 text-sm text-gray-500">
-                        ...
-                      </span>
-                    ) : (
+                  return (
+                    <div className="flex items-center justify-center gap-2 mt-6">
                       <button
-                        key={page}
                         onClick={() => {
-                          setCurrentPage(page);
+                          setCurrentPage((p) => Math.max(1, p - 1));
                           window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className={`px-3 py-1.5 text-sm rounded border transition ${
-                          page === currentPage
-                            ? "bg-indigo-600 text-white border-indigo-600 font-bold"
-                            : "bg-white border-gray-300 hover:bg-gray-50 text-gray-700"
-                        }`}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                       >
-                        {page}
+                        ← Prev
                       </button>
-                    )
-                  ))}
 
-                  <button
-                    onClick={() => {
-                      setCurrentPage((p) => Math.min(totalPages, p + 1));
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  >
-                    Next →
-                  </button>
-                </div>
-              );
-            })()}
-            </>
-          )}
+                      {pages.map((page, idx) => (
+                        page === '...' ? (
+                          <span key={`ellipsis-${idx}`} className="px-3 py-1.5 text-sm text-gray-500">
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={page}
+                            onClick={() => {
+                              setCurrentPage(page);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            className={`px-3 py-1.5 text-sm rounded border transition ${page === currentPage
+                                ? "bg-indigo-600 text-white border-indigo-600 font-bold"
+                                : "bg-white border-gray-300 hover:bg-gray-50 text-gray-700"
+                              }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      ))}
+
+                      <button
+                        onClick={() => {
+                          setCurrentPage((p) => Math.min(totalPages, p + 1));
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
           </div>
         </main>
       </div>

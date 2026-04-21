@@ -6,21 +6,21 @@ import { useAuth } from "../auth/AuthContext";
 import { VideoCameraIcon, BookOpenIcon, DocumentTextIcon, LinkIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 const TYPE_META = {
-  VIDEO:   { label: "Video",        icon: VideoCameraIcon,  color: "bg-rose-50 text-rose-600 border-rose-100" },
-  BOOK:    { label: "Book / PDF",   icon: BookOpenIcon,     color: "bg-amber-50 text-amber-600 border-amber-100" },
+  VIDEO: { label: "Video", icon: VideoCameraIcon, color: "bg-rose-50 text-rose-600 border-rose-100" },
+  BOOK: { label: "Book / PDF", icon: BookOpenIcon, color: "bg-amber-50 text-amber-600 border-amber-100" },
   ARTICLE: { label: "Article/Link", icon: DocumentTextIcon, color: "bg-indigo-50 text-indigo-600 border-indigo-100" },
 };
 
 export default function StudentMaterialsPage() {
   const { authFetch } = useAuth();
-  const [isOpen, setIsOpen]       = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
   const [materials, setMaterials] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState("");
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("ALL");
 
   useEffect(() => {
-    authFetch("http://localhost:8081/api/students/my-materials")
+    authFetch("https://uems-rz8o.onrender.com/api/students/my-materials")
       .then(r => r.ok ? r.json() : [])
       .then(setMaterials)
       .catch(() => setMaterials([]))
@@ -71,11 +71,10 @@ export default function StudentMaterialsPage() {
                 <button
                   key={t}
                   onClick={() => setFilterType(t)}
-                  className={`px-5 py-3 rounded-xl text-xs font-black uppercase transition ${
-                    filterType === t
+                  className={`px-5 py-3 rounded-xl text-xs font-black uppercase transition ${filterType === t
                       ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
                       : "bg-white text-slate-500 border border-slate-200 hover:border-indigo-300"
-                  }`}
+                    }`}
                 >
                   {t === "ALL" ? "All Types" : TYPE_META[t]?.label}
                 </button>
@@ -84,7 +83,7 @@ export default function StudentMaterialsPage() {
 
             {loading ? (
               <div className="space-y-4">
-                {[1,2,3].map(i => <div key={i} className="h-32 bg-white rounded-2xl animate-pulse border border-slate-100" />)}
+                {[1, 2, 3].map(i => <div key={i} className="h-32 bg-white rounded-2xl animate-pulse border border-slate-100" />)}
               </div>
             ) : Object.keys(byCourse).length === 0 ? (
               <div className="h-72 bg-white rounded-3xl border border-slate-100 flex flex-col items-center justify-center gap-3">
@@ -101,7 +100,7 @@ export default function StudentMaterialsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {Object.entries(chapters).sort(([a],[b]) => a.localeCompare(b, undefined, {numeric: true})).map(([chapter, items]) => (
+                  {Object.entries(chapters).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).map(([chapter, items]) => (
                     <div key={chapter} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                       <div className="px-6 py-3 bg-slate-50 border-b border-slate-100">
                         <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Chapter {chapter}</span>

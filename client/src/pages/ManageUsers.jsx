@@ -47,7 +47,7 @@ const EditStudentModal = ({ user, onClose, onSaved, authFetch }) => {
 
         setSaving(true);
         try {
-            const res = await authFetch(`http://localhost:8081/api/admin/users/${user.id}/student`, {
+            const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/users/${user.id}/student`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form),
@@ -228,7 +228,7 @@ const ManageUsers = () => {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const res = await authFetch("http://localhost:8081/api/admin/users");
+            const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/users");
             if (!res.ok) throw new Error("Failed to fetch users");
             const data = await res.json();
             setUsers(data);
@@ -248,7 +248,7 @@ const ManageUsers = () => {
             return;
         }
         try {
-            const res = await authFetch(`http://localhost:8081/api/admin/users/${id}`, { method: "DELETE" });
+            const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/users/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Failed to delete user");
             setMessage({ type: "success", text: `User ${username} deleted successfully!` });
             fetchUsers();

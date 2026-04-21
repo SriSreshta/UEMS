@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   // ✅ LOGIN FUNCTION
   const login = async (username, password, rollNumber, facultyCode, role) => {
     try {
-      const res = await fetch("http://localhost:8081/api/auth/login", {
+      const res = await fetch("https://uems-rz8o.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, rollNumber, facultyCode, role }),
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
       const payload = {
         username: data.username, // Display name from server response
         email: decoded.sub,      // JWT subject is now email
-        role: normalizedRole, 
+        role: normalizedRole,
         token: data.token,
         facultyId: data.facultyId || null,
         studentId: data.studentId || null,

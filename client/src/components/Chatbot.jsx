@@ -81,7 +81,7 @@ export default function Chatbot() {
       const storedUser = sessionStorage.getItem("uems_user");
       const token = storedUser ? JSON.parse(storedUser).token : null;
 
-      const res = await fetch("http://localhost:8081/api/chat", {
+      const res = await fetch("https://uems-rz8o.onrender.com/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,7 +169,7 @@ export default function Chatbot() {
                 </span>
               </div>
             </div>
-            <div className="chatbot-header-actions" style={{display: 'flex', gap: '8px'}}>
+            <div className="chatbot-header-actions" style={{ display: 'flex', gap: '8px' }}>
               <button className="chatbot-close-btn" onClick={() => setIsMaximized(!isMaximized)} title={isMaximized ? "Restore down" : "Maximize"}>
                 {isMaximized ? "🗗" : "🗖"}
               </button>

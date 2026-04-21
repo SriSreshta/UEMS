@@ -20,8 +20,8 @@ export default function StudentDocumentStore({ type = "document" }) {
 
   const isCert = type === "certificate";
   const pageTitle = isCert ? "My Certificates" : "My Documents";
-  const emptyMessage = isCert 
-    ? "No certificates uploaded yet." 
+  const emptyMessage = isCert
+    ? "No certificates uploaded yet."
     : "No documents uploaded yet.";
   const emptySubMessage = isCert ? "Upload your achievement certificates here." : "Store your important documents here.";
   const IconProps = isCert ? AcademicCapIcon : DocumentIcon;
@@ -30,7 +30,7 @@ export default function StudentDocumentStore({ type = "document" }) {
   const fetchDocuments = async () => {
     if (!user?.studentId) return;
     try {
-      const res = await authFetch(`http://localhost:8081/api/student/documents/${user.studentId}?type=${type}`);
+      const res = await authFetch(`https://uems-rz8o.onrender.com/api/student/documents/${user.studentId}?type=${type}`);
       if (res.ok) {
         const data = await res.json();
         setItems(data);
@@ -47,7 +47,7 @@ export default function StudentDocumentStore({ type = "document" }) {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
     try {
-      const res = await authFetch(`http://localhost:8081/api/student/documents/${id}`, {
+      const res = await authFetch(`https://uems-rz8o.onrender.com/api/student/documents/${id}`, {
         method: "DELETE"
       });
       if (res.ok) {
@@ -62,7 +62,7 @@ export default function StudentDocumentStore({ type = "document" }) {
 
   const handleDownload = (id) => {
     // Open in a new tab so it triggers the browser download
-    const url = `http://localhost:8081/api/student/documents/download/${id}`;
+    const url = `https://uems-rz8o.onrender.com/api/student/documents/download/${id}`;
     // Fetch explicitly using authFetch to ensure the token is attached 
     // Usually browser downloads don't send auth headers, so we fetch Blob and trigger download
     authFetch(url)
@@ -86,7 +86,7 @@ export default function StudentDocumentStore({ type = "document" }) {
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!user?.studentId) return;
-    
+
     const formData = new FormData(e.target);
     const title = formData.get("title");
     const file = formData.get("file");
@@ -99,7 +99,7 @@ export default function StudentDocumentStore({ type = "document" }) {
         fd.append("type", type);
         fd.append("file", file);
 
-        const res = await authFetch(`http://localhost:8081/api/student/documents/${user.studentId}`, {
+        const res = await authFetch(`https://uems-rz8o.onrender.com/api/student/documents/${user.studentId}`, {
           method: "POST",
           body: fd,
           // Do NOT set Content-Type header manually, let browser set multipart boundary

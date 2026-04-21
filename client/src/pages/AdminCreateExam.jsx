@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 const AdminCreateExam = () => {
   const [isOpen, setIsOpen] = useState(true);
   const { authFetch } = useAuth();
-  
+
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -22,7 +22,7 @@ const AdminCreateExam = () => {
   const fetchExams = async () => {
     try {
       setLoading(true);
-      const res = await authFetch("http://localhost:8081/api/admin/exams");
+      const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/exams");
       if (!res.ok) throw new Error("Failed to fetch exams");
       const data = await res.json();
       setExams(data);
@@ -80,14 +80,14 @@ const AdminCreateExam = () => {
         semester: parseInt(formData.semester),
         examType: formData.examType
       };
-      
-      const res = await authFetch("http://localhost:8081/api/admin/exams", {
+
+      const res = await authFetch("https://uems-rz8o.onrender.com/api/admin/exams", {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      
+
       if (!res.ok) throw new Error("Failed to create exam");
-      
+
       setMessage({ type: "success", text: `${payload.title} created!` });
       fetchExams();
     } catch (err) {
@@ -100,7 +100,7 @@ const AdminCreateExam = () => {
   const handleDelete = async (examId, title) => {
     if (!window.confirm(`Are you sure you want to delete ${title}? This will also delete all its schedules.`)) return;
     try {
-      const res = await authFetch(`http://localhost:8081/api/admin/exams/${examId}`, {
+      const res = await authFetch(`https://uems-rz8o.onrender.com/api/admin/exams/${examId}`, {
         method: "DELETE"
       });
       if (!res.ok) throw new Error("Failed to delete exam");
@@ -116,7 +116,7 @@ const AdminCreateExam = () => {
       <Sidebar isOpen={isOpen} role="admin" />
       <div className="flex-1 flex flex-col">
         <Header title="Create Exams" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
-        
+
         <main className="p-6 flex-1 overflow-y-auto">
           {message.text && (
             <div className={`p-4 mb-6 rounded border ${message.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>

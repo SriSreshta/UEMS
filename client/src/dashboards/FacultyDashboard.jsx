@@ -31,7 +31,7 @@ const FacultyDashboard = () => {
         if (!user?.token) return;
         // Use authenticated endpoint instead of by-username (username is no longer unique)
         const res = await authFetch(
-          `http://localhost:8081/api/faculty/courses`
+          `https://uems-rz8o.onrender.com/api/faculty/courses`
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -50,7 +50,7 @@ const FacultyDashboard = () => {
     if (courses.length === 0) return;
     Promise.all(
       courses.map(c =>
-        authFetch(`http://localhost:8081/api/students/course/${c.courseId}`)
+        authFetch(`https://uems-rz8o.onrender.com/api/students/course/${c.courseId}`)
           .then(r => r.json())
           .then(data => Array.isArray(data) ? data.length : 0)
           .catch(() => 0)
@@ -61,7 +61,7 @@ const FacultyDashboard = () => {
   }, [courses, authFetch]);
 
   useEffect(() => {
-    authFetch(`http://localhost:8081/api/faculty/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
+    authFetch(`https://uems-rz8o.onrender.com/api/faculty/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
       .then(r => r.json())
       .then(data => {
         const arr = Array.isArray(data) ? data : [];
@@ -128,8 +128,8 @@ const FacultyDashboard = () => {
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wider font-bold">Students</p>
                   <p className="text-2xl font-black text-slate-800">
-  {studentCount === null ? "..." : studentCount}
-</p>
+                    {studentCount === null ? "..." : studentCount}
+                  </p>
                 </div>
               </div>
 
@@ -294,13 +294,13 @@ const FacultyDashboard = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="O"  fill="#6366f1" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="O" fill="#6366f1" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="A+" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="A"  fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="A" fill="#06b6d4" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="B+" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="B"  fill="#84cc16" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="C"  fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="F"  fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="B" fill="#84cc16" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="C" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="F" fill="#ef4444" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
 

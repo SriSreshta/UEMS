@@ -20,8 +20,8 @@ export default function VerifyMemoPage() {
           throw new Error("Missing required query parameters to verify this memo.");
         }
 
-        const res = await fetch(`http://localhost:8081/api/public/verify-memo?rollNumber=${rollNumber}&year=${year}&semester=${semester}`);
-        
+        const res = await fetch(`https://uems-rz8o.onrender.com/api/public/verify-memo?rollNumber=${rollNumber}&year=${year}&semester=${semester}`);
+
         if (!res.ok) {
           throw new Error("Failed to verify memo. It may not exist, or the results have not been released.");
         }
@@ -69,13 +69,13 @@ export default function VerifyMemoPage() {
           <span className="font-bold tracking-wide">Authentic UEMS Digital Record</span>
         </div>
       </div>
-      
+
       <div className="w-full max-w-[1000px] mx-auto flex justify-center drop-shadow-2xl print:drop-shadow-none print:shadow-none bg-white rounded-lg p-2 sm:p-4">
-        <MemoView 
-          resultsData={resultsData} 
-          sem={resultsData.semesters[0]} 
-          showCgpa={true} 
-          hideQr={true} 
+        <MemoView
+          resultsData={resultsData}
+          sem={resultsData.semesters[0]}
+          showCgpa={true}
+          hideQr={true}
         />
       </div>
 
