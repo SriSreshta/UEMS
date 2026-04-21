@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import FacultyAttendancePage from "./pages/FacultyAttendancePage";
 import MarkAttendancePage from "./pages/MarkAttendancePage";
+import StudentAttendancePage from "./pages/StudentAttendancePage";
 import UploadMarksPage from "./pages/UploadMarksPage";
 import StudentMarksPage from "./pages/StudentMarksPage";
 import AdminFeeNotifications from "./pages/AdminFeeNotifications";
@@ -17,6 +18,7 @@ import StudentPaymentsPage from "./pages/StudentPaymentsPage";
 import StudentExamSchedule from "./pages/StudentExamSchedule";
 import StudentResults from "./pages/StudentResults";
 import StudentDocumentStore from "./pages/StudentDocumentStore";
+import VerifyMemoPage from "./pages/VerifyMemoPage";
 
 import AddUserManual from "./pages/AddUserManual";
 import BulkUserUpload from "./pages/BulkUserUpload";
@@ -29,13 +31,17 @@ import FacultyMarksViewPage from "./pages/FacultyMarksViewPage";
 import AdminCreateExam from "./pages/AdminCreateExam";
 import AdminExamSchedules from "./pages/AdminExamSchedules";
 import AdminPublishResults from "./pages/AdminPublishResults";
+import GoldMedalList from "./pages/GoldMedalList";
 import Footer from "./components/Footer";
 import YearSemAnalytics from "./pages/analytics/YearSemAnalytics";
 import DeptAnalytics from "./pages/analytics/DeptAnalytics";
+import Chatbot from "./components/Chatbot";
 
 export default function App() {
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Global Chatbot Widget — visible on all pages when logged in */}
+      <Chatbot />
       <Routes>
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -120,7 +126,7 @@ export default function App() {
           path="/faculty/external/endsem-theory"
           element={
             <ProtectedRoute requiredRole="faculty">
-              <FacultyMarksViewPage markType="endSem" title="End Sem (Theory)" />
+              <FacultyMarksViewPage markType="endSem" title="End Sem" />
             </ProtectedRoute>
           }
         />
@@ -215,12 +221,30 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/admin/gold-medalists"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <GoldMedalList />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Student routes */}
         <Route
           path="/student"
           element={
             <ProtectedRoute requiredRole="student">
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/attendance"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentAttendancePage />
             </ProtectedRoute>
           }
         />
@@ -299,6 +323,9 @@ export default function App() {
         element={<DeptAnalytics />
         } 
         />
+
+        {/* Public Validation Route */}
+        <Route path="/verify-memo" element={<VerifyMemoPage />} />
 
         {/* 404 fallback */}
         <Route path="*" element={<div className="p-8">404 — Not Found</div>} />

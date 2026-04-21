@@ -22,7 +22,8 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Optional<Enrollment> findByStudentIdAndCourseCourseId(Long studentId, Long courseId);
 
     /**
-     * All enrollments for a course — used by Admin (enrollment list) and FaThisulty (attendance).
+     * All enrollments for a course — used by Admin (enrollment list) and FaThisulty
+     * (attendance).
      */
     List<Enrollment> findByCourseCourseId(Long courseId);
 
@@ -33,7 +34,8 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Fetch just the Student objects enrolled in a given course.
-     * Used by Faculty Attendance module to get the student list without loading the full Enrollment.
+     * Used by Faculty Attendance module to get the student list without loading the
+     * full Enrollment.
      */
     @Query("SELECT e.student FROM Enrollment e WHERE e.course.courseId = :courseId")
     List<Student> findStudentsByCourseId(@Param("courseId") Long courseId);
@@ -50,7 +52,12 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
      * Find all enrollments for students of a given year and semester.
      */
     @Query("SELECT e FROM Enrollment e WHERE e.student.year = :year AND e.student.semester = :semester")
-    List<Enrollment> findByStudentYearAndStudentSemester(@Param("year") String year, @Param("semester") String semester);
+    List<Enrollment> findByStudentYearAndStudentSemester(@Param("year") String year,
+            @Param("semester") String semester);
+
+    @Query("SELECT e FROM Enrollment e WHERE e.student.id = :studentId " +
+           "AND (e.grade IS NULL OR e.grade NOT IN ('O','A+','A','B+','B','C'))")
+    List<Enrollment> findAllBacklogsByStudentId(@Param("studentId") Long studentId);
 
     List<Enrollment> findByCourseCourseIdIn(List<Long> courseIds);
 
@@ -67,13 +74,73 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
      */
     @Query("SELECT e FROM Enrollment e JOIN FETCH e.course c WHERE c.year = :year AND c.semester = :semester AND c.faculty.id = :facultyId")
     List<Enrollment> findByCourseYearAndCourseSemesterAndCourseFacultyId(
-        @Param("year") Integer year,
-        @Param("semester") String semester,
-        @Param("facultyId") Long facultyId);
-    
-        /**
-        * Fetch all enrollments with student eagerly loaded — used by dept analytics.
+            @Param("year") Integer year,
+            @Param("semester") String semester,
+            @Param("facultyId") Long facultyId);
+
+    /**
+     * All enrollments for courses matching a given year, semester, and a specific
+     * student department.
+     */
+    @Query("SELECT e FROM Enrollment e JOIN FETCH e.course c JOIN e.student s WHERE c.year = :year AND c.semester = :semester AND s.department = :department")
+    List<Enrollment> findByCourseYearAndCourseSemesterAndStudentDepartment(
+            @Param("year") Integer year,
+            @Param("semester") String semester,
+            @Param("department") String department);
+
+    /**
+     * Fetch all enrollments with student eagerly loaded — used by dept analytics.
      */
     @Query("SELECT e FROM Enrollment e JOIN FETCH e.student s WHERE s.department IS NOT NULL")
     List<Enrollment> findAllWithStudent();
+
+    /**
+     * Find students enrolled in a course whose current year/semester match the
+     * course's year/semester.
+     * Used for attendance marking — only current-batch students should appear.
+     */
+    @Query("SELECT e.student FROM Enrollment e " +
+            "WHERE e.course.courseId = :courseId " +
+            "AND e.student.year = CAST(e.course.year AS string) " +
+            "AND e.student.semester = e.course.semester")
+    List<Student> findCurrentStudentsByCourseId(@Param("courseId") Long courseId);
+
+    void deleteByStudentId(Long studentId);
+
+    /**
+     * Delete enrollments for a specific student in a given course year+semester.
+     * Used for the "Reset current semester enrollments" correction feature.
+     * Does NOT touch past semesters or marks.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Enrollment e WHERE e.student.id = :studentId AND e.course.year = :courseYear AND e.course.semester = :courseSemester")
+    void deleteByStudentIdAndCourseYearAndCourseSemester(
+            @Param("studentId") Long studentId,
+            @Param("courseYear") Integer courseYear,
+            @Param("courseSemester") String courseSemester);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE Enrollment e SET e.mid1Marks = NULL, e.mid2Marks = NULL, e.assignmentMarks = NULL, " +
+           "e.endSemMarks = NULL, e.totalMarks = NULL, e.grade = NULL, e.gradePoints = NULL, " +
+           "e.endSemReleased = false, e.isAbsent = false")
+    void hardResetAllResults();
+
+    /**
+     * Batch fetch all enrollments that have been graded, 
+     * eagerly loading Student and Course entities to avoid N+1 issues.
+     */
+    @Query("SELECT e FROM Enrollment e " +
+           "JOIN FETCH e.student s " +
+           "JOIN FETCH e.course c " +
+           "WHERE e.grade IS NOT NULL")
+    List<Enrollment> findAllReleasedWithStudentAndCourse();
+
+    /**
+     * Find all distinct course IDs that have at least one published result (endSemReleased = true).
+     */
+    @Query("SELECT DISTINCT e.course.courseId FROM Enrollment e WHERE e.endSemReleased = true")
+    List<Long> findCoursesWithPublishedResults();
+
+    boolean existsByCourse_CourseIdAndEndSemReleasedTrue(Long courseId);
 }

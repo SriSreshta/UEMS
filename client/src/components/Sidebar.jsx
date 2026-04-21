@@ -115,7 +115,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
           label: "External Marks",
           icon: AcademicCapIcon,
           children: [
-            { label: "End Sem (Theory)", icon: AcademicCapIcon, to: "/faculty/external/endsem-theory" },
+            { label: "End Sem", icon: AcademicCapIcon, to: "/faculty/external/endsem-theory" },
           ],
         },
       ];
@@ -161,6 +161,12 @@ export default function Sidebar({ isOpen, role = "student" }) {
           icon: BanknotesIcon,
           to: "/admin/fees",
         },
+        {
+          type: "item",
+          label: "Gold Medal List",
+          icon: AcademicCapIcon,
+          to: "/admin/gold-medalists",
+        },
       ];
     }
 
@@ -168,6 +174,7 @@ export default function Sidebar({ isOpen, role = "student" }) {
     return [
       { type: "profile" },
       { type: "section", title: "student" },
+      { type: "item", label: "Attendance", icon: ClipboardDocumentListIcon, to: "/student/attendance" },
       { type: "item", label: "Student Documents", icon: DocumentTextIcon, to: "/student/documents" },
       { type: "item", label: "Certificates", icon: AcademicCapIcon, to: "/student/certificates" },
       {

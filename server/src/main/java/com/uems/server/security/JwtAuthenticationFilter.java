@@ -35,7 +35,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String username;
 
         // ✅ Skip JWT validation for public endpoints
-        String path = request.getRequestURI();
 
         // Check if Authorization header exists
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {

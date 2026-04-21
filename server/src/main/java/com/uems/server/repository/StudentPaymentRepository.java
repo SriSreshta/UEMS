@@ -13,4 +13,6 @@ public interface StudentPaymentRepository extends JpaRepository<StudentPayment, 
     Optional<StudentPayment> findByStudentIdAndFeeNotificationIdAndStatus(Long studentId, Long feeNotificationId, String status);
 
     void deleteByFeeNotificationId(Long feeNotificationId);
+
+    void deleteByStudentId(Long studentId);
 }

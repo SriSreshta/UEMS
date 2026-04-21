@@ -37,6 +37,7 @@ public class ResultNotification {
     private Student student;
 
     @Column(nullable = false, name = "is_seen")
+    @Builder.Default
     private Boolean isSeen = false;
 
     @Column(nullable = false)

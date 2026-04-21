@@ -52,25 +52,118 @@ const BulkUserUpload = () => {
       <div className="flex-1 flex flex-col">
         <Header title="Bulk User Upload" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
         <main className="p-10 flex-1">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-extrabold mb-10 text-slate-900 tracking-tight text-center">Bulk Excel Upload</h2>
             
             <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-10">
+              
+              {/* Format Requirements */}
               <div className="mb-10 p-8 bg-indigo-50/40 border border-indigo-100 rounded-2xl text-indigo-900">
-                <h3 className="font-bold text-xs mb-6 uppercase tracking-widest text-indigo-500">Format Requirements</h3>
-                <div className="space-y-4 text-sm font-medium">
+                <h3 className="font-bold text-xs mb-6 uppercase tracking-widest text-indigo-500">📋 Excel Format Requirements</h3>
+                <div className="space-y-3 text-sm font-medium">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-indigo-400 rounded-full shadow-sm shadow-indigo-200"></div>
                     <span>File type must be <code className="bg-white px-2 py-0.5 rounded border border-indigo-100 text-indigo-600 font-bold">.xlsx</code></span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-indigo-400 rounded-full shadow-sm shadow-indigo-200"></div>
-                    <span>Row 1 must contain headers</span>
+                    <span>Row 1 must contain column headers</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-indigo-400 rounded-full shadow-sm shadow-indigo-200"></div>
                     <span>Role must be <code className="text-indigo-600 font-bold text-xs uppercase">"student"</code> or <code className="text-indigo-600 font-bold text-xs uppercase">"faculty"</code></span>
                   </div>
+                </div>
+
+                {/* Column Mapping Tables */}
+                <div className="mt-6 space-y-4">
+                  {/* Student columns */}
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">🎓 Student Column Order</h4>
+                    <div className="bg-white rounded-xl border border-emerald-100 overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-emerald-50">
+                            <th className="px-3 py-2 text-left font-bold text-emerald-700">Col A</th>
+                            <th className="px-3 py-2 text-left font-bold text-emerald-700">Col B</th>
+                            <th className="px-3 py-2 text-left font-bold text-emerald-700">Col C</th>
+                            <th className="px-3 py-2 text-left font-bold text-emerald-700">Col D</th>
+                            <th className="px-3 py-2 text-left font-bold text-emerald-700">Col E</th>
+                            <th className="px-3 py-2 text-left font-bold text-emerald-700">Col F</th>
+                            <th className="px-3 py-2 text-left font-bold text-emerald-700">Col G</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Username</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Email</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Role</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Roll No</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Dept</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Year</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Semester</td>
+                          </tr>
+                          <tr className="text-slate-400">
+                            <td className="px-3 py-1.5 border-t text-[11px]">John</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">john@uni.edu</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">student</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">21R11A05A1</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">CSE</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">3</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">1</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Faculty columns */}
+                  <div>
+                    <h4 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">👨‍🏫 Faculty Column Order</h4>
+                    <div className="bg-white rounded-xl border border-blue-100 overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-blue-50">
+                            <th className="px-3 py-2 text-left font-bold text-blue-700">Col A</th>
+                            <th className="px-3 py-2 text-left font-bold text-blue-700">Col B</th>
+                            <th className="px-3 py-2 text-left font-bold text-blue-700">Col C</th>
+                            <th className="px-3 py-2 text-left font-bold text-blue-700">Col D</th>
+                            <th className="px-3 py-2 text-left font-bold text-blue-700">Col E</th>
+                            <th className="px-3 py-2 text-left font-bold text-blue-700">Col F</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Username</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Email</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Role</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Faculty Code</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Dept</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 border-t">Designation</td>
+                          </tr>
+                          <tr className="text-slate-400">
+                            <td className="px-3 py-1.5 border-t text-[11px]">Dr. Smith</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">smith@uni.edu</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">faculty</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">FAC001</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">CSE</td>
+                            <td className="px-3 py-1.5 border-t text-[11px]">Asst. Prof</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key notes */}
+                <div className="mt-5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-xs font-bold text-amber-700">⚠️ Key Validation Rules:</p>
+                  <ul className="text-xs text-amber-600 mt-1 space-y-0.5 list-disc list-inside">
+                    <li>Email must be <b>globally unique</b></li>
+                    <li>Faculty Code must be <b>globally unique</b></li>
+                    <li>Roll Number must be unique within <b>same dept + year + semester</b></li>
+                    <li>Username (display name) <b>can be duplicated</b></li>
+                  </ul>
                 </div>
               </div>
 

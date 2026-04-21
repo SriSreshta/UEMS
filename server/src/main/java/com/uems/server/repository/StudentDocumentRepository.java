@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface StudentDocumentRepository extends JpaRepository<StudentDocument, Long> {
     List<StudentDocument> findByStudentIdAndTypeOrderByUploadedAtDesc(Long studentId, String type);
+
+    void deleteByStudentId(Long studentId);
 }

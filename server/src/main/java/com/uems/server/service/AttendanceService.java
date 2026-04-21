@@ -5,10 +5,15 @@ import com.uems.server.model.Attendance;
 import com.uems.server.model.Course;
 import com.uems.server.model.Faculty;
 import com.uems.server.model.Student;
+import com.uems.server.model.User;
 import com.uems.server.repository.AttendanceRepository;
 import com.uems.server.repository.CourseRepository;
 import com.uems.server.repository.FacultyRepository;
 import com.uems.server.repository.StudentRepository;
+import com.uems.server.repository.UserRepository;
+import com.uems.server.repository.EnrollmentRepository;
+import com.uems.server.model.Enrollment;
+import com.uems.server.dto.StudentAttendanceDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +22,15 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AttendanceService {
+
+    private static final Logger log = LoggerFactory.getLogger(AttendanceService.class);
 
     @Autowired
     private AttendanceRepository attendanceRepository;
@@ -33,6 +44,15 @@ public class AttendanceService {
     @Autowired
     private StudentRepository studentRepository;
 
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private UserRepository userRepository;
+
     // ✅ Mark attendance (update if already exists)
     public Attendance markAttendance(Attendance attendance) {
         Optional<Attendance> existing = attendanceRepository
@@ -45,10 +65,14 @@ public class AttendanceService {
         if (existing.isPresent()) {
             Attendance update = existing.get();
             update.setPresent(attendance.isPresent());
-            return attendanceRepository.save(update);
+            Attendance saved = attendanceRepository.save(update);
+            checkAndNotifyLowAttendance(attendance.getStudent().getId());
+            return saved;
         }
 
-        return attendanceRepository.save(attendance);
+        Attendance saved = attendanceRepository.save(attendance);
+        checkAndNotifyLowAttendance(attendance.getStudent().getId());
+        return saved;
     }
 
     // ✅ Bulk Mark Attendance
@@ -65,7 +89,8 @@ public class AttendanceService {
         }
 
         LocalDate attendanceDate = LocalDate.parse(request.getDate());
-        List<Attendance> savedRecords = new ArrayList<>();
+        List<Attendance> recordsToSave = new ArrayList<>();
+        Set<Long> affectedStudentIds = new HashSet<>();
 
         for (BulkAttendanceRequest.AttendanceItem item : request.getAttendanceList()) {
             Student student = studentRepository.findById(item.getStudentId())
@@ -86,11 +111,44 @@ public class AttendanceService {
                 attendanceRecord.setDate(attendanceDate);
                 attendanceRecord.setPresent(item.isPresent());
             }
-            savedRecords.add(attendanceRecord);
+            recordsToSave.add(attendanceRecord);
+            affectedStudentIds.add(student.getId());
         }
 
-        return attendanceRepository.saveAll(savedRecords);
+        List<Attendance> savedRecords = attendanceRepository.saveAll(recordsToSave);
+
+        // Notify all affected students whose overall attendance is now below 75%
+        for (Long sid : affectedStudentIds) {
+            checkAndNotifyLowAttendance(sid);
+        }
+
+        return savedRecords;
     }
+
+    // ✅ Check overall attendance and send email if below 75%
+    private void checkAndNotifyLowAttendance(Long studentId) {
+        try {
+            Long totalClasses = attendanceRepository.countByStudentId(studentId);
+            if (totalClasses == null || totalClasses == 0) return;
+
+            Long attendedClasses = attendanceRepository.countByStudentIdAndPresentTrue(studentId);
+            double percentage = (attendedClasses.doubleValue() / totalClasses.doubleValue()) * 100;
+
+            if (percentage < 75.0) {
+                User user = userRepository.findByStudentId(studentId).orElse(null);
+                if (user != null) {
+                    String email = user.getEmail();
+                    String name = user.getUsername();
+                    log.info("Sending low attendance warning to student: {} ({}) - {}%", name, email, String.format("%.1f", percentage));
+                    emailService.sendAttendanceWarningEmail(email, name, percentage);
+                }
+            }
+        } catch (Exception e) {
+            // Do not let email failures break the attendance marking flow
+            log.error("Failed to send attendance warning email for studentId {}: {}", studentId, e.getMessage());
+        }
+    }
+
 
     // ✅ Fetch attendance by faculty and date
     public List<Attendance> getAttendanceByFaculty(Long facultyId, LocalDate date) {
@@ -105,5 +163,51 @@ public class AttendanceService {
     // ✅ Fetch all attendance records for a course on a given date
     public List<Attendance> getAttendanceByCourseAndDate(Long courseId, LocalDate date) {
         return attendanceRepository.findByCourseCourseIdAndDate(courseId, date);
+    }
+
+    // ✅ List of dates for which attendance exists for a course
+    public List<LocalDate> getRecordedDatesByCourse(Long courseId) {
+        return attendanceRepository.findDistinctDatesByCourseCourseId(courseId);
+    }
+
+    // ✅ Subject-wise Attendance statistics for a student (current semester only)
+    public List<StudentAttendanceDTO> getStudentAttendanceStats(Long studentId) {
+        Student student = studentRepository.findById(studentId).orElse(null);
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        List<StudentAttendanceDTO> stats = new ArrayList<>();
+
+        for (Enrollment enrollment : enrollments) {
+            Course course = enrollment.getCourse();
+            
+            // Only include courses matching student's current year/semester
+            if (student != null) {
+                String studentYear = student.getYear();
+                String studentSem = student.getSemester();
+                if (studentYear != null && studentSem != null) {
+                    if (!String.valueOf(course.getYear()).equals(studentYear)
+                            || !course.getSemester().equals(studentSem)) {
+                        continue; // skip past-semester courses
+                    }
+                }
+            }
+
+            Long totalClasses = attendanceRepository.countByStudentIdAndCourseCourseId(studentId, course.getCourseId());
+            Long attendedClasses = attendanceRepository.countByStudentIdAndCourseCourseIdAndPresentTrue(studentId, course.getCourseId());
+            
+            Double percentage = (totalClasses > 0) ? (attendedClasses.doubleValue() / totalClasses.doubleValue()) * 100 : 0.0;
+
+            stats.add(StudentAttendanceDTO.builder()
+                    .courseId(course.getCourseId())
+                    .courseCode(course.getCode())
+                    .courseName(course.getName())
+                    .totalClasses(totalClasses)
+                    .attendedClasses(attendedClasses)
+                    .percentage(percentage)
+                    .semester(course.getSemester())
+                    .year(course.getYear())
+                    .build());
+        }
+
+        return stats;
     }
 }

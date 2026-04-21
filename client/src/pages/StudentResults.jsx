@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useAuth } from "../auth/AuthContext";
+import QRCode from "qrcode";
 
 /* ─────────────────────────────────────────────
    Print helper – renders a hidden container with
@@ -78,7 +79,7 @@ const printMemos = (memoNodes) => {
      MEMO NO.   → JNTUH/Y{year}/S{sem}/{rollNumber}
      SERIAL NO. → SL/{year}{sem}/{rollNumber}
 ────────────────────────────────────────────── */
-const generateMemoNumbers = (sem, rollNumber) => {
+export const generateMemoNumbers = (sem, rollNumber) => {
   const y = sem.year || "X";
   const s = sem.semester || "X";
   const roll = rollNumber || "000";
@@ -91,11 +92,30 @@ const generateMemoNumbers = (sem, rollNumber) => {
 /* ─────────────────────────────────────────────
    MemoView – pure rendering, no print logic here
 ────────────────────────────────────────────── */
-const MemoView = ({ resultsData, sem, showCgpa }) => {
+export const MemoView = ({ resultsData, sem, showCgpa, hideQr = false }) => {
+  const [qrSrc, setQrSrc] = useState("");
+
   let passed = sem.courses?.filter(c => c.grade !== 'F' && c.grade !== 'Ab').length || 0;
   let registered = sem.courses?.length || 0;
   let totalCredits = sem.courses?.reduce((acc, c) => acc + (c.credits || 0), 0) || 0;
   const { memoNo, serialNo } = generateMemoNumbers(sem, resultsData.rollNumber);
+
+  const qrLink = resultsData?.rollNumber && sem?.year && sem?.semester
+    ? `${window.location.protocol}//${window.location.host}/verify-memo?rollNumber=${resultsData.rollNumber}&year=${sem.year}&semester=${sem.semester}`
+    : "#";
+
+  useEffect(() => {
+    const generateQr = async () => {
+      if (hideQr || !resultsData?.rollNumber || !sem?.year || !sem?.semester) return;
+      try {
+        const dataUrl = await QRCode.toDataURL(qrLink, { margin: 1, width: 80, color: { dark: "#000000", light: "#ffffff00" } });
+        setQrSrc(dataUrl);
+      } catch (err) {
+        console.error("QR Code generation error:", err);
+      }
+    };
+    generateQr();
+  }, [resultsData, sem, hideQr, qrLink]);
 
   return (
     <div className="bg-white text-black w-full max-w-[210mm] mx-auto p-4 sm:p-6 shadow-2xl print:shadow-none min-h-[297mm] flex flex-col font-sans relative overflow-hidden">
@@ -222,24 +242,25 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
           )}
         </div>
 
-        {/* Footer Signatures */}
-        <div className="mt-auto pt-8 sm:pt-12 flex justify-between items-end text-[10px] sm:text-[11px] font-bold text-black px-2 sm:px-4 pb-2 w-full z-10 relative">
-          <div className="pb-1">
-            DATE OF ISSUE : &nbsp;&nbsp;
-            <span className="font-bold border-b-[1.5px] border-black border-dashed min-w-[80px] inline-block text-center pb-0.5">
-              {new Date().toLocaleDateString('en-GB')}
-            </span>
+          {/* Signatures & QR Code Section */}
+          <div className="mt-auto pt-10 pb-6 flex justify-between items-end text-[10px] sm:text-[11px] font-bold text-black px-2 sm:px-4 w-full z-10 relative">
+            <div className="pb-2">
+              DATE OF ISSUE : &nbsp;&nbsp;
+              <span className="font-bold border-b-[1.5px] border-black border-dashed min-w-[80px] inline-block text-center pb-0.5">
+                {new Date().toLocaleDateString('en-GB')}
+              </span>
+            </div>
+            
+            {/* QR Code Container */}
+            {!hideQr && qrSrc && (
+              <div className="flex flex-col items-center">
+                <a href={qrLink} target="_blank" rel="noopener noreferrer" className="transition-transform hover:scale-105 active:scale-95 flex flex-col items-center" title="Click to verify">
+                  <img src={qrSrc} alt="Verification QR" className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-1" />
+                  <span className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase tracking-wider">Scan to verify</span>
+                </a>
+              </div>
+            )}
           </div>
-          <div className="text-center flex flex-col items-center">
-            <div className="h-4 sm:h-6 mb-1 border-b-[1.5px] border-black w-20 sm:w-28 opacity-80"></div>
-            VERIFIED BY
-            <span className="font-normal mt-0.5 opacity-80 text-[9px]">Clerk</span>
-          </div>
-          <div className="text-center flex flex-col items-center">
-            <div className="h-4 sm:h-6 mb-1 border-b-[1.5px] border-black w-24 sm:w-36 opacity-80"></div>
-            PRINCIPAL
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -249,11 +270,26 @@ const MemoView = ({ resultsData, sem, showCgpa }) => {
    buildMemoHTML – creates a standalone DOM node
    for a single memo (used by printMemos helper)
 ────────────────────────────────────────────── */
-const buildMemoHTML = (resultsData, sem, showCgpa) => {
+const buildMemoHTML = async (resultsData, sem, showCgpa) => {
   const passed = sem.courses?.filter(c => c.grade !== 'F' && c.grade !== 'Ab').length || 0;
   const registered = sem.courses?.length || 0;
   const totalCredits = sem.courses?.reduce((acc, c) => acc + (c.credits || 0), 0) || 0;
   const { memoNo, serialNo } = generateMemoNumbers(sem, resultsData.rollNumber);
+  
+  let qrImageHtml = '';
+  const url = `${window.location.protocol}//${window.location.host}/verify-memo?rollNumber=${resultsData.rollNumber}&year=${sem.year}&semester=${sem.semester}`;
+  try {
+    const qrDataUrl = await QRCode.toDataURL(url, { margin: 1, width: 80, color: { dark: "#000000", light: "#ffffff00" } });
+    qrImageHtml = `
+      <div style="display:flex; flex-direction:column; align-items:center;">
+        <a href="${url}" target="_blank" rel="noopener noreferrer" style="display:flex; flex-direction:column; align-items:center; text-decoration:none;">
+          <img src="${qrDataUrl}" alt="QR Code" style="width:72px;height:72px;object-fit:contain;margin-bottom:4px;" />
+          <span style="font-size:9px; color:#4b5563; font-family:sans-serif; text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Scan to verify</span>
+        </a>
+      </div>`;
+  } catch(e) {
+    console.error(e);
+  }
 
   const rows = (sem.courses || []).map((c, i) => `
     <tr style="border-bottom:1px solid #9ca3af">
@@ -383,23 +419,16 @@ const buildMemoHTML = (resultsData, sem, showCgpa) => {
         ${cgpaRow}
       </div>
 
-      <!-- Signatures -->
-      <div style="margin-top:auto;padding-top:48px;display:flex;justify-content:space-between;align-items:flex-end;font-size:10px;font-weight:700;color:black;padding-bottom:8px">
-        <div style="padding-bottom:4px">
+      <!-- Signatures & QR Code -->
+      <div style="margin-top:auto;padding-top:48px;display:flex;justify-content:space-between;align-items:flex-end;font-size:10px;font-weight:700;color:black;padding-bottom:16px;">
+        <div style="padding-bottom:12px;">
           DATE OF ISSUE : &nbsp;&nbsp;
           <span style="font-weight:700;border-bottom:1.5px dashed black;min-width:80px;display:inline-block;text-align:center;padding-bottom:2px">
             ${new Date().toLocaleDateString('en-GB')}
           </span>
         </div>
-        <div style="text-align:center;display:flex;flex-direction:column;align-items:center">
-          <div style="height:24px;margin-bottom:4px;border-bottom:1.5px solid black;width:112px;opacity:0.8"></div>
-          VERIFIED BY
-          <span style="font-weight:400;margin-top:2px;opacity:0.8;font-size:9px">Clerk</span>
-        </div>
-        <div style="text-align:center;display:flex;flex-direction:column;align-items:center">
-          <div style="height:24px;margin-bottom:4px;border-bottom:1.5px solid black;width:144px;opacity:0.8"></div>
-          PRINCIPAL
-        </div>
+
+        ${qrImageHtml}
       </div>
     </div>
   `;
@@ -471,16 +500,16 @@ export default function StudentResults() {
 
   /* ── Print handlers ── */
 
-  const handlePrintSingle = (sem, showCgpa) => {
-    const node = buildMemoHTML(resultsData, sem, showCgpa);
+  const handlePrintSingle = async (sem, showCgpa) => {
+    const node = await buildMemoHTML(resultsData, sem, showCgpa);
     printMemos([node]);
   };
 
-  const handlePrintAll = () => {
-    const nodes = allSemestersChronological.map((sem, idx) => {
+  const handlePrintAll = async () => {
+    const nodes = await Promise.all(allSemestersChronological.map(async (sem, idx) => {
       const isLast = idx === allSemestersChronological.length - 1;
-      return buildMemoHTML(resultsData, sem, isLast); // CGPA only on final memo
-    });
+      return await buildMemoHTML(resultsData, sem, isLast); // CGPA only on final memo
+    }));
     printMemos(nodes);
   };
 
@@ -543,7 +572,7 @@ export default function StudentResults() {
                           </span>
                         </button>
                         {/* Card actions */}
-                        <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 gap-2">
+                        <div className="flex items-center border-t border-gray-100 px-5 py-3">
                           <button
                             onClick={() => setSelectedPastSemester(sem)}
                             className="text-sm text-gray-600 font-medium flex items-center gap-1 hover:text-green-700 transition-colors"
@@ -551,12 +580,6 @@ export default function StudentResults() {
                             View Memo
                             <span className="text-green-700 group-hover:translate-x-1 transition-transform inline-block">&rarr;</span>
                           </button>
-                          <PrintButton
-                            variant="outline"
-                            onClick={() => handlePrintSingle(sem, false)}
-                          >
-                            Print
-                          </PrintButton>
                         </div>
                       </div>
                     ))}
@@ -573,7 +596,10 @@ export default function StudentResults() {
 
         {/* ── Modal for Past Results ── */}
         {selectedPastSemester && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 print:hidden lg:pl-64">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 print:hidden lg:pl-64"
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedPastSemester(null); }}
+          >
             <div className="relative w-full max-w-[950px] my-auto">
               <div className="flex justify-end items-center gap-3 mb-2">
                 {/* Print button inside modal */}

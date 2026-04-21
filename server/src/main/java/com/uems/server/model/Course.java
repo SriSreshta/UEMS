@@ -1,15 +1,19 @@
 package com.uems.server.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "course")
+@Table(name = "course", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_course_code", columnNames = {"code"})
+})
 public class Course {
 
     @Id
@@ -25,11 +29,12 @@ public class Course {
     private Long roleId;
     
     @Column(name = "is_open_elective")
+    @Builder.Default
     private Boolean isOpenElective = false;
     
     @Column(nullable = false)
     @Builder.Default
-    private Integer credits = 3;
+    private Integer credits = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id")

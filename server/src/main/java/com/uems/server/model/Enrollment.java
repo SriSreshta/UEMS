@@ -56,4 +56,8 @@ public class Enrollment {
     @Column(name = "is_absent", nullable = false)
     @Builder.Default
     private Boolean isAbsent = false;
+
+    @Column(name = "cleared_via_supplementary", nullable = false)
+    @Builder.Default
+    private Boolean clearedViaSupplementary = false;
 }

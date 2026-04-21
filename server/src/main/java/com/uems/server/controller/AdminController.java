@@ -3,6 +3,7 @@ package com.uems.server.controller;
 import com.uems.server.dto.*;
 import com.uems.server.model.Enrollment;
 import com.uems.server.repository.EnrollmentRepository;
+import com.uems.server.repository.SupplementaryAttemptRepository;
 import com.uems.server.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,14 +18,16 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
+@CrossOrigin
 @RequiredArgsConstructor
 public class AdminController {
 
     private final AdminService adminService;
     private final EnrollmentRepository enrollmentRepository;
+    private final SupplementaryAttemptRepository supplementaryAttemptRepository;
 
     // ════════════════════════════════════════════════════════════════════════
-    //  EXISTING — User Management
+    // EXISTING — User Management
     // ════════════════════════════════════════════════════════════════════════
 
     @PostMapping("/create-user")
@@ -66,8 +69,19 @@ public class AdminController {
         }
     }
 
+    @PutMapping("/users/{id}/student")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateStudent(@PathVariable Long id, @RequestBody UpdateStudentRequest request) {
+        try {
+            adminService.updateStudent(id, request);
+            return ResponseEntity.ok("Student updated successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // ════════════════════════════════════════════════════════════════════════
-    //  COURSE MANAGEMENT
+    // COURSE MANAGEMENT
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -142,7 +156,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  FACULTY LIST
+    // FACULTY LIST
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -156,7 +170,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  STUDENT FILTERING
+    // STUDENT FILTERING
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -178,7 +192,7 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  ENROLLMENT
+    // ENROLLMENT
     // ════════════════════════════════════════════════════════════════════════
 
     /**
@@ -224,12 +238,29 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> enrollBatch(@RequestBody java.util.Map<String, String> body) {
         try {
-            String year     = body.get("year");
+            String year = body.get("year");
             String semester = body.get("semester");
-            String result   = adminService.enrollBatch(year, semester);
+            String result = adminService.enrollBatch(year, semester);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Batch enrollment failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/admin/enroll/backfill
+     * One-time backfill: add missing past + current course enrollments for ALL
+     * existing students.
+     * Only ADDS missing enrollments — never deletes or modifies existing data.
+     */
+    @PostMapping("/enroll/backfill")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> backfillEnrollments() {
+        try {
+            String result = adminService.backfillAllStudentEnrollments();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Backfill failed: " + e.getMessage());
         }
     }
 
@@ -254,11 +285,21 @@ public class AdminController {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  ANALYTICS
+    // ANALYTICS
     // ════════════════════════════════════════════════════════════════════════
 
     /**
-     * GET /api/admin/analytics?year=3&semester=2
+     * GET /api/admin/departments
+     * Returns a list of all distinct student departments.
+     */
+    @GetMapping("/departments")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<String>> getDepartments() {
+        return ResponseEntity.ok(adminService.getAllDepartments());
+    }
+
+    /**
+     * GET /api/admin/analytics?year=3&semester=2&department=CSE
      * Returns per-subject grade analytics for the given year/semester.
      * Ab (absent) is counted separately and NOT as fail.
      */
@@ -266,10 +307,16 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AnalyticsDto>> getAnalytics(
             @RequestParam Integer year,
-            @RequestParam Integer semester) {
+            @RequestParam Integer semester,
+            @RequestParam(required = false) String department) {
 
-        List<Enrollment> enrollments = enrollmentRepository
-                .findByCourseYearAndCourseSemester(year, String.valueOf(semester));
+        List<Enrollment> enrollments;
+        if (department != null && !department.isBlank() && !department.equalsIgnoreCase("ALL")) {
+            enrollments = enrollmentRepository.findByCourseYearAndCourseSemesterAndStudentDepartment(year,
+                    String.valueOf(semester), department);
+        } else {
+            enrollments = enrollmentRepository.findByCourseYearAndCourseSemester(year, String.valueOf(semester));
+        }
 
         // Group by subject name (preserve insertion order)
         Map<String, List<Enrollment>> bySubject = new LinkedHashMap<>();
@@ -286,18 +333,40 @@ public class AdminController {
             for (Enrollment e : entry.getValue()) {
                 String grade = e.getGrade();
 
-                if (grade == null) continue; // marks not yet published
+                if (grade == null)
+                    continue; // marks not yet published
 
                 switch (grade) {
-                    case "O"  -> { dto.setO(dto.getO() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "A+" -> { dto.setAplus(dto.getAplus() + 1);   dto.setPass(dto.getPass() + 1); }
-                    case "A"  -> { dto.setA(dto.getA() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "B+" -> { dto.setBplus(dto.getBplus() + 1);   dto.setPass(dto.getPass() + 1); }
-                    case "B"  -> { dto.setB(dto.getB() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "C"  -> { dto.setC(dto.getC() + 1);           dto.setPass(dto.getPass() + 1); }
-                    case "F"  -> { dto.setF(dto.getF() + 1);           dto.setFail(dto.getFail() + 1); }
+                    case "O" -> {
+                        dto.setO(dto.getO() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "A+" -> {
+                        dto.setAplus(dto.getAplus() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "A" -> {
+                        dto.setA(dto.getA() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "B+" -> {
+                        dto.setBplus(dto.getBplus() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "B" -> {
+                        dto.setB(dto.getB() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "C" -> {
+                        dto.setC(dto.getC() + 1);
+                        dto.setPass(dto.getPass() + 1);
+                    }
+                    case "F" -> {
+                        dto.setF(dto.getF() + 1);
+                        dto.setFail(dto.getFail() + 1);
+                    }
                     case "Ab" -> dto.setAb(dto.getAb() + 1); // absent — separate bucket
-                    default   -> dto.setFail(dto.getFail() + 1);
+                    default -> dto.setFail(dto.getFail() + 1);
                 }
             }
             result.add(dto);
@@ -305,53 +374,107 @@ public class AdminController {
 
         return ResponseEntity.ok(result);
     }
+
     /**
- * GET /api/admin/analytics/department
- * Returns per-department student count, pass, fail, and pass%.
- */
-@GetMapping("/analytics/department")
-@PreAuthorize("hasRole('ADMIN')")
-public ResponseEntity<List<DeptAnalyticsDto>> getDeptAnalytics() {
+     * GET /api/admin/analytics/department
+     * Returns per-department student count, pass, fail, and pass%.
+     */
+    @GetMapping("/analytics/department")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<DeptAnalyticsDto>> getDeptAnalytics() {
 
-    List<Enrollment> allEnrollments = enrollmentRepository.findAllWithStudent();
+        List<Enrollment> allEnrollments = enrollmentRepository.findAllWithStudent();
 
-    // Group enrollments by department (via student)
-    Map<String, DeptAnalyticsDto> byDept = new LinkedHashMap<>();
+        // Group enrollments by department (via student)
+        Map<String, DeptAnalyticsDto> byDept = new LinkedHashMap<>();
 
-    for (Enrollment e : allEnrollments) {
-        // skip if student or department is missing
-        if (e.getStudent() == null) continue;
-        String dept = e.getStudent().getDepartment();
-        if (dept == null || dept.isBlank()) continue;
+        for (Enrollment e : allEnrollments) {
+            // skip if student or department is missing
+            if (e.getStudent() == null)
+                continue;
+            String dept = e.getStudent().getDepartment();
+            if (dept == null || dept.isBlank())
+                continue;
 
-        String grade = e.getGrade();
-        if (grade == null) continue; // marks not published yet
+            String grade = e.getGrade();
+            if (grade == null)
+                continue; // marks not published yet
 
-        DeptAnalyticsDto dto = byDept.computeIfAbsent(dept, k -> {
-            DeptAnalyticsDto d = new DeptAnalyticsDto();
-            d.setDepartment(k);
-            return d;
-        });
+            DeptAnalyticsDto dto = byDept.computeIfAbsent(dept, k -> {
+                DeptAnalyticsDto d = new DeptAnalyticsDto();
+                d.setDepartment(k);
+                return d;
+            });
 
-        switch (grade) {
-            case "O", "A+", "A", "B+", "B", "C" -> {
-                dto.setPass(dto.getPass() + 1);
+            switch (grade) {
+                case "O", "A+", "A", "B+", "B", "C" -> {
+                    dto.setPass(dto.getPass() + 1);
+                }
+                case "F" -> {
+                    dto.setFail(dto.getFail() + 1);
+                }
+                // "Ab" (absent) — skip, same as existing analytics logic
             }
-            case "F" -> {
-                dto.setFail(dto.getFail() + 1);
-            }
-            // "Ab" (absent) — skip, same as existing analytics logic
         }
+
+        // Calculate studentCount and passPercent for each dept
+        List<DeptAnalyticsDto> result = new ArrayList<>(byDept.values());
+        for (DeptAnalyticsDto dto : result) {
+            int total = dto.getPass() + dto.getFail();
+            dto.setStudentCount(total);
+            dto.setPassPercent(total > 0 ? Math.round((dto.getPass() * 100.0) / total) : 0);
+        }
+
+        return ResponseEntity.ok(result);
     }
 
-    // Calculate studentCount and passPercent for each dept
-    List<DeptAnalyticsDto> result = new ArrayList<>(byDept.values());
-    for (DeptAnalyticsDto dto : result) {
-        int total = dto.getPass() + dto.getFail();
-        dto.setStudentCount(total);
-        dto.setPassPercent(total > 0 ? Math.round((dto.getPass() * 100.0) / total) : 0);
+    /**
+     * GET /api/admin/gold-medalists
+     * Returns a list of students with no backlogs and CGPA > 8.0.
+     */
+    @GetMapping("/gold-medalists")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<GoldMedalistDto>> getGoldMedalists() {
+        return ResponseEntity.ok(adminService.getGoldMedalists());
     }
 
-    return ResponseEntity.ok(result);
-}
+    /**
+     * GET /api/admin/dashboard-stats
+     * Returns optimized counts for dashboard (students, courses, fees).
+     */
+    @GetMapping("/dashboard-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DashboardStatsDto> getDashboardStats() {
+        return ResponseEntity.ok(adminService.getDashboardStats());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SUPPLEMENTARY EXAMS
+    // ════════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/supplementary")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<SupplementaryAttemptDto>> getSupplementaryAttempts(
+            @RequestParam Integer year,
+            @RequestParam String semester) {
+        
+        List<com.uems.server.model.SupplementaryAttempt> attempts = supplementaryAttemptRepository.findByYearAndSemester(year, semester);
+        List<SupplementaryAttemptDto> result = attempts.stream().map(a -> {
+            return SupplementaryAttemptDto.builder()
+                    .id(a.getId())
+                    .studentId(a.getEnrollment().getStudent().getId())
+                    .enrollmentId(a.getEnrollment().getId())
+                    .rollNumber(a.getEnrollment().getStudent().getRollNumber())
+                    .studentName(a.getEnrollment().getStudent().getUser() != null ? a.getEnrollment().getStudent().getUser().getUsername() : "Unknown")
+                    .year(a.getYear())
+                    .semester(a.getSemester())
+                    .marksObtained(a.getMarksObtained())
+                    .grade(a.getGrade())
+                    .status(a.getStatus())
+                    .build();
+        }).toList();
+
+        return ResponseEntity.ok(result);
+    }
+
 }

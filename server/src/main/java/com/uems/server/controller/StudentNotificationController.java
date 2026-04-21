@@ -26,9 +26,9 @@ public class StudentNotificationController {
     private UserRepository userRepository;
 
     @GetMapping("/results")
-    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    @PreAuthorize("hasRole('STUDENT')")
     public List<ResultNotificationDto> getResultNotifications(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         Long studentId = user.getStudent().getId();
         System.out.println("DEBUG: Fetching notifications for Student PK: " + studentId + " (User: " + user.getUsername() + ")");
         List<ResultNotification> notifs = resultNotificationRepository.findByStudentIdAndIsSeenFalse(studentId);
@@ -51,17 +51,39 @@ public class StudentNotificationController {
                 + ", year: " + first.getYear() 
                 + ", semester: " + first.getSemester() 
                 + ", isSeen: " + first.getIsSeen() + " }");
+            
+            // Only return the single most latest notification
+            dtos = java.util.Collections.singletonList(first);
         }
 
         return dtos;
     }
 
     @PutMapping("/{id}/seen")
-    @PreAuthorize("hasRole('ROLE_STUDENT')")
-    public void markNotificationSeen(@PathVariable Long id) {
+    @PreAuthorize("hasRole('STUDENT')")
+    @org.springframework.transaction.annotation.Transactional
+    public void markNotificationSeen(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        Long studentId = user.getStudent().getId();
+
         ResultNotification notif = resultNotificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));
+                
+        // Ensure the notification belongs to the authenticated student
+        if (!notif.getStudent().getId().equals(studentId)) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Access Denied");
+        }
+
         notif.setIsSeen(true);
         resultNotificationRepository.save(notif);
+        
+        // Also mark any other older unseen notifications for this student as seen
+        List<ResultNotification> otherNotifs = resultNotificationRepository.findByStudentIdAndIsSeenFalse(studentId);
+        if (!otherNotifs.isEmpty()) {
+            for (ResultNotification n : otherNotifs) {
+                n.setIsSeen(true);
+            }
+            resultNotificationRepository.saveAll(otherNotifs);
+        }
     }
 }

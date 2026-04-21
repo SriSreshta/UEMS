@@ -10,18 +10,14 @@ import com.uems.server.repository.EnrollmentRepository;
 import com.uems.server.repository.ExamRepository;
 import com.uems.server.repository.ExamScheduleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping("/api/admin/exams")
-@CrossOrigin(origins = "*")
-@PreAuthorize("hasRole('ROLE_ADMIN')")
 public class AdminExamController {
 
     @Autowired
@@ -38,6 +34,9 @@ public class AdminExamController {
 
     @Autowired
     private com.uems.server.repository.ResultNotificationRepository resultNotificationRepository;
+
+    @Autowired
+    private com.uems.server.service.AdminService adminService;
 
     // --- 1. EXAM CREATION ---
 
@@ -146,18 +145,25 @@ public class AdminExamController {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
 
-        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
-        System.out.println("DEBUG: previewResults - semester: " + String.valueOf(exam.getSemester()));
-        System.out.println("DEBUG: previewResults - found " + courses.size() + " courses.");
+        boolean isSupplementary = "SUPPLEMENTARY".equalsIgnoreCase(exam.getExamType());
 
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
         List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
 
         List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
-        System.out.println("DEBUG: previewResults - found " + enrollments.size() + " enrollments.");
+
+        // For SUPPLEMENTARY exams: only show students who FAILED (grade F or Ab)
+        if (isSupplementary) {
+            enrollments = enrollments.stream()
+                    .filter(e -> {
+                        String grade = e.getGrade();
+                        return "F".equals(grade) || "Ab".equals(grade);
+                    })
+                    .collect(Collectors.toList());
+        }
 
         Map<Long, List<Enrollment>> studentGroups = enrollments.stream()
                 .collect(Collectors.groupingBy(e -> e.getStudent().getId()));
-        System.out.println("DEBUG: previewResults - grouped into " + studentGroups.size() + " students.");
 
         List<StudentResultPreviewDto> results = new ArrayList<>();
 
@@ -166,7 +172,6 @@ public class AdminExamController {
             sDto.setStudentId(entry.getKey());
             sDto.setHallTicketNo(entry.getValue().get(0).getStudent().getRollNumber());
             sDto.setStudentName(entry.getValue().get(0).getStudent().getUser().getUsername());
-            System.out.println("DEBUG: previewResults - processing student: " + sDto.getStudentName() + " (ID: " + sDto.getStudentId() + ")");
 
             double totalPoints = 0;
             int totalCredits = 0;
@@ -179,7 +184,7 @@ public class AdminExamController {
                 cDto.setCourseCode(e.getCourse().getCode());
                 cDto.setCourseName(e.getCourse().getName());
                 
-                int credits = e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 3;
+                int credits = e.getCourse().getCredits() != null ? e.getCourse().getCredits() : 0;
                 cDto.setCredits(credits);
 
                 cDto.setMid1(e.getMid1Marks());
@@ -198,7 +203,9 @@ public class AdminExamController {
             }
             sDto.setCourses(courseDtos);
             
-            if (totalCredits > 0) {
+            if (isSupplementary) {
+                sDto.setSgpa("--");
+            } else if (totalCredits > 0) {
                 double sgpa = totalPoints / totalCredits;
                 sDto.setSgpa(String.format("%.2f", sgpa));
             } else {
@@ -250,6 +257,11 @@ public class AdminExamController {
     @PostMapping("/{examId}/results/publish")
     @Transactional
     public void publishResults(@PathVariable Long examId, @RequestBody PublishResultsRequest req) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+        boolean isSupplementary = "SUPPLEMENTARY".equalsIgnoreCase(exam.getExamType());
+
         for (StudentResultPreviewDto sDto : req.getStudents()) {
             for (StudentResultPreviewDto.CourseResultDto cDto : sDto.getCourses()) {
                 Enrollment e = enrollmentRepository.findById(cDto.getEnrollmentId()).orElseThrow();
@@ -258,12 +270,79 @@ public class AdminExamController {
                 e.setGradePoints(cDto.getGradePoints());
                 e.setTotalMarks(cDto.getTotalMarks());
                 e.setEndSemReleased(true);
+
+                // If this publish is occurring inside a Supplementary Exam, set the flag.
+                if (isSupplementary) {
+                    e.setClearedViaSupplementary(true);
+                }
+
                 enrollmentRepository.save(e);
             }
         }
         
         // Trigger notifications automatically after publishing
         notifyResultsPublished(examId);
+    }
+
+    @PostMapping("/{examId}/results/unpublish")
+    @Transactional
+    public void unpublishResults(@PathVariable Long examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+        List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
+
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
+        for (Enrollment e : enrollments) {
+            e.setEndSemReleased(false);
+            enrollmentRepository.save(e);
+        }
+
+        // Delete associated notifications so they can be re-triggered later
+        resultNotificationRepository.deleteByExamExamId(examId);
+    }
+
+    /**
+     * Unlock only FAILED enrollments for a supplementary exam.
+     * This allows faculty to enter new end-sem marks for students who failed.
+     * Passing grades remain locked.
+     */
+    @PutMapping("/{examId}/unlock-failed")
+    @Transactional
+    public void unlockFailedEnrollments(@PathVariable Long examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+        List<Course> courses = courseRepository.findByYearAndSemester(exam.getYear(), String.valueOf(exam.getSemester()));
+        List<Long> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
+
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseIdIn(courseIds);
+        int count = 0;
+        for (Enrollment e : enrollments) {
+            String grade = e.getGrade();
+            if (("F".equals(grade) || "Ab".equals(grade)) && Boolean.TRUE.equals(e.getEndSemReleased())) {
+                e.setEndSemReleased(false);
+                enrollmentRepository.save(e);
+                count++;
+            }
+        }
+        System.out.println("Unlocked " + count + " failed enrollments for supply exam: " + exam.getTitle());
+    }
+
+    @PostMapping("/system-final-reset")
+    @Transactional
+    public void systemFinalReset() {
+        adminService.performSystemAcademicReset();
+        System.out.println("DEBUG: SYSTEM GLOBAL ACADEMIC RESET PERFORMED.");
+    }
+
+
+    @PostMapping("/sync-credits-only")
+    @Transactional
+    public void syncCreditsOnly() {
+        adminService.syncAllSystemCredits();
+        System.out.println("DEBUG: SYSTEM GLOBAL CREDIT SYNC PERFORMED (Marks Preserved).");
     }
 
     @PostMapping("/{examId}/notify")
@@ -322,6 +401,7 @@ public class AdminExamController {
         
         List<ExamSchedule> schedules = examScheduleRepository.findByExamExamId(examId);
         examScheduleRepository.deleteAll(schedules);
+        resultNotificationRepository.deleteByExamExamId(examId);
         examRepository.delete(exam);
     }
 

@@ -13,12 +13,12 @@ export const AuthProvider = ({ children }) => {
   });
 
   // ✅ LOGIN FUNCTION
-  const login = async (username, password, rollNumber) => {
+  const login = async (username, password, rollNumber, facultyCode, role) => {
     try {
       const res = await fetch("http://localhost:8081/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, rollNumber }),
+        body: JSON.stringify({ username, password, rollNumber, facultyCode, role }),
       });
 
       if (!res.ok) return false;
@@ -32,11 +32,15 @@ export const AuthProvider = ({ children }) => {
       const normalizedRole = rawRole.replace('ROLE_', '').toLowerCase();
 
       const payload = {
-        username: decoded.sub,
+        username: data.username, // Display name from server response
+        email: decoded.sub,      // JWT subject is now email
         role: normalizedRole, 
         token: data.token,
         facultyId: data.facultyId || null,
         studentId: data.studentId || null,
+        facultyCode: data.facultyCode || null,
+        year: data.year || null,
+        semester: data.semester || null,
       };
 
       sessionStorage.setItem("uems_user", JSON.stringify(payload));

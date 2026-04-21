@@ -57,17 +57,30 @@ const YearSemAnalytics = () => {
 
   const [analyticsYear, setAnalyticsYear] = useState(4);
   const [analyticsSem, setAnalyticsSem] = useState(2);
+  const [analyticsDept, setAnalyticsDept] = useState("ALL");
+  const [departments, setDepartments] = useState([]);
   const [analyticsData, setAnalyticsData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    authFetch("http://localhost:8081/api/admin/departments")
+      .then((r) => r.json())
+      .then((data) => setDepartments(Array.isArray(data) ? data : []))
+      .catch(console.error);
+  }, [authFetch]);
+
+  useEffect(() => {
     setLoading(true);
-    authFetch(`http://localhost:8081/api/admin/analytics?year=${analyticsYear}&semester=${analyticsSem}`)
+    let url = `http://localhost:8081/api/admin/analytics?year=${analyticsYear}&semester=${analyticsSem}`;
+    if (analyticsDept !== "ALL") {
+      url += `&department=${encodeURIComponent(analyticsDept)}`;
+    }
+    authFetch(url)
       .then(r => r.json())
       .then(data => setAnalyticsData(Array.isArray(data) ? data : []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [analyticsYear, analyticsSem, authFetch]);
+  }, [analyticsYear, analyticsSem, analyticsDept, authFetch]);
 
   const insights = generateInsights(analyticsData, analyticsYear, analyticsSem);
 
@@ -111,6 +124,16 @@ const YearSemAnalytics = () => {
               <option value={1}>Semester 1</option>
               <option value={2}>Semester 2</option>
             </select>
+            <select
+              value={analyticsDept}
+              onChange={e => setAnalyticsDept(e.target.value)}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 min-w-[150px]"
+            >
+              <option value="ALL">All Departments</option>
+              {departments.map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
           </div>
 
           {loading ? (
@@ -127,13 +150,13 @@ const YearSemAnalytics = () => {
               {/* Chart 1: Pass % per Subject */}
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
                 <h3 className="text-base font-black text-slate-600 mb-4">Pass % per Subject</h3>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={380}>
                   <BarChart data={analyticsData.map(d => ({
                     name: d.subjectName,
                     passPercent: d.pass + d.fail > 0 ? Math.round((d.pass / (d.pass + d.fail)) * 100) : 0,
                   }))}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} height={100} tick={{ fontSize: 11, fill: "#64748b" }} />
                     <YAxis domain={[0, 100]} />
                     <Tooltip formatter={(v) => `${v}%`} />
                     <Bar dataKey="passPercent" fill="#22c55e" name="Pass %" radius={[4, 4, 0, 0]} />
@@ -170,16 +193,16 @@ const YearSemAnalytics = () => {
               {/* Chart 3: Grade Distribution per Subject */}
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
                 <h3 className="text-base font-black text-slate-600 mb-4">Grade Distribution per Subject</h3>
-                <ResponsiveContainer width="100%" height={350}>
+                <ResponsiveContainer width="100%" height={430}>
                   <BarChart data={analyticsData.map(d => ({
                     name: d.subjectName,
                     O: d.o, "A+": d.aplus, A: d.a, "B+": d.bplus, B: d.b, C: d.c, F: d.f,
                   }))}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} height={100} tick={{ fontSize: 11, fill: "#64748b" }} />
                     <YAxis />
                     <Tooltip />
-                    <Legend />
+                    <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: 20 }} />
                     {GRADE_KEYS.map(g => (
                       <Bar key={g.key} dataKey={g.label} fill={g.color} radius={[4, 4, 0, 0]} />
                     ))}

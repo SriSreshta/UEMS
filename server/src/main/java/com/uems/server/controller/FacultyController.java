@@ -19,7 +19,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Value;
 import com.uems.server.dto.AnalyticsDto;
 import com.uems.server.model.Faculty;
 import com.uems.server.repository.FacultyRepository;
@@ -33,7 +32,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import com.uems.server.repository.EnrollmentRepository;
 import com.uems.server.model.Enrollment;
-import com.uems.server.dto.FacultyMarksResponse;
 import com.uems.server.dto.FacultyMarksResponse;
 import com.uems.server.dto.MarksUpdateRequest;
 import com.uems.server.dto.CourseResponse;
@@ -91,34 +89,37 @@ public class FacultyController {
         }
     }
 
-    // ✅ Automatically get logged-in faculty’s courses
+    // ✅ Automatically get logged-in faculty's courses (JWT subject = email)
     @GetMapping("/courses")
     public ResponseEntity<?> getFacultyCourses(@RequestHeader("Authorization") String authHeader) {
-        System.out.println("🎯 Faculty endpoint hit!");
-        System.out.println("Header received: " + authHeader);
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
-            // Extract username from token
+            // Extract email from token (JWT subject is now email)
             String token = authHeader.substring(7);
-            String username = jwtService.extractUsername(token);
-            System.out.println("extracted username "+username);
+            String email = jwtService.extractUsername(token);
+
+            // Find user by email
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + email));
+            String username = user.getUsername();
+
+            // Use courseService with email-based lookup
+            List<Course> coursesList = courseService.getCoursesByFacultyEmail(email);
             
-            // Use courseService to bypass the ID mismatch between users and faculty tables
-            List<Course> coursesList = courseService.getCoursesByFacultyUsername(username);
-            
-            // Map to safe DTO to prevent lazy-loading recursion errors
+            // Map to safe DTO
             List<CourseResponse> response = coursesList.stream().map(c -> new CourseResponse(
                     c.getCourseId(), c.getName(), c.getCode(), c.getDepartment(), 
                     c.getYear(), c.getSemester(), 
                     c.getFaculty() != null ? c.getFaculty().getId() : null, 
                     username, 
                     c.getFaculty() != null ? c.getFaculty().getDepartment() : null,
-                    c.getIsOpenElective()
+                    c.getIsOpenElective(),
+                    c.getCredits(),
+                    false
             )).collect(Collectors.toList());
             
-            System.out.println("✅ Courses found: " + response.size());
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -143,14 +144,15 @@ public class FacultyController {
                     e.getMid2Marks(),
                     e.getAssignmentMarks(),
                     e.getEndSemMarks(),
-                    e.getEndSemReleased()
+                    e.getEndSemReleased(),
+                    e.getStudent().getYear(),
+                    e.getStudent().getSemester()
             )).collect(Collectors.toList());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
         }
     }
-
     @PostMapping("/courses/{courseId}/marks/bulk")
     public ResponseEntity<?> uploadMarksBulk(
             @RequestHeader("Authorization") String authHeader,
@@ -161,8 +163,11 @@ public class FacultyController {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
             }
             List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
-            // Validating marks mapping logic
+            int updatedCount = 0;
+            int skippedCount = 0;
+
             for (MarksUpdateRequest req : marksRequests) {
+                // Validation logic remains same
                 if (req.getMid1Marks() != null && (req.getMid1Marks() < 0 || req.getMid1Marks() > 30)) {
                     return ResponseEntity.status(400).body("Error: Mid1 marks must be between 0 and 30");
                 }
@@ -176,28 +181,43 @@ public class FacultyController {
                     return ResponseEntity.status(400).body("Error: End Sem marks must be between 0 and 60");
                 }
 
-                enrollments.stream()
+                java.util.Optional<Enrollment> enrollmentOpt = enrollments.stream()
                         .filter(e -> e.getStudent().getId().equals(req.getStudentId()))
-                        .findFirst()
-                        .ifPresent(e -> {
-                            if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
-                            if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
-                            if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
-                            if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
-                            enrollmentRepository.save(e);
-                        });
+                        .findFirst();
+
+                if (enrollmentOpt.isPresent()) {
+                    Enrollment e = enrollmentOpt.get();
+                    // Block marks editing if results have already been published
+                    if (Boolean.TRUE.equals(e.getEndSemReleased())) {
+                        skippedCount++;
+                        continue; 
+                    }
+                    if (req.getMid1Marks() != null) e.setMid1Marks(req.getMid1Marks());
+                    if (req.getMid2Marks() != null) e.setMid2Marks(req.getMid2Marks());
+                    if (req.getAssignmentMarks() != null) e.setAssignmentMarks(req.getAssignmentMarks());
+                    if (req.getEndSemMarks() != null) e.setEndSemMarks(req.getEndSemMarks());
+                    enrollmentRepository.save(e);
+                    updatedCount++;
+                }
             }
-            return ResponseEntity.ok("Marks uploaded successfully");
+
+            if (updatedCount == 0 && skippedCount > 0) {
+                return ResponseEntity.status(409).body("Unable to save. All records are locked because results have been published for this course.");
+            }
+            
+            String msg = "Marks saved successfully. Updated: " + updatedCount;
+            if (skippedCount > 0) msg += ", Skipped: " + skippedCount + " (locked due to published results).";
+            
+            return ResponseEntity.ok(msg);
         } catch (Exception e) {
             return ResponseEntity.status(403).body("Access denied: " + e.getMessage());
         }
     }
 
-    // ══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════
     //  STUDY MATERIALS
-    // ══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════
 
-    /** POST /faculty/courses/{courseId}/materials — add a resource link */
     @PostMapping("/courses/{courseId}/materials")
     public ResponseEntity<?> addMaterial(
             @RequestHeader("Authorization") String authHeader,
@@ -221,7 +241,6 @@ public class FacultyController {
         }
     }
 
-    /** GET /faculty/courses/{courseId}/materials — list resources for a course */
     @GetMapping("/courses/{courseId}/materials")
     public ResponseEntity<?> getMaterials(@PathVariable Long courseId) {
         List<Material> materials = materialRepository.findByCourseCourseIdOrderByChapterAsc(courseId);
@@ -232,7 +251,6 @@ public class FacultyController {
         return ResponseEntity.ok(response);
     }
 
-    /** DELETE /faculty/materials/{id} — remove a resource */
     @DeleteMapping("/materials/{id}")
     public ResponseEntity<?> deleteMaterial(@PathVariable Long id) {
         if (!materialRepository.existsById(id)) return ResponseEntity.notFound().build();
@@ -246,7 +264,9 @@ public class FacultyController {
             @RequestParam Integer semester,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            Faculty faculty = facultyRepository.findByUserUsername(userDetails.getUsername())
+            // userDetails.getUsername() now returns email (Spring Security principal = email)
+            String email = userDetails.getUsername();
+            Faculty faculty = facultyRepository.findByUserEmail(email)
                     .orElseThrow(() -> new RuntimeException("Faculty not found"));
 
             List<Enrollment> enrollments = enrollmentRepository

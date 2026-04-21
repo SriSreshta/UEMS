@@ -26,10 +26,10 @@ public class StudentExamController {
     private UserRepository userRepository;
 
     @GetMapping("/schedules")
-    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    @PreAuthorize("hasRole('STUDENT')")
     public List<ExamScheduleDto> getBroadcastedSchedules(@AuthenticationPrincipal UserDetails userDetails) {
         
-        User user = userRepository.findByUsername(userDetails.getUsername()).orElseThrow();
+        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
         Integer year = Integer.parseInt(user.getStudent().getYear());
         
         Integer semester = Integer.parseInt(user.getStudent().getSemester());

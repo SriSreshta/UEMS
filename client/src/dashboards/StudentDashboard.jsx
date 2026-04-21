@@ -21,6 +21,7 @@ const StudentDashboard = () => {
     const [attendancePercent, setAttendancePercent] = useState(null);
     const [showAlert, setShowAlert] = useState(true);
     const [resultNotification, setResultNotification] = useState(null);
+    const [isDismissing, setIsDismissing] = useState(false);
     const navigate = useNavigate();
     const quote = QUOTES[new Date().getDay() % QUOTES.length];
 
@@ -72,10 +73,34 @@ const StudentDashboard = () => {
             <div className="flex-1 flex flex-col">
                 <Header title="Student Portal" isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
 
-                {/* Result Notification Modal (Non-dismissible) */}
+                {/* Result Notification Modal */}
                 {resultNotification && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                        <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-100 transition-all">
+                        <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-100 transition-all relative">
+                            {/* Dismiss Button */}
+                            <button
+                                onClick={async () => {
+                                    if (isDismissing) return;
+                                    setIsDismissing(true);
+                                    const previousNotification = resultNotification;
+                                    setResultNotification(null); // optimistic UI update
+                                    try {
+                                        const res = await authFetch(`http://localhost:8081/api/student/notifications/${previousNotification.id}/seen`, { method: "PUT" });
+                                        if (!res.ok) throw new Error("Failed to dismiss");
+                                    } catch (err) {
+                                        console.error("Failed to dismiss notification:", err);
+                                        setResultNotification(previousNotification); // rollback
+                                        alert("Something went wrong. Please try again.");
+                                    } finally {
+                                        setIsDismissing(false);
+                                    }
+                                }}
+                                disabled={isDismissing}
+                                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+                            >
+                                <span className="text-2xl font-bold leading-none">&times;</span>
+                            </button>
+
                             <div className="text-6xl mb-6">📋</div>
                             <h2 className="text-2xl font-black text-white mb-2">Results Published!</h2>
                             <p className="text-slate-300 mb-8 leading-relaxed font-medium">
@@ -83,17 +108,25 @@ const StudentDashboard = () => {
                             </p>
                             <button
                                 onClick={async () => {
+                                    if (isDismissing) return;
+                                    setIsDismissing(true);
+                                    const previousNotification = resultNotification;
+                                    setResultNotification(null); // optimistic hide
                                     try {
-                                        await authFetch(`http://localhost:8081/api/student/notifications/${resultNotification.id}/seen`, { method: "PUT" });
-                                        setResultNotification(null);
+                                        const res = await authFetch(`http://localhost:8081/api/student/notifications/${previousNotification.id}/seen`, { method: "PUT" });
+                                        if (!res.ok) throw new Error("Failed to mark as seen");
                                         navigate("/student/results");
                                     } catch (err) {
                                         console.error("Failed to mark notification as seen:", err);
+                                        setResultNotification(previousNotification); // rollback
+                                        alert("Something went wrong. Please try again.");
+                                        setIsDismissing(false);
                                     }
                                 }}
-                                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/30"
+                                disabled={isDismissing}
+                                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                View My Results
+                                {isDismissing ? "Processing..." : "View My Results"}
                             </button>
                         </div>
                     </div>
