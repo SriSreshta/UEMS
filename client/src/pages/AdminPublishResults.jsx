@@ -19,14 +19,9 @@ const AdminPublishResults = () => {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [searchQuery, setSearchQuery] = useState("");
   // Supplementary states
   const [isSupplementary, setIsSupplementary] = useState(false);
-  const [suppAttempts, setSuppAttempts] = useState([]);
-  const [showSuppModal, setShowSuppModal] = useState(false);
-  const [suppForm, setSuppForm] = useState({ id: null, studentSearch: "", selectedCourseId: "", marksObtained: "", enrollmentId: "" });
-  const [suppLoading, setSuppLoading] = useState(false);
-  const [backlogCourses, setBacklogCourses] = useState([]);
-  const [backlogsLoading, setBacklogsLoading] = useState(false);
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -64,13 +59,6 @@ const AdminPublishResults = () => {
         setIsSupplementary(isSupp);
         
         setStudents(data);
-
-        if (isSupp) {
-          const suppRes = await authFetch(`http://localhost:8081/api/admin/supplementary?year=${selectedExam.year}&semester=${selectedExam.semester}`);
-          if (suppRes.ok) {
-            setSuppAttempts(await suppRes.json());
-          }
-        }
       } catch (err) {
         setMessage({
           type: "error",
@@ -82,77 +70,6 @@ const AdminPublishResults = () => {
     };
     fetchResultsPreview();
   }, [selectedExamId, authFetch, exams]);
-
-  useEffect(() => {
-    if (isSupplementary && selectedExamId && suppForm.studentSearch) {
-      setBacklogsLoading(true);
-      setBacklogCourses([]);
-      
-      const url = `http://localhost:8081/api/admin/supplementary/backlogs?studentId=${suppForm.studentSearch}`;
-      console.log("Fetching backlogs URL:", url);
-      
-      authFetch(url)
-        .then(res => res.json())
-        .then(data => {
-          console.log("Backlog data received:", data);
-          setBacklogCourses(data);
-        })
-        .catch(err => {
-          console.error("Error fetching backlogs", err);
-        })
-        .finally(() => {
-          setBacklogsLoading(false);
-        });
-    } else {
-      setBacklogCourses([]);
-    }
-  }, [isSupplementary, selectedExamId, suppForm.studentSearch, authFetch]);
-
-  const loadSuppAttempts = async () => {
-    const selectedExam = exams.find(e => String(e.examId) === String(selectedExamId));
-    if (!selectedExam) return;
-    try {
-      const res = await authFetch(`http://localhost:8081/api/admin/supplementary?year=${selectedExam.year}&semester=${selectedExam.semester}`);
-      if (res.ok) setSuppAttempts(await res.json());
-    } catch {}
-  };
-
-  const handleSuppSubmit = async (e) => {
-    e.preventDefault();
-    if (!suppForm.enrollmentId || !suppForm.marksObtained) {
-      showToast("Please fill all required fields", "error"); return;
-    }
-    setSuppLoading(true);
-    try {
-      const payload = {
-        enrollmentId: suppForm.enrollmentId,
-        marksObtained: parseInt(suppForm.marksObtained)
-      };
-      const res = await authFetch("http://localhost:8081/api/admin/supplementary", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error("Failed to save attempt");
-      setShowSuppModal(false);
-      loadSuppAttempts();
-      setMessage({ type: "success", text: "Supplementary result saved!" });
-    } catch (err) {
-      setMessage({ type: "error", text: err.message });
-    } finally {
-      setSuppLoading(false);
-    }
-  };
-
-  const handleDeleteSupp = async (id) => {
-    if (!window.confirm("Delete this supplementary result?")) return;
-    try {
-      const res = await authFetch(`http://localhost:8081/api/admin/supplementary/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
-      loadSuppAttempts();
-    } catch (err) {
-      setMessage({ type: "error", text: "Delete failed" });
-    }
-  };
 
   const showToast = (txt, type="error") => setMessage({ type, text: txt });
 
@@ -228,11 +145,36 @@ const AdminPublishResults = () => {
     }
   };
 
-  // TODO: REMOVE AFTER DATA FIX
-  const handleUnpublish = async () => {
+  const handleUnlockFailed = async () => {
     if (
       !window.confirm(
-        "Are you sure you want to unpublish these results? This will hide them from students so corrections can be made."
+        "Are you sure you want to unlock failed enrollments? This allows faculty to enter new grades for students who failed."
+      )
+    )
+      return;
+    setPublishing(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const res = await authFetch(
+        `http://localhost:8081/api/admin/exams/${selectedExamId}/unlock-failed`,
+        { method: "PUT" }
+      );
+      if (!res.ok) throw new Error("Failed to unlock failed enrollments");
+      setMessage({
+        type: "success",
+        text: "Failed enrollments unlocked successfully! Faculty can now re-enter marks.",
+      });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleUnlockRegular = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to unlock this entire exam? This allows faculty to correct mistakenly entered marks."
       )
     )
       return;
@@ -243,10 +185,10 @@ const AdminPublishResults = () => {
         `http://localhost:8081/api/admin/exams/${selectedExamId}/results/unpublish`,
         { method: "POST" }
       );
-      if (!res.ok) throw new Error("Failed to unpublish results");
+      if (!res.ok) throw new Error("Failed to unlock exam");
       setMessage({
         type: "success",
-        text: "Results unpublished successfully! You can now fix the DB and republish.",
+        text: "Exam unlocked successfully! Let faculty correct their entries and then republish.",
       });
     } catch (err) {
       setMessage({ type: "error", text: err.message });
@@ -255,8 +197,13 @@ const AdminPublishResults = () => {
     }
   };
 
-  const totalPages = Math.ceil(students.length / PAGE_SIZE);
-  const paginatedStudents = students.slice(
+  const filteredStudents = students.filter((s) => {
+    const query = searchQuery.toLowerCase();
+    return s.hallTicketNo.toLowerCase().includes(query) || s.studentName.toLowerCase().includes(query);
+  });
+
+  const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
+  const paginatedStudents = filteredStudents.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
@@ -313,43 +260,54 @@ const AdminPublishResults = () => {
 
             {selectedExamId && students.length > 0 && (
               <div className="flex gap-4 items-center">
+                
+                {/* Search Bar */}
+                <input
+                  type="text"
+                  placeholder="Search student by name or roll no."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1); // Reset to page 1 on search
+                  }}
+                  className="p-3 border border-gray-300 rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none w-64"
+                />
+
                 {isSupplementary && (
                   <button
-                    onClick={() => {
-                        setSuppForm({ id: null, studentSearch: "", selectedCourseId: "", marksObtained: "", enrollmentId: "" });
-                        setShowSuppModal(true);
-                    }}
-                    className="px-6 py-3 rounded bg-teal-600 text-white font-bold hover:bg-teal-700 shadow-sm transition"
+                    onClick={handleUnlockFailed}
+                    disabled={publishing}
+                    className={`px-6 py-3 rounded text-amber-600 font-bold border-2 border-amber-600 shadow-sm transition ${
+                      publishing ? "opacity-50" : "hover:bg-amber-50"
+                    }`}
                   >
-                    + Add/Edit Result
+                    Unlock Failed Enrollments
                   </button>
                 )}
-
-                {/* TODO: REMOVE AFTER DATA FIX - Start */}
-                <button
-                  onClick={handleUnpublish}
-                  disabled={publishing}
-                  className={`px-6 py-3 rounded text-red-600 font-bold border-2 border-red-600 shadow-sm transition ${
-                    publishing ? "opacity-50" : "hover:bg-red-50"
-                  }`}
-                >
-                  Unpublish Results
-                </button>
-                {/* TODO: REMOVE AFTER DATA FIX - End */}
 
                 {!isSupplementary && (
                   <button
-                    onClick={handlePublish}
+                    onClick={handleUnlockRegular}
                     disabled={publishing}
-                    className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${
-                      publishing
-                        ? "bg-indigo-400"
-                        : "bg-indigo-600 hover:bg-indigo-700"
+                    className={`px-6 py-3 rounded text-red-600 font-bold border-2 border-red-600 shadow-sm transition ${
+                      publishing ? "opacity-50" : "hover:bg-red-50"
                     }`}
                   >
-                    {publishing ? "Publishing..." : "Publish Final Results"}
+                    Unlock Exam (Fix Typos)
                   </button>
                 )}
+
+                <button
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  className={`px-6 py-3 rounded text-white font-bold shadow-sm transition ${
+                    publishing
+                      ? "bg-indigo-400"
+                      : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
+                >
+                  {publishing ? "Publishing..." : "Publish Final Results"}
+                </button>
               </div>
             )}
           </div>
@@ -416,46 +374,9 @@ const AdminPublishResults = () => {
           )}
 
           {/* Student results — paginated */}
-          {!previewLoading && selectedExamId && (!isSupplementary ? students.length > 0 : true) && (
+          {!previewLoading && selectedExamId && filteredStudents.length > 0 && (
             <>
-              {isSupplementary ? (
-              <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mt-6">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-600 uppercase border-b">
-                    <tr>
-                      <th className="px-6 py-3">Roll Number</th>
-                      <th className="px-6 py-3">Name</th>
-                      <th className="px-6 py-3">Marks Obtained</th>
-                      <th className="px-6 py-3">Grade</th>
-                      <th className="px-6 py-3 text-center">Status</th>
-                      <th className="px-6 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {suppAttempts.length === 0 ? (
-                      <tr><td colSpan="6" className="p-8 text-center text-gray-400">No supplementary attempts recorded for this session.</td></tr>
-                    ) : (suppAttempts.map(sa => (
-                      <tr key={sa.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-bold text-gray-800">{sa.rollNumber}</td>
-                        <td className="px-6 py-4 text-gray-600">{sa.studentName}</td>
-                        <td className="px-6 py-4 font-mono font-semibold">{sa.marksObtained}</td>
-                        <td className="px-6 py-4 font-bold text-gray-800">{sa.grade}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`inline-flex px-2.5 py-1 rounded text-xs font-black uppercase tracking-wider ${sa.status === 'PASS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {sa.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button onClick={() => handleDeleteSupp(sa.id)} className="text-red-500 hover:text-red-700 text-xs font-bold uppercase underline">Delete</button>
-                        </td>
-                      </tr>
-                    )))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-                <div className="space-y-6">
-                  {/* ... same student render logic ... */}
+                <div className="space-y-6 mt-6">
                   {paginatedStudents.map((student, sIdxOnPage) => {
                     const globalIdx = (currentPage - 1) * PAGE_SIZE + sIdxOnPage;
                     return (
@@ -561,9 +482,7 @@ const AdminPublishResults = () => {
                     );
                   })}
                 </div>
-            )}
-
-            {!isSupplementary && (() => {
+            {(() => {
               let pages = [];
               if (totalPages <= 7) {
                 pages = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -630,74 +549,6 @@ const AdminPublishResults = () => {
           )}
           </div>
         </main>
-        {showSuppModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-6">Add/Edit Supplementary Result</h2>
-              <form onSubmit={handleSuppSubmit} className="space-y-4">
-                
-                {/* Search for Student by roll number / name inside `students` */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Select Student</label>
-                  <select 
-                    className="w-full p-2 border rounded focus:ring-2 outline-none"
-                    value={suppForm.studentSearch}
-                    onChange={e => setSuppForm({...suppForm, studentSearch: e.target.value, selectedCourseId: "", enrollmentId: ""})}
-                    required
-                  >
-                    <option value="">-- Choose Student --</option>
-                    {students.map(s => (
-                      <option key={s.studentId} value={s.studentId}>{s.studentName} ({s.hallTicketNo})</option>
-                    ))}
-                  </select>
-                </div>
-
-                {suppForm.studentSearch && (
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Select Course Backlog</label>
-                    <select 
-                      className="w-full p-2 border rounded focus:ring-2 outline-none"
-                      value={suppForm.enrollmentId}
-                      onChange={e => setSuppForm({...suppForm, enrollmentId: e.target.value})}
-                      required
-                    >
-                      <option value="">-- Choose Course --</option>
-                      {backlogsLoading ? (
-                        <option value="" disabled>Loading courses...</option>
-                      ) : backlogCourses.length === 0 ? (
-                        <option value="" disabled>No backlog courses found</option>
-                      ) : (
-                        backlogCourses.map(c => (
-                          <option key={c.enrollmentId} value={c.enrollmentId}>{c.courseCode} - {c.courseName}</option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Marks Obtained (External/End Sem)</label>
-                    <input 
-                      type="number" 
-                      className="w-full p-2 border rounded outline-none" 
-                      value={suppForm.marksObtained}
-                      onChange={e => setSuppForm({...suppForm, marksObtained: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 mt-8">
-                  <button type="button" onClick={() => setShowSuppModal(false)} className="px-4 py-2 font-bold text-gray-500 hover:bg-gray-100 rounded">Cancel</button>
-                  <button type="submit" disabled={suppLoading} className="px-4 py-2 font-bold text-white bg-indigo-600 rounded hover:bg-indigo-700">
-                    {suppLoading ? "Saving..." : "Save Result"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

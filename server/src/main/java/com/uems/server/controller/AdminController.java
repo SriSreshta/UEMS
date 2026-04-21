@@ -452,71 +452,6 @@ public class AdminController {
     // SUPPLEMENTARY EXAMS
     // ════════════════════════════════════════════════════════════════════════
 
-    @PostMapping("/supplementary")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> addOrUpdateSupplementaryAttempt(@RequestBody Map<String, Object> body) {
-        try {
-            Long enrollmentId = Long.valueOf(body.get("enrollmentId").toString());
-            Integer endSemMarks = body.containsKey("marksObtained") && body.get("marksObtained") != null ? 
-                                    Integer.valueOf(body.get("marksObtained").toString()) : null;
-
-            Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-                    .orElseThrow(() -> new RuntimeException("Enrollment not found"));
-
-            // Auto-compute grade based on internal + supplementary external
-            double m1 = enrollment.getMid1Marks() != null ? enrollment.getMid1Marks() : 0;
-            double m2 = enrollment.getMid2Marks() != null ? enrollment.getMid2Marks() : 0;
-            double assign = enrollment.getAssignmentMarks() != null ? enrollment.getAssignmentMarks() : 0;
-            int internal = (int) Math.ceil((m1 + m2) / 2.0) + (int) assign;
-
-            String computedGrade = "F";
-            if (endSemMarks != null && internal >= 14 && endSemMarks >= 21) {
-                int total = internal + endSemMarks;
-                if (total >= 90) computedGrade = "O";
-                else if (total >= 80) computedGrade = "A+";
-                else if (total >= 70) computedGrade = "A";
-                else if (total >= 60) computedGrade = "B+";
-                else if (total >= 50) computedGrade = "B";
-                else if (total >= 40) computedGrade = "C";
-            }
-
-            com.uems.server.model.SupplementaryAttempt attempt = supplementaryAttemptRepository.findByEnrollment_Id(enrollmentId)
-                    .orElseGet(() -> com.uems.server.model.SupplementaryAttempt.builder()
-                            .enrollment(enrollment)
-                            .year(enrollment.getCourse().getYear())
-                            .semester(enrollment.getCourse().getSemester())
-                            .build());
-
-            attempt.setMarksObtained(endSemMarks);
-            attempt.setGrade(computedGrade);
-            supplementaryAttemptRepository.save(attempt);
-
-            return ResponseEntity.ok("Supplementary attempt saved successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @GetMapping("/supplementary/backlogs")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<Map<String, Object>>> getStudentBacklogs(
-            @RequestParam Long studentId) {
-        
-        List<Enrollment> backlogs = enrollmentRepository.findAllBacklogsByStudentId(studentId);
-        
-        List<Map<String, Object>> response = backlogs.stream().map(e -> {
-            Map<String, Object> map = new java.util.LinkedHashMap<>();
-            map.put("enrollmentId", e.getId());
-            map.put("courseId", e.getCourse().getCourseId());
-            map.put("courseCode", e.getCourse().getCode());
-            map.put("courseName", e.getCourse().getName());
-            map.put("grade", e.getGrade());
-            return map;
-        }).toList();
-
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/supplementary")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<SupplementaryAttemptDto>> getSupplementaryAttempts(
@@ -542,36 +477,4 @@ public class AdminController {
         return ResponseEntity.ok(result);
     }
 
-    @DeleteMapping("/supplementary/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteSupplementaryAttempt(@PathVariable Long id) {
-        if (!supplementaryAttemptRepository.existsById(id)) {
-            return ResponseEntity.badRequest().body("Attempt not found");
-        }
-        supplementaryAttemptRepository.deleteById(id);
-        return ResponseEntity.ok("Deleted successfully.");
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // MARKS LEDGER ACTIONS
-    // ════════════════════════════════════════════════════════════════════════
-
-    @PutMapping("/courses/{courseId}/unlock-ledger")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> unlockLedger(@PathVariable Long courseId) {
-        try {
-            List<Enrollment> enrollments = enrollmentRepository.findByCourseCourseId(courseId);
-            int count = 0;
-            for (Enrollment e : enrollments) {
-                if (Boolean.TRUE.equals(e.getEndSemReleased())) {
-                    e.setEndSemReleased(false);
-                    enrollmentRepository.save(e);
-                    count++;
-                }
-            }
-            return ResponseEntity.ok(count + " record(s) unlocked for course " + courseId);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Failed to unlock ledger: " + e.getMessage());
-        }
-    }
 }

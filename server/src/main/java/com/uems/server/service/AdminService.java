@@ -325,11 +325,14 @@ public class AdminService {
                 .year(request.getYear())
                 .semester(request.getSemester())
                 .isOpenElective(request.getIsOpenElective() != null && request.getIsOpenElective())
+                .credits(request.getCredits() != null && request.getCredits() > 0 ? request.getCredits() : 0)
                 .build();
         Course saved = courseRepository.save(course);
         
-        // Auto-recalibrate credits for this semester/department
-        recalibrateSemesterCredits(saved.getYear(), saved.getSemester(), saved.getDepartment());
+        // Auto-recalibrate credits only if admin didn't specify credits manually
+        if (request.getCredits() == null || request.getCredits() <= 0) {
+            recalibrateSemesterCredits(saved.getYear(), saved.getSemester(), saved.getDepartment());
+        }
 
         // ── Auto-enroll existing eligible students (for backdated courses) ────
         if (Boolean.TRUE.equals(request.getEnrollExistingStudents())
@@ -382,11 +385,16 @@ public class AdminService {
         course.setYear(request.getYear());
         course.setSemester(request.getSemester());
         course.setIsOpenElective(request.getIsOpenElective() != null && request.getIsOpenElective());
+        if (request.getCredits() != null && request.getCredits() > 0) {
+            course.setCredits(request.getCredits());
+        }
         Course updated = courseRepository.save(course);
         
-        // If year, semester, or department changed, recalibrate both old and new
-        recalibrateSemesterCredits(oldYear, oldSem, oldDept);
-        recalibrateSemesterCredits(updated.getYear(), updated.getSemester(), updated.getDepartment());
+        // Auto-recalibrate only if credits weren't manually specified
+        if (request.getCredits() == null || request.getCredits() <= 0) {
+            recalibrateSemesterCredits(oldYear, oldSem, oldDept);
+            recalibrateSemesterCredits(updated.getYear(), updated.getSemester(), updated.getDepartment());
+        }
         
         return toCourseResponse(updated, checkPublishedResults(updated.getCourseId()));
     }
@@ -526,7 +534,7 @@ public class AdminService {
             for (Enrollment e : enrollments) {
                 if (e.getGrade() == null) continue;
 
-                if (e.getGrade().equals("F") || e.getGrade().equals("Ab")) {
+                if (Boolean.TRUE.equals(e.getClearedViaSupplementary()) || e.getGrade().equals("F") || e.getGrade().equals("Ab")) {
                     hasBacklog = true;
                     break;
                 }

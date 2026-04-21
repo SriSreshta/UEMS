@@ -37,7 +37,7 @@ export default function ManageCourses() {
   const [faculties, setFaculties] = useState([]);
   const [toast, setToast]         = useState({ msg: "", type: "success" });
 
-  const [form, setForm] = useState({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false });
+  const [form, setForm] = useState({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false, credits: "" });
   const [creating, setCreating] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState(null);
 
@@ -74,7 +74,7 @@ export default function ManageCourses() {
           : "Course created successfully!";
         showToast(msg);
       }
-      setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false });
+      setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false, credits: "" });
       setEditingCourseId(null);
       await loadCourses();
     } catch (err) {
@@ -92,7 +92,8 @@ export default function ManageCourses() {
       year: course.year,
       semester: course.semester,
       isOpenElective: course.isOpenElective || false,
-      enrollExistingStudents: false
+      enrollExistingStudents: false,
+      credits: course.credits || ""
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -103,7 +104,7 @@ export default function ManageCourses() {
       await api.delete(`/admin/courses/${courseId}`);
       showToast("Course deleted successfully!");
       if (editingCourseId === courseId) {
-        setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false });
+        setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false, credits: "" });
         setEditingCourseId(null);
       }
       await loadCourses();
@@ -130,18 +131,7 @@ export default function ManageCourses() {
     } finally { setAssigning(false); }
   };
 
-  const handleUnlockLedger = async (courseId) => {
-    if (!window.confirm("Are you sure you want to unlock the ledger for this course? This will allow faculty to re-edit grades.")) {
-      return;
-    }
-    try {
-      await api.put(`/admin/courses/${courseId}/unlock-ledger`);
-      showToast("Ledger unlocked successfully!", "success");
-      await loadCourses(); // Reload to update button state
-    } catch (err) {
-      showToast("Failed to unlock ledger.", "error");
-    }
-  };
+
 
   return (
     <div className="flex min-h-screen bg-slate-50 bg-pattern">
@@ -165,7 +155,7 @@ export default function ManageCourses() {
                   </h2>
                   {editingCourseId && (
                     <button 
-                      onClick={() => { setEditingCourseId(null); setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false }); }}
+                      onClick={() => { setEditingCourseId(null); setForm({ name: "", code: "", department: "", year: "", semester: "", isOpenElective: false, enrollExistingStudents: false, credits: "" }); }}
                       className="text-xs font-bold text-slate-400 hover:text-slate-600 transition"
                     >
                       Cancel Edit
@@ -183,9 +173,15 @@ export default function ManageCourses() {
                       <input className={inpCls} value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="e.g. CS301" />
                     </div>
                   </div>
-                  <div>
-                    <label className={lbl}>Department</label>
-                    <input className={inpCls} value={form.department} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="e.g. CSE" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={lbl}>Department</label>
+                      <input className={inpCls} value={form.department} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="e.g. CSE" />
+                    </div>
+                    <div>
+                      <label className={lbl}>Credits</label>
+                      <input type="number" min="1" max="10" className={inpCls} value={form.credits} onChange={e => setForm(p => ({ ...p, credits: e.target.value }))} placeholder="Optional: 1-10" />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -316,22 +312,6 @@ export default function ManageCourses() {
                                     </td>
                                     <td className="px-8 py-5 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            {c.hasPublishedResults ? (
-                                              <button 
-                                                  onClick={() => handleUnlockLedger(c.courseId)}
-                                                  className="p-1.5 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition"
-                                                  title="Unlock Marks Ledger"
-                                              >
-                                                  <LockOpenIcon className="w-4 h-4" />
-                                              </button>
-                                            ) : (
-                                              <div 
-                                                className="p-1.5 text-slate-300 cursor-not-allowed"
-                                                title="No published results to unlock"
-                                              >
-                                                  <LockOpenIcon className="w-4 h-4" />
-                                              </div>
-                                            )}
 
                                             <button 
                                                 onClick={() => handleEdit(c)}
