@@ -16,7 +16,7 @@ public class CorsConfig {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
                             "http://localhost:5173",
-                            "https://uems-4q1dwsciw-srisreshtas-projects.vercel.app",
+                            "https://uems-seven.vercel.app",
                             "https://*.vercel.app"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")

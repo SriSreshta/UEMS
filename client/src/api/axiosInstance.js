@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://uems-rz8o.onrender.com/api",
+  baseURL: 'https://uems-3bsy.onrender.com',
 });
 
 api.interceptors.request.use((config) => {
