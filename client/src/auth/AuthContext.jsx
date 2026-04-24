@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   // ✅ LOGIN FUNCTION
   const login = async (username, password, rollNumber, facultyCode, role) => {
     try {
-      const res = await fetch("https://uems-rz8o.onrender.com/api/auth/login", {
+      const res = await fetch("https://uems-3bsy.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, rollNumber, facultyCode, role }),
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
       // Robust role extraction
       let rawRole = decoded.role || "";
       if (Array.isArray(rawRole)) rawRole = rawRole[0];
-      const normalizedRole = rawRole.replace('ROLE_', '').toLowerCase();
+      const normalizedRole = rawRole.replace(/ROLE_/gi, '').toLowerCase();
       console.log("Extracted role:", normalizedRole);
       console.log("Saving token:", data.token);
 
