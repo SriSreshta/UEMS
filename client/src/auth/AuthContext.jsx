@@ -24,12 +24,16 @@ export const AuthProvider = ({ children }) => {
       if (!res.ok) return false;
 
       const data = await res.json();
+      console.log("Login response:", data);
+
       const decoded = jwtDecode(data.token);
 
       // Robust role extraction
       let rawRole = decoded.role || "";
       if (Array.isArray(rawRole)) rawRole = rawRole[0];
       const normalizedRole = rawRole.replace('ROLE_', '').toLowerCase();
+      console.log("Extracted role:", normalizedRole);
+      console.log("Saving token:", data.token);
 
       const payload = {
         username: data.username, // Display name from server response
@@ -61,6 +65,8 @@ export const AuthProvider = ({ children }) => {
         default:
           route = "/login";
       }
+      
+      console.log("Navigating to:", route);
       navigate(route);
       return true;
     } catch (err) {
