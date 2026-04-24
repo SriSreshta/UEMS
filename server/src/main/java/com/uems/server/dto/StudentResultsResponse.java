@@ -1,0 +1,18 @@
+package com.uems.server.dto;
+
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class StudentResultsResponse {
+    private Double cgpa;
+    private List<SemesterResultDto> semesters;
+    private String studentName;
+    private String rollNumber;
+    private String department;
+    private String year;
+}
