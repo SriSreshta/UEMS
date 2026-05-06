@@ -106,13 +106,3 @@ Final Year B.Tech CSE JNTUH
 **Mentor:** Dr. K. Suresh Babu
 
 ---
-
-## License
-
-This project is licensed under the MIT License.
-
----
-
-<div align="center">
-  Made with ❤️ by the UEMS Team .
-</div>
